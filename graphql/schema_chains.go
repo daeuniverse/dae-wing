@@ -5,10 +5,20 @@
 
 package graphql
 
-import "github.com/v2rayA/dae-wing/graphql/config/global"
+import (
+	"github.com/v2rayA/dae-wing/graphql/config"
+	"github.com/v2rayA/dae-wing/graphql/config/global"
+	"github.com/v2rayA/dae-wing/graphql/service"
+	"github.com/v2rayA/dae-wing/graphql/service/node"
+	"github.com/v2rayA/dae-wing/graphql/service/subscription"
+)
 
 type SchemaChain func() (string, error)
 
 var schemaChains = []SchemaChain{
-	global.SubSchema,
+	config.Schema,
+	global.Schema,
+	service.Schema,
+	node.Schema,
+	subscription.Schema,
 }

@@ -6,25 +6,29 @@
 package graphql
 
 import (
+	"context"
 	"github.com/graph-gophers/graphql-go"
+	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql/config/global"
+	"github.com/v2rayA/dae-wing/graphql/service/subscription"
+	"github.com/v2rayA/dae-wing/model"
 	"github.com/v2rayA/dae/config"
 	"strings"
 )
 
 var rootSchema = `
 scalar Duration
+scalar Time
 //scalar Int8, Int16, Int32, Int64
 //scalar UInt8, UInt16, UInt32, UInt64
 
 schema {
 	query: Query
+	//mutation: Mutation
 }
 type Query {
 	config: Config!
-}
-type Config {
-	global: Global!
+	subscriptions(id: Int): [Subscription!]!
 }
 `
 
@@ -49,6 +53,25 @@ func (r *QueryResolver) Config() (*configResolver, error) {
 	return &configResolver{
 		Config: c,
 	}, nil
+}
+
+func (r *QueryResolver) Subscriptions(args struct{ ID graphql.NullInt }) (rs []*subscription.Resolver, err error) {
+	q := db.DB(context.TODO()).
+		Model(&model.SubscriptionModel{})
+	if args.ID.Set {
+		q = q.Where("id == ?", *args.ID.Value)
+	}
+	var models []model.SubscriptionModel
+	if err = q.Find(&models).Error; err != nil {
+		return nil, err
+	}
+	for _, _m := range models {
+		m := _m
+		rs = append(rs, &subscription.Resolver{
+			SubscriptionModel: &m,
+		})
+	}
+	return rs, nil
 }
 
 type configResolver struct {

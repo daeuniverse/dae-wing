@@ -65,7 +65,7 @@ func (b *builder) Build() (string, error) {
 	return b.sb.String(), nil
 }
 
-func SubSchema() (string, error) {
+func Schema() (string, error) {
 	var b builder
 	return b.Build()
 }
