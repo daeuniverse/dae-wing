@@ -14,6 +14,8 @@ import (
 
 var rootSchema = `
 scalar Duration
+//scalar Int8, Int16, Int32, Int64
+//scalar UInt8, UInt16, UInt32, UInt64
 
 schema {
 	query: Query
@@ -23,9 +25,6 @@ type Query {
 }
 type Config {
 	global: Global!
-}
-type Global {
-	tproxy_port: [String!]!
 }
 `
 

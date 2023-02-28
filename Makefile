@@ -7,6 +7,6 @@
 
 schema-resolver:
 	@unset GOOS && \
-    unset GOARCH && \
-    unset GOARM && \
-    go generate ./...
+	unset GOARCH && \
+	unset GOARM && \
+	go generate ./...
