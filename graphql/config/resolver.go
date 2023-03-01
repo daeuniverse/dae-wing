@@ -54,7 +54,7 @@ type PlaintextResolver struct {
 	Plaintext string
 }
 
-func (r *PlaintextResolver) Value() string {
+func (r *PlaintextResolver) Val() string {
 	return r.Plaintext
 }
 
@@ -96,6 +96,6 @@ type ParamResolver struct {
 func (r *ParamResolver) Key() string {
 	return r.Param.Key
 }
-func (r *ParamResolver) Value() string {
+func (r *ParamResolver) Val() string {
 	return r.Param.Val
 }

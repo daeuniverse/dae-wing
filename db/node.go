@@ -5,18 +5,14 @@
 
 package db
 
-import (
-	"gorm.io/gorm"
-)
-
 type Node struct {
-	gorm.Model
+	ID       uint   `gorm:"primaryKey;autoIncrement"`
 	Link     string `gorm:"not null"`
 	Name     string `gorm:"not null"`
 	Address  string `gorm:"not null"`
 	Protocol string `gorm:"not null"`
 
-	Remarks *string `gorm:"unique"`
+	Tag *string `gorm:"unique"`
 
 	// Foreign keys.
 	// Nil SubscriptionID indicates nodes belonging to no subscription.

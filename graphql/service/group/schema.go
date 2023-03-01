@@ -8,10 +8,19 @@ package group
 func Schema() (string, error) {
 	return `
 type Group {
+	id: ID!
 	name: String!
 	nodes: [Node!]!
 	subscriptions: [Subscription!]!
-	policy: AndFunctionsOrPlaintext!
+	policy: Policy!
+	policyParams: [Param!]!
+}
+enum Policy {
+	random
+	fixed
+	min_avg10
+	min_moving_avg
+	min
 }
 `, nil
 }

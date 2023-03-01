@@ -5,24 +5,35 @@
 
 package db
 
-import (
-	"gorm.io/gorm"
-)
+import "github.com/v2rayA/dae/pkg/config_parser"
 
 type Group struct {
-	gorm.Model
-	Name           string `gorm:"not null;unique;index"`
-	Policy         string `gorm:"not null"`
-	StrategyParams []GroupStrategyParamModel
-	Node           []Node         `gorm:"many2many:group_nodes;"`
-	Subscription   []Subscription `gorm:"many2many:group_subscriptions;"`
+	ID           uint   `gorm:"primaryKey;autoIncrement"`
+	Name         string `gorm:"not null;unique;index"`
+	Policy       string `gorm:"not null"`
+	PolicyParams []GroupPolicyParamModel
+	Node         []Node         `gorm:"many2many:group_nodes;"`
+	Subscription []Subscription `gorm:"many2many:group_subscriptions;"`
 }
 
-type GroupStrategyParamModel struct {
-	gorm.Model
+type GroupPolicyParamModel struct {
+	ID    uint   `gorm:"primaryKey;autoIncrement"`
 	Key   string `gorm:"not null"`
 	Value string `gorm:"not null"`
 
-	GroupID uint `gorm:"not null"`
+	// Foreign keys.
+	GroupID uint
 	Group   Group
+}
+
+func (m *GroupPolicyParamModel) Marshal() *config_parser.Param {
+	return &config_parser.Param{
+		Key: m.Key,
+		Val: m.Value,
+	}
+}
+
+func (m *GroupPolicyParamModel) Unmarshal(param *config_parser.Param) {
+	m.Key = param.Key
+	m.Value = param.Val
 }

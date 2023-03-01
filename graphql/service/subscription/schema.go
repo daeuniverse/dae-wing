@@ -8,8 +8,9 @@ package subscription
 func Schema() (string, error) {
 	return `
 type Subscription {
-	model: Model!
-	remarks: String
+	id: ID!
+	updatedAt: Time!
+	tag: String
 	link: String!
 	status: String!
 	info: String!

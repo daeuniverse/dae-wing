@@ -20,7 +20,7 @@ type Function {
 }
 type Param {
 	key: String!
-	value: String!
+	val: String!
 }
 
 type AndFunctions {
@@ -28,7 +28,7 @@ type AndFunctions {
 }
 
 type Plaintext {
-	value: String!
+	val: String!
 }
 
 union AndFunctionsOrPlaintext = AndFunctions | Plaintext

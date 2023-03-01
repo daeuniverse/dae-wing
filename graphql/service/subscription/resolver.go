@@ -9,7 +9,6 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae-wing/common"
 	"github.com/v2rayA/dae-wing/db"
-	"github.com/v2rayA/dae-wing/graphql/service"
 	"github.com/v2rayA/dae-wing/graphql/service/node"
 )
 
@@ -17,13 +16,16 @@ type Resolver struct {
 	*db.Subscription
 }
 
-func (r *Resolver) Model() *service.ModelResolver {
-	return &service.ModelResolver{
-		Model: &r.Subscription.Model,
+func (r *Resolver) ID() graphql.ID {
+	return common.EncodeCursor(r.Subscription.ID)
+}
+func (r *Resolver) UpdatedAt() graphql.Time {
+	return graphql.Time{
+		Time: r.Subscription.UpdatedAt,
 	}
 }
-func (r *Resolver) Remarks() *string {
-	return r.Subscription.Remarks
+func (r *Resolver) Tag() *string {
+	return r.Subscription.Tag
 }
 func (r *Resolver) Link() string {
 	return r.Subscription.Link

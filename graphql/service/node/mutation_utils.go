@@ -6,9 +6,13 @@
 package node
 
 import (
+	"context"
+	"github.com/graph-gophers/graphql-go"
+	"github.com/v2rayA/dae-wing/common"
 	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql/internal"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ImportResult struct {
@@ -18,7 +22,10 @@ type ImportResult struct {
 }
 
 func importNode(d *gorm.DB, subscriptionId *uint, arg *internal.ImportArgument) (m *db.Node, err error) {
-	m, err = db.NewNodeModel(arg.Link, arg.Remarks, subscriptionId)
+	if err = arg.ValidateTag(); err != nil {
+		return nil, err
+	}
+	m, err = db.NewNodeModel(arg.Link, arg.Tag, subscriptionId)
 	if err != nil {
 		return nil, err
 	}
@@ -53,4 +60,34 @@ func Import(d *gorm.DB, abortError bool, subscriptionId *uint, argument []*inter
 		})
 	}
 	return rs, nil
+}
+
+func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
+	ids, err := common.DecodeCursorBatch(_ids)
+	if err != nil {
+		return 0, err
+	}
+	if err = db.DB(ctx).
+		Where("id in ?", ids).
+		Select(clause.Associations).
+		Delete(&db.Node{}).Error; err != nil {
+		return 0, err
+	}
+	return int32(len(ids)), nil
+}
+
+func Tag(ctx context.Context, _id graphql.ID, tag string) (n int32, err error) {
+	if err = common.ValidateTag(tag); err != nil {
+		return 0, err
+	}
+	id, err := common.DecodeCursor(_id)
+	if err != nil {
+		return 0, err
+	}
+	if err = db.DB(ctx).Model(&db.Node{}).
+		Where("id = ?", id).
+		Update("tag", tag).Error; err != nil {
+		return 0, err
+	}
+	return 1, nil
 }

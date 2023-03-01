@@ -47,8 +47,6 @@ func (r *queryResolver) Subscriptions(args struct{ ID *graphql.ID }) (rs []*subs
 			return nil, err
 		}
 		q = q.Where("id = ?", id)
-	} else {
-		q = q.Where("id is null")
 	}
 	var models []db.Subscription
 	if err = q.Find(&models).Error; err != nil {
@@ -71,9 +69,6 @@ func (r *queryResolver) Group(args struct{ Name string }) (rs *group.Resolver, e
 	if err = db.DB(context.TODO()).
 		Model(&db.Group{}).
 		Where("name = ?", args.Name).First(&m).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
 		return nil, err
 	}
 	return &group.Resolver{Group: &m}, nil

@@ -46,8 +46,11 @@ func NewConnectionResolver(id *graphql.ID, subscriptionId *graphql.ID, first *in
 	}
 
 	q := baseQuery()
-	if after != nil && first != nil {
-		q = q.Where("id > ?", after).Limit(int(*first))
+	if after != nil {
+		q = q.Where("id > ?", after)
+	}
+	if first != nil {
+		q = q.Limit(int(*first))
 	}
 	var models []db.Node
 	if err = q.Find(&models).Error; err != nil {

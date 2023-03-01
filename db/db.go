@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"path/filepath"
@@ -27,9 +28,9 @@ func InitDatabase(configDir string) (err error) {
 	}
 	if err = db.AutoMigrate(
 		&Group{},
+		&GroupPolicyParamModel{},
 		&Node{},
 		&Subscription{},
-		&Group{},
 	); err != nil {
 		return err
 	}
@@ -38,4 +39,10 @@ func InitDatabase(configDir string) (err error) {
 
 func DB(ctx context.Context) *gorm.DB {
 	return db.WithContext(ctx)
+}
+func BeginTx(ctx context.Context) *gorm.DB {
+	return DB(ctx).Begin(&sql.TxOptions{
+		Isolation: sql.LevelSerializable,
+		ReadOnly:  false,
+	})
 }

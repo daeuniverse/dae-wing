@@ -8,12 +8,12 @@ package node
 func Schema() (string, error) {
 	return `
 type Node {
-	model: Model!
+	id: ID!
 	link: String!
 	name: String!
 	address: String!
 	protocol: String!
-	remarks: String
+	tag: String
 	subscriptionID: ID
 }
 type NodesConnection {

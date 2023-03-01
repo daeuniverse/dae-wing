@@ -7,21 +7,21 @@ package db
 
 import (
 	"fmt"
-	"gorm.io/gorm"
+	"time"
 )
 
 var (
-	InvalidRemarkError = fmt.Errorf("invalid remarks; only support numbers and letters")
 	BadLinkFormatError = fmt.Errorf("not a valid link")
 )
 
 type Subscription struct {
-	gorm.Model
-	Link   string `gorm:"not null"`
-	Status string `gorm:"not null"` // Latency, error info, etc.
-	Info   string `gorm:"not null"` // Maybe include some info from provider
+	ID        uint      `gorm:"primaryKey;autoIncrement"`
+	UpdatedAt time.Time `gorm:"not null"`
+	Link      string    `gorm:"not null"`
+	Status    string    `gorm:"not null"` // Latency, error info, etc.
+	Info      string    `gorm:"not null"` // Maybe include some info from provider
 
-	Remarks *string `gorm:"unique"`
+	Tag *string `gorm:"unique"`
 
-	Nodes []Node
+	Node []Node
 }

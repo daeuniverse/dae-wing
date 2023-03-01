@@ -5,7 +5,16 @@
 
 package internal
 
+import "github.com/v2rayA/dae-wing/common"
+
 type ImportArgument struct {
-	Link    string
-	Remarks *string
+	Link string
+	Tag  *string
+}
+
+func (a *ImportArgument) ValidateTag() error {
+	if a.Tag == nil {
+		return nil
+	}
+	return common.ValidateTag(*a.Tag)
 }

@@ -24,7 +24,7 @@ func PasswordToHash32(entropy []byte, password string) string {
 }
 
 func EncodeCursor(id uint) (cursor graphql.ID) {
-	cursor.UnmarshalGraphQL(base64.StdEncoding.EncodeToString(
+	cursor.UnmarshalGraphQL(base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString(
 		[]byte(fmt.Sprintf("cursor%v", id)),
 	))
 	return cursor
@@ -39,7 +39,7 @@ func EncodeNullableCursor(nullableId *uint) (cursor *graphql.ID) {
 }
 
 func DecodeCursor(cursor graphql.ID) (id uint, err error) {
-	_id, err := base64.StdEncoding.DecodeString(string(cursor))
+	_id, err := base64.StdEncoding.WithPadding(base64.NoPadding).DecodeString(string(cursor))
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse cursor")
 	}
@@ -48,4 +48,15 @@ func DecodeCursor(cursor graphql.ID) (id uint, err error) {
 		return 0, fmt.Errorf("failed to parse cursor")
 	}
 	return uint(intId), nil
+}
+
+func DecodeCursorBatch(_ids []graphql.ID) (ids []uint, err error) {
+	for _, _id := range _ids {
+		id, err := DecodeCursor(_id)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }

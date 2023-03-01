@@ -27,16 +27,38 @@ type Query {
 }
 type Mutation {
 	importNodes(rollbackError: Boolean!, args: [ImportArgument!]!): [NodeImportResult!]!
-	importSubscription(rollbackError: Boolean!, arg: ImportArgument!): [NodeImportResult!]!
+	removeNodes(ids: [ID!]!): Int!
+	tagNode(id: ID!, tag: String!): Int!
+
+	importSubscription(rollbackError: Boolean!, arg: ImportArgument!): SubscriptionImportResult!
+	removeSubscriptions(ids: [ID!]!): Int!
+	tagSubscription(id: ID!, tag: String!): Int!
+
+	createGroup(name: String!, policy: Policy!, policyParams: [PolicyParam!]): Group!
+	groupAddSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int!
+	groupDelSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int!
+	groupAddNodes(id: ID!, nodeIDs: [ID!]!): Int!
+	groupDelNodes(id: ID!, nodeIDs: [ID!]!): Int!
+	renameGroup(id: ID!, name: String!): Int!
+	removeGroup(id: ID!): Int!
 }
 input ImportArgument {
 	link: String!
-	remarks: String
+	tag: String
 }
 type NodeImportResult {
 	link: String!
 	error: String
 	node: Node
+}
+type SubscriptionImportResult {
+	link: String!
+	error: String
+	subscription: Subscription
+}
+input PolicyParam {
+	key: String!
+	val: String!
 }
 `
 

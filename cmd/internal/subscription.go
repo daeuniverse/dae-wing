@@ -26,7 +26,7 @@ type sip008 struct {
 
 type sip008Server struct {
 	Id         string `json:"id"`
-	Remarks    string `json:"remarks"`
+	Tag        string `json:"tag"`
 	Server     string `json:"server"`
 	ServerPort int    `json:"server_port"`
 	Password   string `json:"password"`
@@ -77,7 +77,7 @@ func resolveSubscriptionAsSIP008(log *logrus.Logger, b []byte) (nodes []string, 
 			User:     url.UserPassword(server.Method, server.Password),
 			Host:     net.JoinHostPort(server.Server, strconv.Itoa(server.ServerPort)),
 			RawQuery: url.Values{"plugin": []string{server.PluginOpts}}.Encode(),
-			Fragment: server.Remarks,
+			Fragment: server.Tag,
 		}
 		nodes = append(nodes, u.String())
 	}
