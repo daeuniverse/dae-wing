@@ -25,6 +25,14 @@ func InitDatabase(configDir string) (err error) {
 	if err != nil {
 		return err
 	}
+	if err = db.AutoMigrate(
+		&Group{},
+		&Node{},
+		&Subscription{},
+		&Group{},
+	); err != nil {
+		return err
+	}
 	return nil
 }
 

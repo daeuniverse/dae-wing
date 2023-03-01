@@ -9,7 +9,8 @@ func Schema() (string, error) {
 	return `
 type Group {
 	name: String!
-	filter: AndFunctions!
+	nodes: [Node!]!
+	subscriptions: [Subscription!]!
 	policy: AndFunctionsOrPlaintext!
 }
 `, nil

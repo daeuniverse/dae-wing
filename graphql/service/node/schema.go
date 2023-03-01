@@ -14,13 +14,12 @@ type Node {
 	address: String!
 	protocol: String!
 	remarks: String!
-	status: String!
-	subscription_id: ID
+	subscriptionID: ID
 }
 type NodesConnection {
-	total_count: Int!
+	totalCount: Int!
 	edges: [Node!]!
-	page_info: PageInfo! 
+	pageInfo: PageInfo! 
 }
 `, nil
 }

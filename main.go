@@ -6,19 +6,25 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/v2rayA/dae-wing/graphql"
-	"net/http"
+	"github.com/v2rayA/dae-wing/cmd"
+	"os"
+)
 
-	"github.com/graph-gophers/graphql-go/relay"
+import (
+	_ "github.com/mzz2017/softwind/protocol/shadowsocks"
+	_ "github.com/mzz2017/softwind/protocol/trojanc"
+	_ "github.com/mzz2017/softwind/protocol/vless"
+	_ "github.com/mzz2017/softwind/protocol/vmess"
+	_ "github.com/v2rayA/dae/component/outbound/dialer/http"
+	_ "github.com/v2rayA/dae/component/outbound/dialer/shadowsocks"
+	_ "github.com/v2rayA/dae/component/outbound/dialer/shadowsocksr"
+	_ "github.com/v2rayA/dae/component/outbound/dialer/socks"
+	_ "github.com/v2rayA/dae/component/outbound/dialer/trojan"
+	_ "github.com/v2rayA/dae/component/outbound/dialer/v2ray"
 )
 
 func main() {
-	//log.Fatalln(global.SubSchema())
-	schema, err := graphql.Schema()
-	if err != nil {
-		return
+	if err := cmd.Execute(); err != nil {
+		os.Exit(1)
 	}
-	http.Handle("/query", &relay.Handler{Schema: schema})
-	log.Fatal(http.ListenAndServe(":8080", nil))
 }

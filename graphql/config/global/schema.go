@@ -8,6 +8,7 @@ package global
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"github.com/stoewer/go-strcase"
 	"github.com/v2rayA/dae/config"
 	"reflect"
 	"strings"
@@ -36,6 +37,8 @@ func (b *builder) Build() (string, error) {
 		if !ok {
 			return "", fmt.Errorf("field %v has no required mapstructure", structField.Name)
 		}
+		// To lower camel case.
+		name = strcase.LowerCamelCase(name)
 		switch field := field.Interface().(type) {
 		case uint, uint8, uint16, uint32, uint64,
 			int, int8, int16, int32, int64:

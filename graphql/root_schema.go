@@ -6,24 +6,13 @@
 package graphql
 
 import (
-	"context"
 	"github.com/graph-gophers/graphql-go"
-	"github.com/v2rayA/dae-wing/db"
-	"github.com/v2rayA/dae-wing/graphql/config/dns"
-	"github.com/v2rayA/dae-wing/graphql/config/global"
-	"github.com/v2rayA/dae-wing/graphql/config/group"
-	"github.com/v2rayA/dae-wing/graphql/config/routing"
-	"github.com/v2rayA/dae-wing/graphql/service/subscription"
-	"github.com/v2rayA/dae-wing/model"
-	"github.com/v2rayA/dae/config"
 	"strings"
 )
 
 var rootSchema = `
 scalar Duration
 scalar Time
-//scalar Int8, Int16, Int32, Int64
-//scalar UInt8, UInt16, UInt32, UInt64
 
 schema {
 	query: Query
@@ -31,96 +20,56 @@ schema {
 }
 type Query {
 	config: Config!
-	subscriptions(id: Int): [Subscription!]!
+	subscriptions(id: ID): [Subscription!]!
+	groups(id: ID): [Group!]!
+	group(name: String!): Group
+	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection!
 }
 type Mutation {
-	
+	importNodes(rollbackError: Boolean!, nodes: [NodeImportArgument!]!): [NodeImportResult!]!
+}
+input NodeImportArgument {
+	link: String!
+	remarks: String
+}
+type NodeImportResult {
+	error: String
+	node: Node
 }
 `
 
-type Resolver struct{}
+type resolver struct{}
 
-func (*Resolver) Query() *QueryResolver {
-	return &QueryResolver{}
+func (*resolver) Query() *queryResolver {
+	return &queryResolver{}
 }
 
-type QueryResolver struct{}
-
-func (r *QueryResolver) Config() (*configResolver, error) {
-	m := config.NewMerger("/home/mzz/ebpfProjects/ragdoll/foo/example.dae")
-	sections, _, err := m.Merge()
-	if err != nil {
-		return nil, err
-	}
-	c, err := config.New(sections)
-	if err != nil {
-		return nil, err
-	}
-	return &configResolver{
-		Config: c,
-	}, nil
+func (*resolver) Mutation() *MutationResolver {
+	return &MutationResolver{}
 }
 
-func (r *QueryResolver) Subscriptions(args struct{ ID graphql.NullInt }) (rs []*subscription.Resolver, err error) {
-	q := db.DB(context.TODO()).
-		Model(&model.SubscriptionModel{})
-	if args.ID.Set {
-		q = q.Where("id == ?", *args.ID.Value)
-	}
-	var models []model.SubscriptionModel
-	if err = q.Find(&models).Error; err != nil {
-		return nil, err
-	}
-	for _, _m := range models {
-		m := _m
-		rs = append(rs, &subscription.Resolver{
-			SubscriptionModel: &m,
-		})
-	}
-	return rs, nil
-}
-
-type configResolver struct {
-	*config.Config
-}
-
-func (r *configResolver) Global() *global.Resolver {
-	return &global.Resolver{
-		Global: &r.Config.Global,
-	}
-}
-
-func (r *configResolver) Group() (rs []*group.Resolver) {
-	for _, _g := range r.Config.Group {
-		g := _g
-		rs = append(rs, &group.Resolver{
-			Group: &g,
-		})
-	}
-	return rs
-}
-
-func (r *configResolver) Routing() *routing.Resolver {
-	return &routing.Resolver{
-		Routing: &r.Config.Routing,
-	}
-}
-
-func (r *configResolver) Dns() *dns.Resolver {
-	return &dns.Resolver{
-		Dns: &r.Config.Dns,
-	}
-}
-
-func Schema() (*graphql.Schema, error) {
+func SchemaString() (string, error) {
 	var sb strings.Builder
 	sb.WriteString(rootSchema)
 	for _, c := range schemaChains {
 		s, err := c()
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		sb.WriteString(s)
 	}
-	return graphql.MustParseSchema(sb.String(), &QueryResolver{}), nil
+	return strings.TrimSpace(sb.String()), nil
+}
+
+func Schema() (*graphql.Schema, error) {
+	schema, err := SchemaString()
+	if err != nil {
+		return nil, err
+	}
+	return graphql.MustParseSchema(
+		schema,
+		&resolver{},
+		graphql.UseFieldResolvers(),
+		graphql.Directives(),
+	), nil
 }

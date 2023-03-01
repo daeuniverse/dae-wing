@@ -7,35 +7,37 @@ package subscription
 
 import (
 	"github.com/graph-gophers/graphql-go"
+	"github.com/v2rayA/dae-wing/common"
+	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql/service"
 	"github.com/v2rayA/dae-wing/graphql/service/node"
-	"github.com/v2rayA/dae-wing/model"
 )
 
 type Resolver struct {
-	*model.SubscriptionModel
+	*db.Subscription
 }
 
 func (r *Resolver) Model() *service.ModelResolver {
 	return &service.ModelResolver{
-		Model: &r.SubscriptionModel.Model,
+		Model: &r.Subscription.Model,
 	}
 }
 func (r *Resolver) Remarks() string {
-	return r.SubscriptionModel.Remarks
+	return r.Subscription.Remarks
 }
 func (r *Resolver) Link() string {
-	return r.SubscriptionModel.Link
+	return r.Subscription.Link
 }
 func (r *Resolver) Status() string {
-	return r.SubscriptionModel.Status
+	return r.Subscription.Status
 }
 func (r *Resolver) Info() string {
-	return r.SubscriptionModel.Info
+	return r.Subscription.Info
 }
 func (r *Resolver) Nodes(args struct {
 	First *int32
 	After *graphql.ID
 }) (*node.ConnectionResolver, error) {
-	return node.NewConnectionResolver(r.SubscriptionModel.ID, args.First, args.After)
+	id := common.EncodeCursor(r.Subscription.ID)
+	return node.NewConnectionResolver(nil, &id, args.First, args.After)
 }

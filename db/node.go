@@ -3,16 +3,14 @@
  * Copyright (c) 2023, v2rayA Organization <team@v2raya.org>
  */
 
-package model
+package db
 
 import (
-	"context"
 	"database/sql"
-	"github.com/v2rayA/dae-wing/db"
 	"gorm.io/gorm"
 )
 
-type NodeModel struct {
+type Node struct {
 	gorm.Model
 	Link     string `gorm:"not null"`
 	Name     string `gorm:"not null"`
@@ -20,15 +18,9 @@ type NodeModel struct {
 	Protocol string `gorm:"not null"`
 
 	Remarks string `gorm:"not null"`
-	Status  string `gorm:"not null"` // Error "unsupported" or something others.
 
+	// Foreign keys.
+	// Nil SubscriptionID indicates nodes belonging to no subscription.
 	SubscriptionID sql.NullInt64
-	Subscription   SubscriptionModel
-}
-type node struct{}
-
-var Node node
-
-func (node) Create(ctx context.Context, model *NodeModel) error {
-	return db.DB(ctx).Create(model).Error
+	Subscription   *Subscription
 }

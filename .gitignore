@@ -37,4 +37,9 @@ node_modules
 # Virtualenv
 .env
 
+# Generated files
 generated_*.go
+schema.graphql
+
+# Database files
+*.db

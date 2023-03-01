@@ -11,27 +11,45 @@ import (
 	"github.com/v2rayA/dae-wing/common"
 	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql/service"
-	"github.com/v2rayA/dae-wing/model"
 	"gorm.io/gorm"
 )
 
 type ConnectionResolver struct {
-	// Nil SubscriptionId indicates nodes belonging to no subscription.
-	baseQuery *gorm.DB
+	baseQuery func() *gorm.DB
 
-	models []model.NodeModel
+	models []db.Node
 }
 
-func NewConnectionResolver(subscriptionId uint, first *int32, after *graphql.ID) (r *ConnectionResolver, err error) {
+func NewConnectionResolver(id *graphql.ID, subscriptionId *graphql.ID, first *int32, after *graphql.ID) (r *ConnectionResolver, err error) {
+	var uintId, uintSubscriptionId uint
+	if id != nil {
+		uintId, err = common.DecodeCursor(*id)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if subscriptionId != nil {
+		uintSubscriptionId, err = common.DecodeCursor(*subscriptionId)
+		if err != nil {
+			return nil, err
+		}
+	}
+	baseQuery := func() *gorm.DB {
+		q := db.DB(context.TODO()).Model(&db.Node{})
+		if id != nil {
+			q = q.Where("id = ?", uintId)
+		}
+		if subscriptionId != nil {
+			q = q.Where("subscription_id = ?", uintSubscriptionId)
+		}
+		return q
+	}
 
-	baseQuery := db.DB(context.TODO()).Model(&model.NodeModel{}).
-		Where("subscription_id = ?", subscriptionId)
-
-	q := baseQuery
+	q := baseQuery()
 	if after != nil && first != nil {
 		q = q.Where("id > ?", after).Limit(int(*first))
 	}
-	var models []model.NodeModel
+	var models []db.Node
 	if err = q.Find(&models).Error; err != nil {
 		return nil, err
 	}
@@ -43,7 +61,7 @@ func NewConnectionResolver(subscriptionId uint, first *int32, after *graphql.ID)
 
 func (r *ConnectionResolver) TotalCount() (int32, error) {
 	var count int64
-	if err := r.baseQuery.Count(&count).Error; err != nil {
+	if err := r.baseQuery().Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return int32(count), nil
@@ -52,7 +70,7 @@ func (r *ConnectionResolver) Edges() (rs []*Resolver, err error) {
 	for _, _m := range r.models {
 		m := _m
 		rs = append(rs, &Resolver{
-			NodeModel: &m,
+			Node: &m,
 		})
 	}
 	return rs, nil
@@ -68,8 +86,8 @@ func (r *ConnectionResolver) PageInfo() (pr *service.PageInfoResolver, err error
 	start := common.EncodeCursor(r.models[0].ID)
 	end := common.EncodeCursor(r.models[len(r.models)-1].ID)
 	// Get the last ID.
-	var lastNode model.NodeModel
-	if err := r.baseQuery.Select("id").Order("id DESC").First(&lastNode).Error; err != nil {
+	var lastNode db.Node
+	if err := r.baseQuery().Select("id").Order("id DESC").First(&lastNode).Error; err != nil {
 		return nil, err
 	}
 	return &service.PageInfoResolver{

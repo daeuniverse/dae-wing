@@ -9,9 +9,9 @@ import (
 	"github.com/v2rayA/dae-wing/graphql/config"
 	"github.com/v2rayA/dae-wing/graphql/config/dns"
 	"github.com/v2rayA/dae-wing/graphql/config/global"
-	"github.com/v2rayA/dae-wing/graphql/config/group"
 	"github.com/v2rayA/dae-wing/graphql/config/routing"
 	"github.com/v2rayA/dae-wing/graphql/service"
+	"github.com/v2rayA/dae-wing/graphql/service/group"
 	"github.com/v2rayA/dae-wing/graphql/service/node"
 	"github.com/v2rayA/dae-wing/graphql/service/subscription"
 )

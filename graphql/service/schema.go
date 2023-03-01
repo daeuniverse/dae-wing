@@ -9,14 +9,14 @@ func Schema() (string, error) {
 	return `
 type Model {
 	id: ID!
-	created_at: Time!
-	updated_at: Time!
-	deleted_at: Time
+	createdAt: Time!
+	updatedAt: Time!
+	deletedAt: Time
 }
 type PageInfo {
-	start_cursor: ID
-	end_cursor: ID
-	has_next_page: Boolean!
+	startCursor: ID
+	endCursor: ID
+	hasNextPage: Boolean!
 }
 `, nil
 }
