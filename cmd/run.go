@@ -11,13 +11,15 @@ import (
 )
 
 func init() {
-	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", "/etc/dae/wing/", "config dir")
+	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", "/etc/dae/wing.db", "database file")
+	runCmd.PersistentFlags().StringVarP(&listen, "listen", "l", "0.0.0.0:2023", "listening address")
 	runCmd.PersistentFlags().BoolVarP(&disableTimestamp, "disable-timestamp", "", false, "disable timestamp")
 }
 
 var (
 	cfgDir           string
 	disableTimestamp bool
+	listen           string
 
 	runCmd = &cobra.Command{
 		Use:   "run",
@@ -38,17 +40,13 @@ var (
 				logrus.Fatalln("Failed to init db:", err)
 			}
 
+			// ListenAndServe.
 			schema, err := graphql.Schema()
 			if err != nil {
 				return
 			}
-			str, err := graphql.SchemaString()
-			if err != nil {
-				return
-			}
-			os.WriteFile("schema.graphql", []byte(str), 0644)
 			http.Handle("/graphql", &relay.Handler{Schema: schema})
-			logrus.Fatal(http.ListenAndServe(":8080", nil))
+			logrus.Fatal(http.ListenAndServe(listen, nil))
 		},
 	}
 )

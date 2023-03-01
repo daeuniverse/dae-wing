@@ -49,7 +49,20 @@ func (r *MutationResolver) ImportSubscription(args *struct {
 	RollbackError bool
 	Arg           internal.ImportArgument
 }) (*subscription.ImportResult, error) {
-	return subscription.Import(context.TODO(), args.RollbackError, &args.Arg)
+	tx := db.BeginTx(context.TODO())
+	result, err := subscription.Import(tx, args.RollbackError, &args.Arg)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	tx.Commit()
+	return result, nil
+}
+
+func (r *MutationResolver) UpdateSubscription(args *struct {
+	ID graphql.ID
+}) (*subscription.Resolver, error) {
+	return subscription.Update(context.TODO(), args.ID)
 }
 
 func (r *MutationResolver) RemoveSubscriptions(args *struct {

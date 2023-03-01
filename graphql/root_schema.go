@@ -33,6 +33,7 @@ type Mutation {
 	importSubscription(rollbackError: Boolean!, arg: ImportArgument!): SubscriptionImportResult!
 	removeSubscriptions(ids: [ID!]!): Int!
 	tagSubscription(id: ID!, tag: String!): Int!
+	updateSubscription(id: ID!): Subscription!
 
 	createGroup(name: String!, policy: Policy!, policyParams: [PolicyParam!]): Group!
 	groupAddSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int!

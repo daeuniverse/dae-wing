@@ -7,12 +7,6 @@ package service
 
 func Schema() (string, error) {
 	return `
-type Model {
-	id: ID!
-	createdAt: Time!
-	updatedAt: Time!
-	deletedAt: Time
-}
 type PageInfo {
 	startCursor: ID
 	endCursor: ID

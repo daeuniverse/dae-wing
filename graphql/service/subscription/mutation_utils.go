@@ -14,6 +14,7 @@ import (
 	"github.com/v2rayA/dae-wing/graphql/internal"
 	"github.com/v2rayA/dae-wing/graphql/service/node"
 	"github.com/v2rayA/dae/common/subscription"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"io"
 	"net/http"
@@ -26,17 +27,14 @@ type ImportResult struct {
 	Subscription *Resolver
 }
 
-func Import(ctx context.Context, rollbackError bool, argument *internal.ImportArgument) (rs *ImportResult, err error) {
-	if err = argument.ValidateTag(); err != nil {
-		return nil, err
-	}
+func fetchLinks(subscriptionLink string) (links []string, err error) {
 	/// Resolve subscription to node links.
 	// Fetch subscription link.
 	var (
 		b    []byte
 		resp *http.Response
 	)
-	resp, err = http.Get(argument.Link)
+	resp, err = http.Get(subscriptionLink)
 	if err != nil {
 		return nil, err
 	}
@@ -49,12 +47,22 @@ func Import(ctx context.Context, rollbackError bool, argument *internal.ImportAr
 	// Resolve node links.
 	noLogger := logrus.New()
 	noLogger.SetOutput(io.Discard)
-	links, err := subscription.ResolveSubscriptionAsSIP008(noLogger, b)
+	links, err = subscription.ResolveSubscriptionAsSIP008(noLogger, b)
 	if err != nil {
 		links = subscription.ResolveSubscriptionAsBase64(noLogger, b)
 	}
+	return links, nil
+}
+
+func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (result *ImportResult, err error) {
+	if err = argument.ValidateTag(); err != nil {
+		return nil, err
+	}
+	links, err := fetchLinks(argument.Link)
+	if err != nil {
+		return nil, err
+	}
 	/// Create a subscription model.
-	tx := db.BeginTx(ctx)
 	m := db.Subscription{
 		ID:        0,
 		UpdatedAt: time.Now(),
@@ -64,8 +72,7 @@ func Import(ctx context.Context, rollbackError bool, argument *internal.ImportAr
 		Info:      "", // not supported yet
 		Node:      nil,
 	}
-	if err = tx.Create(&m).Error; err != nil {
-		tx.Rollback()
+	if err = c.Create(&m).Error; err != nil {
 		return nil, err
 	}
 	/// Import nodes.
@@ -78,12 +85,10 @@ func Import(ctx context.Context, rollbackError bool, argument *internal.ImportAr
 		})
 	}
 	// Import nodes.
-	_, err = node.Import(tx, rollbackError, &m.ID, args)
+	_, err = node.Import(c, rollbackError, &m.ID, args)
 	if err != nil {
-		tx.Rollback()
 		return nil, err
 	}
-	tx.Commit()
 	return &ImportResult{
 		Link:  argument.Link,
 		Error: nil,
@@ -91,6 +96,59 @@ func Import(ctx context.Context, rollbackError bool, argument *internal.ImportAr
 			Subscription: &m,
 		},
 	}, nil
+}
+
+func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
+	subId, err := common.DecodeCursor(_id)
+	if err != nil {
+		return nil, err
+	}
+	// Fetch node links.
+	var m db.Subscription
+	if err = db.DB(ctx).Where(&db.Subscription{ID: subId}).First(&m).Error; err != nil {
+		return nil, err
+	}
+	links, err := fetchLinks(m.Link)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := db.BeginTx(ctx)
+	// Remove those subscription_id of which satisfied and not in any groups.
+	var _ids []struct {
+		ID uint
+	}
+	if err = tx.Model(&db.Group{}).Association("Node").Find(&_ids); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	var ids []uint
+	for _, _id := range _ids {
+		ids = append(ids, _id.ID)
+	}
+	if err = tx.Where("subscription_id = ?", subId).
+		Where("id not in ?", ids).
+		Select(clause.Associations).
+		Delete(&db.Node{}).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	// Import node links.
+	var args []*internal.ImportArgument
+	for _, link := range links {
+		args = append(args, &internal.ImportArgument{Link: link})
+	}
+	if _, err = node.Import(tx, false, &subId, args); err != nil {
+		tx.Callback()
+		return nil, err
+	}
+	// Retrieve and return the latest version.
+	if err = tx.Where(&db.Subscription{ID: subId}).First(&m).Error; err != nil {
+		tx.Callback()
+		return nil, err
+	}
+	tx.Commit()
+	return &Resolver{Subscription: &m}, nil
 }
 
 func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {

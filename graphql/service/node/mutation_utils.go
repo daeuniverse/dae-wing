@@ -7,6 +7,8 @@ package node
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae-wing/common"
 	"github.com/v2rayA/dae-wing/db"
@@ -14,6 +16,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+var DuplicatedError = fmt.Errorf("node already exists")
 
 type ImportResult struct {
 	Link  string
@@ -29,6 +33,15 @@ func importNode(d *gorm.DB, subscriptionId *uint, arg *internal.ImportArgument) 
 	if err != nil {
 		return nil, err
 	}
+	var count int64
+	if err = d.Model(&db.Node{}).
+		Where("link = ?", arg.Link).
+		Where("subscription_id = ?", subscriptionId).Count(&count).Error; err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		return nil, DuplicatedError
+	}
 	if err = d.Create(m).Error; err != nil {
 		return nil, err
 	}
@@ -40,7 +53,7 @@ func Import(d *gorm.DB, abortError bool, subscriptionId *uint, argument []*inter
 	for _, arg := range argument {
 		var m *db.Node
 		if m, err = importNode(d, subscriptionId, arg); err != nil {
-			if abortError {
+			if abortError && !errors.Is(err, DuplicatedError) {
 				return nil, err
 			}
 			info := err.Error()
