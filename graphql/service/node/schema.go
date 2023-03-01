@@ -11,6 +11,7 @@ type Node {
 	model: Model!
 	link: String!
 	name: String!
+	address: String!
 	protocol: String!
 	remarks: String!
 	status: String!

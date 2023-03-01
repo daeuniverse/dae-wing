@@ -23,12 +23,15 @@ func NewNodeModel(link string, remarks string, subscriptionId sql.NullInt64) (*N
 	if err != nil {
 		return nil, err
 	}
+	property := d.Property()
 	return &NodeModel{
 		Model:          gorm.Model{},
 		Link:           link,
-		Name:           d.Name(),
-		Protocol:       d.Protocol(),
+		Name:           property.Name,
+		Address:        property.Address,
+		Protocol:       property.Protocol,
 		Remarks:        remarks,
+		Status:         "",
 		SubscriptionID: subscriptionId,
 		Subscription:   SubscriptionModel{},
 	}, nil

@@ -9,7 +9,10 @@ import (
 	"context"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae-wing/db"
+	"github.com/v2rayA/dae-wing/graphql/config/dns"
 	"github.com/v2rayA/dae-wing/graphql/config/global"
+	"github.com/v2rayA/dae-wing/graphql/config/group"
+	"github.com/v2rayA/dae-wing/graphql/config/routing"
 	"github.com/v2rayA/dae-wing/graphql/service/subscription"
 	"github.com/v2rayA/dae-wing/model"
 	"github.com/v2rayA/dae/config"
@@ -24,11 +27,14 @@ scalar Time
 
 schema {
 	query: Query
-	//mutation: Mutation
+	mutation: Mutation
 }
 type Query {
 	config: Config!
 	subscriptions(id: Int): [Subscription!]!
+}
+type Mutation {
+	
 }
 `
 
@@ -81,6 +87,28 @@ type configResolver struct {
 func (r *configResolver) Global() *global.Resolver {
 	return &global.Resolver{
 		Global: &r.Config.Global,
+	}
+}
+
+func (r *configResolver) Group() (rs []*group.Resolver) {
+	for _, _g := range r.Config.Group {
+		g := _g
+		rs = append(rs, &group.Resolver{
+			Group: &g,
+		})
+	}
+	return rs
+}
+
+func (r *configResolver) Routing() *routing.Resolver {
+	return &routing.Resolver{
+		Routing: &r.Config.Routing,
+	}
+}
+
+func (r *configResolver) Dns() *dns.Resolver {
+	return &dns.Resolver{
+		Dns: &r.Config.Dns,
 	}
 }
 

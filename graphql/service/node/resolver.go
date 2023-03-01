@@ -27,6 +27,9 @@ func (r *Resolver) Link() string {
 func (r *Resolver) Name() string {
 	return r.NodeModel.Name
 }
+func (r *Resolver) Address() string {
+	return r.NodeModel.Address
+}
 func (r *Resolver) Protocol() string {
 	return r.NodeModel.Protocol
 }

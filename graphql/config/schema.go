@@ -9,6 +9,31 @@ func Schema() (string, error) {
 	return `
 type Config {
 	global: Global!
+	group: [Group!]!
+	routing: Routing!
+	dns: Dns!
 }
+
+type Function {
+	name: String!
+	not: Boolean!
+	params: [Param!]!
+}
+type Param {
+	key: String!
+	value: String!
+}
+
+type AndFunctions {
+	and: [Function!]!
+}
+
+type Plaintext {
+	value: String!
+}
+
+union AndFunctionsOrPlaintext = AndFunctions | Plaintext
+union FunctionOrPlaintext = Function | Plaintext
+
 `, nil
 }

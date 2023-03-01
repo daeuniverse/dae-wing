@@ -16,6 +16,7 @@ type NodeModel struct {
 	gorm.Model
 	Link     string `gorm:"not null"`
 	Name     string `gorm:"not null"`
+	Address  string `gorm:"not null"`
 	Protocol string `gorm:"not null"`
 
 	Remarks string `gorm:"not null"`
