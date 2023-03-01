@@ -9,7 +9,7 @@ func Schema() (string, error) {
 	return `
 type Subscription {
 	model: Model!
-	remarks: String!
+	remarks: String
 	link: String!
 	status: String!
 	info: String!

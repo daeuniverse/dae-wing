@@ -22,7 +22,7 @@ func (r *Resolver) Model() *service.ModelResolver {
 		Model: &r.Subscription.Model,
 	}
 }
-func (r *Resolver) Remarks() string {
+func (r *Resolver) Remarks() *string {
 	return r.Subscription.Remarks
 }
 func (r *Resolver) Link() string {

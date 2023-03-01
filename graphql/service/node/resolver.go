@@ -33,7 +33,7 @@ func (r *Resolver) Address() string {
 func (r *Resolver) Protocol() string {
 	return r.Node.Protocol
 }
-func (r *Resolver) Remarks() string {
+func (r *Resolver) Remarks() *string {
 	return r.Node.Remarks
 }
 func (r *Resolver) SubscriptionID() *graphql.ID {

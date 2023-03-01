@@ -6,18 +6,17 @@
 package db
 
 import (
-	"database/sql"
 	"github.com/v2rayA/dae-wing/common"
 	"github.com/v2rayA/dae/component/outbound/dialer"
 	"gorm.io/gorm"
 	"strings"
 )
 
-func NewNodeModel(link string, remarks string, subscriptionId sql.NullInt64) (*Node, error) {
+func NewNodeModel(link string, remarks *string, subscriptionId *uint) (*Node, error) {
 	if !strings.Contains(link, "://") {
 		return nil, BadLinkFormatError
 	}
-	if remarks != "" && !common.ValidateRemarks(remarks) {
+	if remarks != nil && !common.ValidateRemarks(*remarks) {
 		return nil, InvalidRemarkError
 	}
 	d, err := dialer.NewFromLink(&dialer.GlobalOption{}, dialer.InstanceOption{CheckEnabled: false}, link)

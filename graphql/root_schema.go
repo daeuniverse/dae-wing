@@ -26,13 +26,15 @@ type Query {
 	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection!
 }
 type Mutation {
-	importNodes(rollbackError: Boolean!, nodes: [NodeImportArgument!]!): [NodeImportResult!]!
+	importNodes(rollbackError: Boolean!, args: [ImportArgument!]!): [NodeImportResult!]!
+	importSubscription(rollbackError: Boolean!, arg: ImportArgument!): [NodeImportResult!]!
 }
-input NodeImportArgument {
+input ImportArgument {
 	link: String!
 	remarks: String
 }
 type NodeImportResult {
+	link: String!
 	error: String
 	node: Node
 }

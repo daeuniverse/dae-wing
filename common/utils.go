@@ -7,7 +7,6 @@ package common
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -31,11 +30,11 @@ func EncodeCursor(id uint) (cursor graphql.ID) {
 	return cursor
 }
 
-func EncodeNullableCursor(nullableId sql.NullInt64) (cursor *graphql.ID) {
-	if !nullableId.Valid {
+func EncodeNullableCursor(nullableId *uint) (cursor *graphql.ID) {
+	if nullableId == nil {
 		return nil
 	}
-	id := EncodeCursor(uint(nullableId.Int64))
+	id := EncodeCursor(*nullableId)
 	return &id
 }
 

@@ -6,7 +6,6 @@
 package db
 
 import (
-	"database/sql"
 	"gorm.io/gorm"
 )
 
@@ -17,10 +16,10 @@ type Node struct {
 	Address  string `gorm:"not null"`
 	Protocol string `gorm:"not null"`
 
-	Remarks string `gorm:"not null"`
+	Remarks *string `gorm:"unique"`
 
 	// Foreign keys.
 	// Nil SubscriptionID indicates nodes belonging to no subscription.
-	SubscriptionID sql.NullInt64
+	SubscriptionID *uint
 	Subscription   *Subscription
 }

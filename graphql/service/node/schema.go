@@ -13,7 +13,7 @@ type Node {
 	name: String!
 	address: String!
 	protocol: String!
-	remarks: String!
+	remarks: String
 	subscriptionID: ID
 }
 type NodesConnection {
