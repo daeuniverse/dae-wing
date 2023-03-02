@@ -9,6 +9,7 @@ import (
 	"context"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae-wing/db"
+	"github.com/v2rayA/dae-wing/graphql/config"
 	"github.com/v2rayA/dae-wing/graphql/internal"
 	"github.com/v2rayA/dae-wing/graphql/service/group"
 	"github.com/v2rayA/dae-wing/graphql/service/node"
@@ -17,6 +18,41 @@ import (
 )
 
 type MutationResolver struct{}
+
+func (r *MutationResolver) CreateConfig(args *struct {
+	Global  string
+	Dns     string
+	Routing string
+}) (*config.Resolver, error) {
+	return config.Create(context.TODO(), args.Global, args.Dns, args.Routing)
+}
+
+func (r *MutationResolver) UpdateConfig(args *struct {
+	ID      graphql.ID
+	Global  *string
+	Dns     *string
+	Routing *string
+}) (*config.Resolver, error) {
+	return config.Update(context.TODO(), args.ID, args.Global, args.Dns, args.Routing)
+}
+
+func (r *MutationResolver) RemoveConfig(args *struct {
+	ID graphql.ID
+}) (int32, error) {
+	return config.Remove(context.TODO(), args.ID)
+}
+
+func (r *MutationResolver) SelectConfig(args *struct {
+	ID graphql.ID
+}) (int32, error) {
+	return config.Select(context.TODO(), args.ID)
+}
+
+func (r *MutationResolver) Run(args *struct {
+	Dry bool
+}) (int32, error) {
+	return config.Run(context.TODO(), args.Dry)
+}
 
 func (r *MutationResolver) ImportNodes(args *struct {
 	RollbackError bool

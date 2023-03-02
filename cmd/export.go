@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/v2rayA/dae-wing/graphql"
+	daeConfig "github.com/v2rayA/dae/config"
 	"os"
 )
 
@@ -19,7 +20,7 @@ var (
 			_ = cmd.Help()
 		},
 	}
-	exportOutlineCmd = &cobra.Command{
+	exportSchemaCmd = &cobra.Command{
 		Use: "schema",
 		Run: func(cmd *cobra.Command, args []string) {
 			schema, err := graphql.SchemaString()
@@ -30,8 +31,15 @@ var (
 			fmt.Println(schema)
 		},
 	}
+	exportOutlineCmd = &cobra.Command{
+		Use: "outline",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(daeConfig.ExportOutlineJson(Version))
+		},
+	}
 )
 
 func init() {
+	exportCmd.AddCommand(exportSchemaCmd)
 	exportCmd.AddCommand(exportOutlineCmd)
 }

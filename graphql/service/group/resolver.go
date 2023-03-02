@@ -5,7 +5,7 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae-wing/common"
 	"github.com/v2rayA/dae-wing/db"
-	"github.com/v2rayA/dae-wing/graphql/config"
+	"github.com/v2rayA/dae-wing/graphql/internal"
 	"github.com/v2rayA/dae-wing/graphql/service/node"
 	"github.com/v2rayA/dae-wing/graphql/service/subscription"
 )
@@ -50,13 +50,13 @@ func (r *Resolver) Policy() string {
 	return r.Group.Policy
 }
 
-func (r *Resolver) PolicyParams() (rs []*config.ParamResolver, err error) {
+func (r *Resolver) PolicyParams() (rs []*internal.ParamResolver, err error) {
 	var params []db.GroupPolicyParamModel
 	if err = db.DB(context.TODO()).Model(r.Group).Association("PolicyParams").Find(&params); err != nil {
 		return nil, err
 	}
 	for _, param := range params {
-		rs = append(rs, &config.ParamResolver{Param: param.Marshal()})
+		rs = append(rs, &internal.ParamResolver{Param: param.Marshal()})
 	}
 	return rs, nil
 }

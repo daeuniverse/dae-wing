@@ -21,7 +21,8 @@ type ConnectionResolver struct {
 }
 
 func NewConnectionResolver(_id *graphql.ID, _subscriptionId *graphql.ID, first *int32, _after *graphql.ID) (r *ConnectionResolver, err error) {
-	var id, subscriptionId uint
+	var id uint
+	var subscriptionId uint
 	if _id != nil {
 		id, err = common.DecodeCursor(*_id)
 		if err != nil {
@@ -41,6 +42,8 @@ func NewConnectionResolver(_id *graphql.ID, _subscriptionId *graphql.ID, first *
 		}
 		if _subscriptionId != nil {
 			q = q.Where("subscription_id = ?", subscriptionId)
+		} else {
+			q = q.Where("subscription_id is null")
 		}
 		return q
 	}

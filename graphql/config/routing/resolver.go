@@ -6,7 +6,7 @@
 package routing
 
 import (
-	"github.com/v2rayA/dae-wing/graphql/config"
+	"github.com/v2rayA/dae-wing/graphql/internal"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
 )
@@ -22,18 +22,18 @@ func (r *Resolver) Rules() (rs []*RuleResolver) {
 	return rs
 }
 
-func (r *Resolver) Fallback() *config.FunctionOrPlaintextResolver {
-	return &config.FunctionOrPlaintextResolver{FunctionOrString: r.Routing.Fallback}
+func (r *Resolver) Fallback() *internal.FunctionOrPlaintextResolver {
+	return &internal.FunctionOrPlaintextResolver{FunctionOrString: r.Routing.Fallback}
 }
 
 type RuleResolver struct {
 	*config_parser.RoutingRule
 }
 
-func (r *RuleResolver) Conditions() *config.AndFunctionsResolver {
-	return &config.AndFunctionsResolver{AndFunctions: r.AndFunctions}
+func (r *RuleResolver) Conditions() *internal.AndFunctionsResolver {
+	return &internal.AndFunctionsResolver{AndFunctions: r.AndFunctions}
 }
 
-func (r *RuleResolver) Outbound() *config.FunctionResolver {
-	return &config.FunctionResolver{Function: &r.RoutingRule.Outbound}
+func (r *RuleResolver) Outbound() *internal.FunctionResolver {
+	return &internal.FunctionResolver{Function: &r.RoutingRule.Outbound}
 }

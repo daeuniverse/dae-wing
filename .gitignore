@@ -40,6 +40,7 @@ node_modules
 # Generated files
 generated_*.go
 schema.graphql
+outline.json
 
 # Database files
 *.db

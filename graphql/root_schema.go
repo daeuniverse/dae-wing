@@ -19,13 +19,19 @@ schema {
 	mutation: Mutation
 }
 type Query {
-	config: Config!
+	configs(id: ID, selected: Boolean): [Config!]!
 	subscriptions(id: ID): [Subscription!]!
 	groups(id: ID): [Group!]!
-	group(name: String!): Group
+	group(name: String!): Group!
 	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection!
 }
 type Mutation {
+	createConfig(global: String!, dns: String!, routing: String!): Config!
+	updateConfig(id: ID!, global: String, dns: String, routing: String): Config!
+	removeConfig(id: ID!): Int!
+	selectConfig(id: ID!): Int!
+	run(dry: Boolean!): Int!
+
 	importNodes(rollbackError: Boolean!, args: [ImportArgument!]!): [NodeImportResult!]!
 	removeNodes(ids: [ID!]!): Int!
 	tagNode(id: ID!, tag: String!): Int!

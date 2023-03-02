@@ -11,6 +11,7 @@ type Config {
 	global: Global!
 	routing: Routing!
 	dns: Dns!
+	selected: Boolean!
 }
 
 type Function {

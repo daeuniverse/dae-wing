@@ -6,8 +6,8 @@
 package dns
 
 import (
-	"github.com/v2rayA/dae-wing/graphql/config"
 	"github.com/v2rayA/dae-wing/graphql/config/routing"
+	"github.com/v2rayA/dae-wing/graphql/internal"
 	"github.com/v2rayA/dae/common"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
@@ -17,10 +17,10 @@ type Resolver struct {
 	*daeConfig.Dns
 }
 
-func (r *Resolver) Upstream() (rs []*config.ParamResolver) {
+func (r *Resolver) Upstream() (rs []*internal.ParamResolver) {
 	for _, upstream := range r.Dns.Upstream {
 		tag, afterTag := common.GetTagFromLinkLikePlaintext(string(upstream))
-		rs = append(rs, &config.ParamResolver{Param: &config_parser.Param{
+		rs = append(rs, &internal.ParamResolver{Param: &config_parser.Param{
 			Key: tag,
 			Val: afterTag,
 		}})

@@ -27,10 +27,11 @@ func InitDatabase(configDir string) (err error) {
 		return err
 	}
 	if err = db.AutoMigrate(
-		&Group{},
-		&GroupPolicyParamModel{},
+		&Config{},
 		&Node{},
 		&Subscription{},
+		&Group{},
+		&GroupPolicyParamModel{},
 	); err != nil {
 		return err
 	}
