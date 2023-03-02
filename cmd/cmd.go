@@ -7,9 +7,9 @@ import (
 var (
 	Version = "unknown"
 	rootCmd = &cobra.Command{
-		Use:     "dae [flags] [command [argument ...]]",
-		Short:   "dae is a lightweight and high-performance transparent proxy solution.",
-		Long:    `dae is a lightweight and high-performance transparent proxy solution.`,
+		Use:     "dae-wing [flags] [command [argument ...]]",
+		Short:   "dae-wing is a integration solution of dae, API and UI.",
+		Long:    `dae-wing is a integration solution of dae, API and UI.`,
 		Version: Version,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,

@@ -80,13 +80,14 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 	if err != nil {
 		return 0, err
 	}
-	if err = db.DB(ctx).
+	q := db.DB(ctx).
 		Where("id in ?", ids).
 		Select(clause.Associations).
-		Delete(&db.Node{}).Error; err != nil {
-		return 0, err
+		Delete(&db.Node{})
+	if q.Error != nil {
+		return 0, q.Error
 	}
-	return int32(len(ids)), nil
+	return int32(q.RowsAffected), nil
 }
 
 func Tag(ctx context.Context, _id graphql.ID, tag string) (n int32, err error) {
@@ -97,10 +98,11 @@ func Tag(ctx context.Context, _id graphql.ID, tag string) (n int32, err error) {
 	if err != nil {
 		return 0, err
 	}
-	if err = db.DB(ctx).Model(&db.Node{}).
+	q := db.DB(ctx).Model(&db.Node{}).
 		Where("id = ?", id).
-		Update("tag", tag).Error; err != nil {
-		return 0, err
+		Update("tag", tag)
+	if q.Error != nil {
+		return 0, q.Error
 	}
-	return 1, nil
+	return int32(q.RowsAffected), nil
 }

@@ -44,12 +44,13 @@ func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err erro
 	if err != nil {
 		return 0, err
 	}
-	if err = db.DB(ctx).Model(&db.Group{}).
+	q := db.DB(ctx).Model(&db.Group{}).
 		Where("id = ?", id).
-		Update("name", name).Error; err != nil {
+		Update("name", name)
+	if q.Error != nil {
 		return 0, err
 	}
-	return 1, nil
+	return int32(q.RowsAffected), nil
 }
 
 func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
@@ -58,21 +59,26 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 		return 0, err
 	}
 	tx := db.BeginTx(ctx)
-	if err = tx.Where("id = ?", id).
-		Select(clause.Associations).
-		Delete(&db.Group{}).Error; err != nil {
+	q := tx.Select(clause.Associations).
+		Delete(&db.Group{}, "id = ?", id)
+	if q.Error != nil {
+		tx.Rollback()
+		return 0, q.Error
+	}
+	if err = tx.Model(&db.Group{ID: id}).Association("Node").Clear(); err != nil {
 		tx.Rollback()
 		return 0, err
 	}
-	//if err = tx.Model(&m).Association("Node").Clear(); err != nil {
-	//	return 0, err
-	//}
+	if err = tx.Model(&db.Group{ID: id}).Association("Subscription").Clear(); err != nil {
+		tx.Rollback()
+		return 0, err
+	}
 	if err = tx.Where("group_id = ?", id).Delete(&db.GroupPolicyParamModel{}).Error; err != nil {
 		tx.Rollback()
 		return 0, err
 	}
 	tx.Commit()
-	return 1, nil
+	return int32(q.RowsAffected), nil
 }
 
 func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []graphql.ID) (int32, error) {
