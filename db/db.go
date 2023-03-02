@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"os"
 	"path/filepath"
 )
 
@@ -22,7 +23,8 @@ var (
 )
 
 func InitDatabase(configDir string) (err error) {
-	db, err = gorm.Open(sqlite.Open(filepath.Join(configDir, filename)), &gorm.Config{})
+	path := filepath.Join(configDir, filename)
+	db, err = gorm.Open(sqlite.Open(path), &gorm.Config{})
 	if err != nil {
 		return err
 	}
@@ -35,6 +37,15 @@ func InitDatabase(configDir string) (err error) {
 	); err != nil {
 		return err
 	}
+	if fi, err := os.Stat(path); err != nil {
+		return err
+	} else if fi.Mode()&0037 > 0 {
+		// Too open, chmod it to 0640.
+		if err = os.Chmod(path, 0640); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

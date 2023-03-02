@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/graph-gophers/graphql-go/relay"
+	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/v2rayA/dae-wing/db"
@@ -45,7 +46,7 @@ var (
 			if err != nil {
 				return
 			}
-			http.Handle("/graphql", &relay.Handler{Schema: schema})
+			http.Handle("/graphql", cors.AllowAll().Handler(&relay.Handler{Schema: schema}))
 			logrus.Fatal(http.ListenAndServe(listen, nil))
 		},
 	}

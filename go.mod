@@ -1,11 +1,12 @@
 module github.com/v2rayA/dae-wing
 
-go 1.20
+go 1.18
 
 require (
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230228210639-f05ace9f4a41
 	github.com/json-iterator/go v1.1.12
 	github.com/mzz2017/softwind v0.0.0-20230224125402-d460ce1c5b4b
+	github.com/rs/cors v1.8.3
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stoewer/go-strcase v1.2.1
