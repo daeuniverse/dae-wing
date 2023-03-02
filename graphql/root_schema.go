@@ -54,8 +54,8 @@ type NodeImportResult {
 }
 type SubscriptionImportResult {
 	link: String!
-	error: String
-	subscription: Subscription
+	nodeImportResult: [NodeImportResult!]!
+	sub: Subscription!
 }
 input PolicyParam {
 	key: String!

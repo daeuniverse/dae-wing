@@ -20,33 +20,37 @@ type ConnectionResolver struct {
 	models []db.Node
 }
 
-func NewConnectionResolver(id *graphql.ID, subscriptionId *graphql.ID, first *int32, after *graphql.ID) (r *ConnectionResolver, err error) {
-	var uintId, uintSubscriptionId uint
-	if id != nil {
-		uintId, err = common.DecodeCursor(*id)
+func NewConnectionResolver(_id *graphql.ID, _subscriptionId *graphql.ID, first *int32, _after *graphql.ID) (r *ConnectionResolver, err error) {
+	var id, subscriptionId uint
+	if _id != nil {
+		id, err = common.DecodeCursor(*_id)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if subscriptionId != nil {
-		uintSubscriptionId, err = common.DecodeCursor(*subscriptionId)
+	if _subscriptionId != nil {
+		subscriptionId, err = common.DecodeCursor(*_subscriptionId)
 		if err != nil {
 			return nil, err
 		}
 	}
 	baseQuery := func() *gorm.DB {
 		q := db.DB(context.TODO()).Model(&db.Node{})
-		if id != nil {
-			q = q.Where("id = ?", uintId)
+		if _id != nil {
+			q = q.Where("id = ?", id)
 		}
-		if subscriptionId != nil {
-			q = q.Where("subscription_id = ?", uintSubscriptionId)
+		if _subscriptionId != nil {
+			q = q.Where("subscription_id = ?", subscriptionId)
 		}
 		return q
 	}
 
 	q := baseQuery()
-	if after != nil {
+	if _after != nil {
+		after, err := common.DecodeCursor(*_after)
+		if err != nil {
+			return nil, err
+		}
 		q = q.Where("id > ?", after)
 	}
 	if first != nil {

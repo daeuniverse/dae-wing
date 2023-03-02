@@ -6,6 +6,7 @@
 package main
 
 import (
+	"github.com/json-iterator/go/extra"
 	"github.com/v2rayA/dae-wing/cmd"
 	"os"
 )
@@ -24,6 +25,8 @@ import (
 )
 
 func main() {
+	extra.RegisterFuzzyDecoders()
+
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}

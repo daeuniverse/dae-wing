@@ -22,9 +22,9 @@ import (
 )
 
 type ImportResult struct {
-	Link         string
-	Error        *string
-	Subscription *Resolver
+	Link             string
+	NodeImportResult []*node.ImportResult
+	Sub              *Resolver
 }
 
 func fetchLinks(subscriptionLink string) (links []string, err error) {
@@ -54,7 +54,7 @@ func fetchLinks(subscriptionLink string) (links []string, err error) {
 	return links, nil
 }
 
-func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (result *ImportResult, err error) {
+func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (r *ImportResult, err error) {
 	if err = argument.ValidateTag(); err != nil {
 		return nil, err
 	}
@@ -85,14 +85,14 @@ func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (
 		})
 	}
 	// Import nodes.
-	_, err = node.Import(c, rollbackError, &m.ID, args)
+	result, err := node.Import(c, rollbackError, &m.ID, args)
 	if err != nil {
 		return nil, err
 	}
 	return &ImportResult{
-		Link:  argument.Link,
-		Error: nil,
-		Subscription: &Resolver{
+		Link:             argument.Link,
+		NodeImportResult: result,
+		Sub: &Resolver{
 			Subscription: &m,
 		},
 	}, nil
@@ -115,19 +115,13 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 
 	tx := db.BeginTx(ctx)
 	// Remove those subscription_id of which satisfied and not in any groups.
-	var _ids []struct {
-		ID uint
-	}
-	if err = tx.Model(&db.Group{}).Association("Node").Find(&_ids); err != nil {
-		tx.Rollback()
-		return nil, err
-	}
-	var ids []uint
-	for _, _id := range _ids {
-		ids = append(ids, _id.ID)
-	}
+	subQuery := tx.Model(&db.Node{}).
+		Where("subscription_id = ?", subId).
+		Select("nodes.id as id").
+		Joins("inner join group_nodes on group_nodes.node_id = nodes.id")
+
 	if err = tx.Where("subscription_id = ?", subId).
-		Where("id not in ?", ids).
+		Where("id not in (?)", subQuery).
 		Select(clause.Associations).
 		Delete(&db.Node{}).Error; err != nil {
 		tx.Rollback()
@@ -142,8 +136,11 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 		tx.Callback()
 		return nil, err
 	}
-	// Retrieve and return the latest version.
-	if err = tx.Where(&db.Subscription{ID: subId}).First(&m).Error; err != nil {
+	// Update updated_at and return the latest version.
+	if err = tx.Model(&m).
+		Clauses(clause.Returning{}).
+		Where(&db.Subscription{ID: subId}).
+		Update("updated_at", time.Now()).Error; err != nil {
 		tx.Callback()
 		return nil, err
 	}
