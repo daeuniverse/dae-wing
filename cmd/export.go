@@ -15,7 +15,8 @@ import (
 
 var (
 	exportCmd = &cobra.Command{
-		Use: "export",
+		Use:   "export",
+		Short: "Export development related information",
 		Run: func(cmd *cobra.Command, args []string) {
 			_ = cmd.Help()
 		},

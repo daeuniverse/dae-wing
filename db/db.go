@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"os"
@@ -26,7 +27,7 @@ func InitDatabase(configDir string) (err error) {
 	path := filepath.Join(configDir, filename)
 	db, err = gorm.Open(sqlite.Open(path), &gorm.Config{})
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", err, path)
 	}
 	if err = db.AutoMigrate(
 		&Config{},

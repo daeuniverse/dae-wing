@@ -5,15 +5,21 @@ import (
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/v2rayA/dae-wing/cmd/internal"
+	"github.com/v2rayA/dae-wing/dae"
 	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql"
+	"github.com/v2rayA/dae-wing/graphql/config"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func init() {
 	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", "/etc/dae/", "config directory")
 	runCmd.PersistentFlags().StringVarP(&listen, "listen", "l", "0.0.0.0:2023", "listening address")
+	runCmd.PersistentFlags().BoolVar(&apiOnly, "api-only", false, "run graphql backend without dae")
 	runCmd.PersistentFlags().BoolVarP(&disableTimestamp, "disable-timestamp", "", false, "disable timestamp")
 }
 
@@ -21,6 +27,7 @@ var (
 	cfgDir           string
 	disableTimestamp bool
 	listen           string
+	apiOnly          bool
 
 	runCmd = &cobra.Command{
 		Use:   "run",
@@ -34,20 +41,54 @@ var (
 			}
 
 			// Require "sudo" if necessary.
-			//internal.AutoSu()
+			if !apiOnly {
+				internal.AutoSu()
+			}
 
 			// Read config from --config cfgDir.
 			if err := db.InitDatabase(cfgDir); err != nil {
 				logrus.Fatalln("Failed to init db:", err)
 			}
 
-			// ListenAndServe.
+			// Run dae.
+			emptyDaeConfig, err := config.EmptyDaeConfig()
+			if err != nil {
+				logrus.Fatalln(err)
+			}
+			go func() {
+				logrus.Fatalln(dae.Run(
+					logrus.StandardLogger(),
+					emptyDaeConfig, // TODO: boot with running.
+					disableTimestamp,
+					apiOnly,
+				))
+			}()
+
+			// ListenAndServe GraphQL.
 			schema, err := graphql.Schema()
 			if err != nil {
-				return
+				logrus.Errorf("Exiting: %v", err)
+				dae.ChReloadConfigs <- nil
+				os.Exit(1)
 			}
 			http.Handle("/graphql", cors.AllowAll().Handler(&relay.Handler{Schema: schema}))
-			logrus.Fatal(http.ListenAndServe(listen, nil))
+
+			go func() {
+				if err = http.ListenAndServe(listen, nil); err != nil {
+					// Notify to Close().
+					logrus.Errorf("Exiting: %v", err)
+					dae.ChReloadConfigs <- nil
+					os.Exit(1)
+				}
+			}()
+			sigs := make(chan os.Signal, 1)
+			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGILL)
+			for sig := range sigs {
+				// Notify to Close().
+				logrus.Errorf("Exiting: %v", sig.String())
+				dae.ChReloadConfigs <- nil
+				return
+			}
 		},
 	}
 )

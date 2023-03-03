@@ -114,7 +114,7 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	}
 
 	tx := db.BeginTx(ctx)
-	// Remove those subscription_id of which satisfied and not in any groups.
+	// Remove those subscription_id of which satisfied and are not independently in any groups.
 	subQuery := tx.Model(&db.Node{}).
 		Where("subscription_id = ?", subId).
 		Select("nodes.id as id").

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae-wing/common"
+	"github.com/v2rayA/dae-wing/dae"
 	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql/config/global"
 	daeConfig "github.com/v2rayA/dae/config"
@@ -41,6 +42,7 @@ func Create(ctx context.Context, glob *global.Input, dns string, routing string)
 		Routing:  routing,
 		Selected: false,
 	}
+	// Check grammar and to dae config.
 	c, err := m.ToDaeConfig()
 	if err != nil {
 		return nil, err
@@ -148,8 +150,12 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 func Run(ctx context.Context, dry bool) (n int32, err error) {
 	// Dry run.
 	if dry {
-		// TODO: ...
-		return 0, nil
+		emptyDaeConfig, err := EmptyDaeConfig()
+		if err != nil {
+			return 0, err
+		}
+		dae.ChReloadConfigs <- emptyDaeConfig
+		return 1, nil
 	}
 
 	// Run selected config.
@@ -243,7 +249,7 @@ func Run(ctx context.Context, dry bool) (n int32, err error) {
 			}
 		}
 	}
-	// Fill in groups.
+	// Fill in group section.
 	for _, g := range groups {
 		// Parse policy.
 		var policy daeConfig.FunctionListOrString
@@ -278,12 +284,13 @@ func Run(ctx context.Context, dry bool) (n int32, err error) {
 			Policy: policy,
 		})
 	}
-	// Fill in nodes.
+	// Fill in node section.
 	for name, node := range nameToNodes {
 		c.Node = append(c.Node, daeConfig.KeyableString(fmt.Sprintf("%v:%v", name, node.Link)))
 	}
 
 	/// Reload with current config.
+	dae.ChReloadConfigs <- c
 
 	return 1, nil
 }

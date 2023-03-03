@@ -6,15 +6,28 @@
 package config
 
 import (
-	"github.com/v2rayA/dae/common"
-	"github.com/v2rayA/dae/config"
+	"github.com/v2rayA/dae-wing/db"
+	daeCommon "github.com/v2rayA/dae/common"
+	daeConfig "github.com/v2rayA/dae/config"
 )
 
-func NecessaryOutbounds(routing *config.Routing) (outbounds []string) {
-	f := config.FunctionOrStringToFunction(routing.Fallback)
+func NecessaryOutbounds(routing *daeConfig.Routing) (outbounds []string) {
+	f := daeConfig.FunctionOrStringToFunction(routing.Fallback)
 	outbounds = append(outbounds, f.Name)
 	for _, r := range routing.Rules {
 		outbounds = append(outbounds, r.Outbound.Name)
 	}
-	return common.Deduplicate(outbounds)
+	return daeCommon.Deduplicate(outbounds)
+}
+
+func EmptyDaeConfig() (*daeConfig.Config, error) {
+	m := db.Config{
+		ID:       0,
+		Global:   "global {}",
+		Dns:      "dns {}",
+		Routing:  "routing {}",
+		Selected: false,
+	}
+	// Check grammar and to dae config.
+	return m.ToDaeConfig()
 }

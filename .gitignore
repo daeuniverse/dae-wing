@@ -6,6 +6,13 @@
 generated_*.go
 schema.graphql
 outline.json
+dae-wing
 
 # Database files
 *.db
+
+# vendor
+vendor/
+
+# build
+build-dae-ebpf/

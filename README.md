@@ -40,10 +40,16 @@ go build -o dae-wing .
 
 ## Run
 
-To run the backend:
+To run the api only:
 ```shell
-make schema-resolver
-go run . run -c ./
+make deps
+go run . run -c ./ --api-only
+```
+
+To run with dae:
+```shell
+make deps
+go run -exec sudo . run
 ```
 
 ### Config generator
