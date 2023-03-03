@@ -12,16 +12,31 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae-wing/common"
 	"github.com/v2rayA/dae-wing/db"
+	"github.com/v2rayA/dae-wing/graphql/config/global"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
+	"reflect"
 	"sort"
 	"strings"
 )
 
-func Create(ctx context.Context, global string, dns string, routing string) (*Resolver, error) {
+func Create(ctx context.Context, glob *global.Input, dns string, routing string) (*Resolver, error) {
+	if glob == nil {
+		glob = &global.Input{}
+	}
+	strGlobal, err := glob.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	if dns == "" {
+		dns = "dns {}"
+	}
+	if routing == "" {
+		routing = "routing {}"
+	}
 	m := db.Config{
 		ID:       0,
-		Global:   global,
+		Global:   strGlobal,
 		Dns:      dns,
 		Routing:  routing,
 		Selected: false,
@@ -39,7 +54,7 @@ func Create(ctx context.Context, global string, dns string, routing string) (*Re
 	}, nil
 }
 
-func Update(ctx context.Context, _id graphql.ID, global *string, dns *string, routing *string) (*Resolver, error) {
+func Update(ctx context.Context, _id graphql.ID, inputGlobal *global.Input, dns *string, routing *string) (*Resolver, error) {
 	id, err := common.DecodeCursor(_id)
 	if err != nil {
 		return nil, err
@@ -50,18 +65,31 @@ func Update(ctx context.Context, _id graphql.ID, global *string, dns *string, ro
 		tx.Rollback()
 		return nil, err
 	}
-	var updates map[string]interface{}
-	if global != nil {
-		m.Global = *global
-		updates["global"] = *global
+	updates := map[string]interface{}{}
+	if inputGlobal != nil {
+		// Convert global string in database to daeConfig.Global.
+		c, err := m.ToDaeConfig()
+		if err != nil {
+			return nil, fmt.Errorf("bad current config: %w", err)
+		}
+		// Assign input items to daeConfig.Global.
+		inputGlobal.Assign(&c.Global)
+		// Marshal back to string.
+		marshaller := daeConfig.Marshaller{IndentSpace: 2}
+		if err = marshaller.MarshalSection("global", reflect.ValueOf(c.Global), 0); err != nil {
+			return nil, err
+		}
+		// This column should be updated.
+		m.Global = string(marshaller.Bytes())
+		updates["global"] = m.Global
 	}
 	if dns != nil {
 		m.Dns = *dns
-		updates["dns"] = *dns
+		updates["dns"] = m.Dns
 	}
 	if routing != nil {
 		m.Routing = *routing
-		updates["routing"] = *routing
+		updates["routing"] = m.Routing
 	}
 	// Check grammar.
 	c, err := m.ToDaeConfig()
@@ -69,7 +97,7 @@ func Update(ctx context.Context, _id graphql.ID, global *string, dns *string, ro
 		tx.Rollback()
 		return nil, err
 	}
-	if err = tx.Updates(updates).Error; err != nil {
+	if err = tx.Model(&db.Config{ID: id}).Updates(updates).Error; err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -85,10 +113,11 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if err != nil {
 		return 0, err
 	}
-	if err = db.DB(ctx).Delete(&db.Config{ID: id}).Error; err != nil {
-		return 0, err
+	q := db.DB(ctx).Delete(&db.Config{ID: id})
+	if q.Error != nil {
+		return 0, q.Error
 	}
-	return 1, nil
+	return int32(q.RowsAffected), nil
 }
 
 func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {

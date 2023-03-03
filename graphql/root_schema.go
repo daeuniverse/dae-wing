@@ -26,8 +26,8 @@ type Query {
 	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection!
 }
 type Mutation {
-	createConfig(global: String!, dns: String!, routing: String!): Config!
-	updateConfig(id: ID!, global: String, dns: String, routing: String): Config!
+	createConfig(global: globalInput, dns: String, routing: String): Config!
+	updateConfig(id: ID!, global: globalInput, dns: String, routing: String): Config!
 	removeConfig(id: ID!): Int!
 	selectConfig(id: ID!): Int!
 	run(dry: Boolean!): Int!

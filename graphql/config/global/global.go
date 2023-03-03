@@ -9,6 +9,7 @@ import (
 	_ "golang.org/x/tools/imports"
 )
 
-//go:generate go run ./generator generated_resolver.go
-//go:generate go run golang.org/x/tools/cmd/goimports -w generated_resolver.go
+//go:generate go run ./generator/resolver generated_resolver.go
+//go:generate go run ./generator/input generated_input.go
+//go:generate go run golang.org/x/tools/cmd/goimports -w generated_resolver.go generated_input.go
 //go:generate go fmt

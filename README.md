@@ -36,6 +36,14 @@ go build -o dae-wing .
 ./dae-wing export schema > schema.graphql
 ```
 
+## Run
+
+To run the backend:
+```shell
+make schema-resolver
+go run . run -c ./
+```
+
 ### Config generator
 
 Config related APIs may need [raw format inputs](https://github.com/v2rayA/dae/blob/main/example.dae), use [dae-outline2config](https://github.com/v2rayA/dae-outline2config) to generate them.

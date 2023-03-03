@@ -25,14 +25,20 @@ func (Duration) ImplementsGraphQLType(name string) bool {
 //
 // This function will be called whenever you use the
 // Duration scalar as an input
-func (t *Duration) UnmarshalGraphQL(input interface{}) error {
+func (t *Duration) UnmarshalGraphQL(input interface{}) (err error) {
 	switch input := input.(type) {
 	case time.Duration:
 		t.Duration = input
 		return nil
+	case string:
+		t.Duration, err = time.ParseDuration(input)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("wrong type for Time: %T", input)
 	}
+	return nil
 }
 
 // MarshalJSON is a custom marshaler for Time

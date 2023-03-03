@@ -16,7 +16,9 @@ import (
 )
 
 type builder struct {
-	sb strings.Builder
+	sb            strings.Builder
+	Head          string
+	NotNullString string
 }
 
 func (b *builder) WriteLine(depth int, line string) {
@@ -29,7 +31,7 @@ func (b *builder) Build() (string, error) {
 
 	v := reflect.ValueOf(config.Global{})
 	t := v.Type()
-	b.WriteLine(0, "type Global {")
+	b.WriteLine(0, b.Head+" {")
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
 		structField := t.Field(i)
@@ -51,15 +53,15 @@ func (b *builder) Build() (string, error) {
 				}).Warnln("dangerous converting: may exceeds graphQL int32 range")
 			}
 
-			b.WriteLine(1, name+": Int!")
+			b.WriteLine(1, name+": Int"+b.NotNullString)
 		case string:
-			b.WriteLine(1, name+": String!")
+			b.WriteLine(1, name+": String"+b.NotNullString)
 		case time.Duration:
-			b.WriteLine(1, name+": Duration!")
+			b.WriteLine(1, name+": Duration"+b.NotNullString)
 		case bool:
-			b.WriteLine(1, name+": Boolean!")
+			b.WriteLine(1, name+": Boolean"+b.NotNullString)
 		case []string:
-			b.WriteLine(1, name+": [String!]!")
+			b.WriteLine(1, name+": [String!]"+b.NotNullString)
 		default:
 			return "", fmt.Errorf("unknown type: %T", field)
 		}
@@ -69,6 +71,23 @@ func (b *builder) Build() (string, error) {
 }
 
 func Schema() (string, error) {
-	var b builder
-	return b.Build()
+	typeBuilder := builder{
+		sb:            strings.Builder{},
+		Head:          "type Global",
+		NotNullString: "!",
+	}
+	t, err := typeBuilder.Build()
+	if err != nil {
+		return "", err
+	}
+	inputBuilder := builder{
+		sb:            strings.Builder{},
+		Head:          "input globalInput",
+		NotNullString: "",
+	}
+	i, err := inputBuilder.Build()
+	if err != nil {
+		return "", err
+	}
+	return t + "\n" + i, nil
 }

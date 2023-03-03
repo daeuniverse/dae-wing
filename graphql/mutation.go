@@ -10,6 +10,7 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql/config"
+	"github.com/v2rayA/dae-wing/graphql/config/global"
 	"github.com/v2rayA/dae-wing/graphql/internal"
 	"github.com/v2rayA/dae-wing/graphql/service/group"
 	"github.com/v2rayA/dae-wing/graphql/service/node"
@@ -20,16 +21,23 @@ import (
 type MutationResolver struct{}
 
 func (r *MutationResolver) CreateConfig(args *struct {
-	Global  string
-	Dns     string
-	Routing string
-}) (*config.Resolver, error) {
-	return config.Create(context.TODO(), args.Global, args.Dns, args.Routing)
+	Global  *global.Input
+	Dns     *string
+	Routing *string
+}) (c *config.Resolver, err error) {
+	var strDns, strRouting string
+	if args.Dns != nil {
+		strDns = *args.Dns
+	}
+	if args.Routing != nil {
+		strRouting = *args.Routing
+	}
+	return config.Create(context.TODO(), args.Global, strDns, strRouting)
 }
 
 func (r *MutationResolver) UpdateConfig(args *struct {
 	ID      graphql.ID
-	Global  *string
+	Global  *global.Input
 	Dns     *string
 	Routing *string
 }) (*config.Resolver, error) {
