@@ -32,7 +32,7 @@ API is powered by [GraphQL](https://graphql.org/). UI developers can export sche
 
 ```shell
 git clone https://github.com/v2rayA/dae-wing
-go build -o dae-wing .
+go build -o dae-wing
 ./dae-wing export schema > schema.graphql
 ```
 
@@ -44,12 +44,14 @@ To run the api only:
 ```shell
 make deps
 go run . run -c ./ --api-only
+# go build -o dae-wing && ./dae-wing run -c ./ --api-only
 ```
 
 To run with dae:
 ```shell
 make deps
 go run -exec sudo . run
+# go build -o dae-wing && sudo ./dae-wing run -c ./ --api-only
 ```
 
 ### Config generator
