@@ -20,6 +20,9 @@ import (
 
 type queryResolver struct{}
 
+func (r *queryResolver) HealthCheck() int32 {
+	return 1
+}
 func (r *queryResolver) Configs(args *struct {
 	ID       *graphql.ID
 	Selected *bool

@@ -19,6 +19,7 @@ schema {
 	mutation: Mutation
 }
 type Query {
+	healthCheck(): Int!
 	configs(id: ID, selected: Boolean): [Config!]!
 	subscriptions(id: ID): [Subscription!]!
 	groups(id: ID): [Group!]!
