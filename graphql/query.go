@@ -42,14 +42,15 @@ func (r *queryResolver) Configs(args *struct {
 	if err = q.Find(&models).Error; err != nil {
 		return nil, err
 	}
-	for _, m := range models {
+	for i := range models {
+		m := &models[i]
 		c, err := m.ToDaeConfig()
 		if err != nil {
 			return nil, err
 		}
 		rs = append(rs, &config.Resolver{
-			Config:     c,
-			IsSelected: m.Selected,
+			Config: c,
+			Model:  m,
 		})
 	}
 	return rs, nil

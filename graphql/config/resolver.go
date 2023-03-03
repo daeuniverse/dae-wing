@@ -6,6 +6,9 @@
 package config
 
 import (
+	"github.com/graph-gophers/graphql-go"
+	"github.com/v2rayA/dae-wing/common"
+	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql/config/dns"
 	"github.com/v2rayA/dae-wing/graphql/config/global"
 	"github.com/v2rayA/dae-wing/graphql/config/routing"
@@ -14,9 +17,12 @@ import (
 
 type Resolver struct {
 	*config.Config
-	IsSelected bool
+	Model *db.Config
 }
 
+func (r *Resolver) ID() graphql.ID {
+	return common.EncodeCursor(r.Model.ID)
+}
 func (r *Resolver) Global() *global.Resolver {
 	return &global.Resolver{
 		Global: &r.Config.Global,
@@ -36,5 +42,5 @@ func (r *Resolver) Dns() *dns.Resolver {
 }
 
 func (r *Resolver) Selected() bool {
-	return r.IsSelected
+	return r.Model.Selected
 }

@@ -25,6 +25,9 @@ func (m *Config) ToDaeConfig() (*daeConfig.Config, error) {
 		m.Global,
 		m.Dns,
 		m.Routing,
+		`group {}`,
+		`subscription{}`,
+		`node{}`,
 	}, "\n")
 	// Parse it to sections.
 	sections, err := config_parser.Parse(strConfig)

@@ -79,8 +79,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/v2rayA/dae v0.0.0-20230302072547-87c9b9d6a536 h1:FKg04EUs/2KidOV5F2Vwx/JdC9ZJ/G4TQu4e0ovF4BA=
-github.com/v2rayA/dae v0.0.0-20230302072547-87c9b9d6a536/go.mod h1:gCRawsZf7bELE0tdZqrjvwN8wcK73hlR4ROPx4OaoMM=
+github.com/v2rayA/dae v0.0.0-20230303030951-6359215cb4cc h1:91KgO+dR045xo9I+6UgJ6rIo3sMU7m8IlIBmZGQyHOA=
+github.com/v2rayA/dae v0.0.0-20230303030951-6359215cb4cc/go.mod h1:gCRawsZf7bELE0tdZqrjvwN8wcK73hlR4ROPx4OaoMM=
 github.com/v2rayA/dae-config-dist/go/dae_config v0.0.0-20230219173344-413f12027632 h1:MJ6+M3MpiVMdiZn3An88ZFNeLcLiN7hTaPsd2bVyduI=
 github.com/v2rayA/dae-config-dist/go/dae_config v0.0.0-20230219173344-413f12027632/go.mod h1:JiTWeZybOkBfCqv/fy5jbFhXTxuLlyrI76gRNazz2sU=
 gitlab.com/yawning/chacha20.git v0.0.0-20190903091407-6d1cb28dc72c h1:yrfrd1u7MWIwWIulet2TZPEkeNQhQ/GcPLdPXgiEEr0=

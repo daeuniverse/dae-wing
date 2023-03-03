@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", "/etc/dae/wing.db", "database file")
+	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", "/etc/dae/", "config directory")
 	runCmd.PersistentFlags().StringVarP(&listen, "listen", "l", "0.0.0.0:2023", "listening address")
 	runCmd.PersistentFlags().BoolVarP(&disableTimestamp, "disable-timestamp", "", false, "disable timestamp")
 }

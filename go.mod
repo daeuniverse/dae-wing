@@ -10,7 +10,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stoewer/go-strcase v1.2.1
-	github.com/v2rayA/dae v0.0.0-20230302072547-87c9b9d6a536
+	github.com/v2rayA/dae v0.0.0-20230303030951-6359215cb4cc
 	golang.org/x/tools v0.6.0
 	gorm.io/driver/sqlite v1.4.4
 	gorm.io/gorm v1.24.5

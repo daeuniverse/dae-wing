@@ -34,8 +34,8 @@ func Create(ctx context.Context, global string, dns string, routing string) (*Re
 		return nil, err
 	}
 	return &Resolver{
-		Config:     c,
-		IsSelected: m.Selected,
+		Config: c,
+		Model:  &m,
 	}, nil
 }
 
@@ -75,8 +75,8 @@ func Update(ctx context.Context, _id graphql.ID, global *string, dns *string, ro
 	}
 	tx.Commit()
 	return &Resolver{
-		Config:     c,
-		IsSelected: m.Selected,
+		Config: c,
+		Model:  &m,
 	}, nil
 }
 

@@ -8,6 +8,7 @@ package config
 func Schema() (string, error) {
 	return `
 type Config {
+	id: ID!
 	global: Global!
 	routing: Routing!
 	dns: Dns!
