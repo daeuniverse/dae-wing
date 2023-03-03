@@ -36,6 +36,8 @@ go build -o dae-wing .
 ./dae-wing export schema > schema.graphql
 ```
 
+[graphql-playground](https://github.com/graphql/graphql-playground) is recommended for developers. It integrates docs and debug environment for API. Choose `URL ENDPOINT` and fill in `http://localhost:2023/graphql` to continue.
+
 ## Run
 
 To run the backend:
