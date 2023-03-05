@@ -21,8 +21,7 @@ A generalized node refer to a proxy profile, which can be imported by link. A no
 A group has the following features:
 
 1. A group is as an outbound of routing.
-1. A group consists subscriptions and nodes.
-1. A group has a node selection policy for a new connection.
+1. A group consists of subscriptions, nodes and a node selection policy for every new connection.
 
 If a node in a subscription also belongs to a group, it will be preserved when the subscription is updated.
 

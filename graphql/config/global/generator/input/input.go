@@ -105,7 +105,7 @@ func (i *Input) Marshal() (string, error) {
 			var g daeConfig.Global
 			i.Assign(&g)
 			marshaller := daeConfig.Marshaller{}
-			if err := marshaller.MarshalSection("global", reflect.ValueOf(&g), 0); err != nil {
+			if err := marshaller.MarshalSection("global", reflect.ValueOf(g), 0); err != nil {
 				return "", err
 			}
 			return string(marshaller.Bytes()), nil
