@@ -1,16 +1,16 @@
 /*
  * SPDX-License-Identifier: AGPL-3.0-only
- * Copyright (c) 2023, v2rayA Organization <team@v2raya.org>
+ * Copyright (c) 2023, daeuniverse Organization <team@v2raya.org>
  */
 
 package node
 
 import (
 	"context"
+	"github.com/daeuniverse/dae-wing/common"
+	"github.com/daeuniverse/dae-wing/db"
+	"github.com/daeuniverse/dae-wing/graphql/service"
 	"github.com/graph-gophers/graphql-go"
-	"github.com/v2rayA/dae-wing/common"
-	"github.com/v2rayA/dae-wing/db"
-	"github.com/v2rayA/dae-wing/graphql/service"
 	"gorm.io/gorm"
 )
 

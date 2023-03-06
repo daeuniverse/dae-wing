@@ -1,11 +1,11 @@
 /*
  * SPDX-License-Identifier: AGPL-3.0-only
- * Copyright (c) 2023, v2rayA Organization <team@v2raya.org>
+ * Copyright (c) 2023, daeuniverse Organization <team@v2raya.org>
  */
 
 package internal
 
-import "github.com/v2rayA/dae-wing/common"
+import "github.com/daeuniverse/dae-wing/common"
 
 type ImportArgument struct {
 	Link string

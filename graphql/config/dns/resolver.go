@@ -1,13 +1,13 @@
 /*
  * SPDX-License-Identifier: AGPL-3.0-only
- * Copyright (c) 2023, v2rayA Organization <team@v2raya.org>
+ * Copyright (c) 2023, daeuniverse Organization <team@v2raya.org>
  */
 
 package dns
 
 import (
-	"github.com/v2rayA/dae-wing/graphql/config/routing"
-	"github.com/v2rayA/dae-wing/graphql/internal"
+	"github.com/daeuniverse/dae-wing/graphql/config/routing"
+	"github.com/daeuniverse/dae-wing/graphql/internal"
 	"github.com/v2rayA/dae/common"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"

@@ -3,11 +3,11 @@ package group
 import (
 	"context"
 	"github.com/graph-gophers/graphql-go"
-	"github.com/v2rayA/dae-wing/common"
-	"github.com/v2rayA/dae-wing/db"
-	"github.com/v2rayA/dae-wing/graphql/internal"
-	"github.com/v2rayA/dae-wing/graphql/service/node"
-	"github.com/v2rayA/dae-wing/graphql/service/subscription"
+	"github.com/daeuniverse/dae-wing/common"
+	"github.com/daeuniverse/dae-wing/db"
+	"github.com/daeuniverse/dae-wing/graphql/internal"
+	"github.com/daeuniverse/dae-wing/graphql/service/node"
+	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 )
 
 type Resolver struct {

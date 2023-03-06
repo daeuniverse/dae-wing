@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: AGPL-3.0-only
- * Copyright (c) 2023, v2rayA Organization <team@v2raya.org>
+ * Copyright (c) 2023, daeuniverse Organization <team@v2raya.org>
  */
 
 package cmd
@@ -8,7 +8,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/v2rayA/dae-wing/graphql"
+	"github.com/daeuniverse/dae-wing/graphql"
 	daeConfig "github.com/v2rayA/dae/config"
 	"os"
 )

@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: AGPL-3.0-only
- * Copyright (c) 2023, v2rayA Organization <team@v2raya.org>
+ * Copyright (c) 2023, daeuniverse Organization <team@v2raya.org>
  */
 
 package graphql
@@ -9,13 +9,13 @@ import (
 	"context"
 	"errors"
 	"github.com/graph-gophers/graphql-go"
-	"github.com/v2rayA/dae-wing/common"
-	"github.com/v2rayA/dae-wing/db"
-	"github.com/v2rayA/dae-wing/graphql/config"
-	"github.com/v2rayA/dae-wing/graphql/general"
-	"github.com/v2rayA/dae-wing/graphql/service/group"
-	"github.com/v2rayA/dae-wing/graphql/service/node"
-	"github.com/v2rayA/dae-wing/graphql/service/subscription"
+	"github.com/daeuniverse/dae-wing/common"
+	"github.com/daeuniverse/dae-wing/db"
+	"github.com/daeuniverse/dae-wing/graphql/config"
+	"github.com/daeuniverse/dae-wing/graphql/general"
+	"github.com/daeuniverse/dae-wing/graphql/service/group"
+	"github.com/daeuniverse/dae-wing/graphql/service/node"
+	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 	"gorm.io/gorm"
 )
 

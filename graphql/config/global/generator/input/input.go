@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: AGPL-3.0-only
- * Copyright (c) 2023, v2rayA Organization <team@v2raya.org>
+ * Copyright (c) 2023, daeuniverse Organization <team@v2raya.org>
  */
 
 package main
@@ -63,7 +63,7 @@ func (b *builder) Build() (string, error) {
 	b.WriteLine(0, "// Generated code; DO NOT EDIT.\n")
 	b.WriteLine(0, "package global\n")
 	b.WriteLine(0, fmt.Sprintf(`import "%v"`, t.PkgPath()))
-	b.WriteLine(0, fmt.Sprintf(`import "github.com/v2rayA/dae-wing/graphql/scalar"`))
+	b.WriteLine(0, fmt.Sprintf(`import "github.com/daeuniverse/dae-wing/graphql/scalar"`))
 	b.WriteLine(0, fmt.Sprintf(`import daeConfig "github.com/v2rayA/dae/config"`))
 	b.WriteLine(0, `type Input struct {`)
 	b.WriteMethodLine(0, `func (i *Input) Assign(g *daeConfig.Global) {`)

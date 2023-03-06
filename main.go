@@ -1,13 +1,13 @@
 /*
  * SPDX-License-Identifier: AGPL-3.0-only
- * Copyright (c) 2023, v2rayA Organization <team@v2raya.org>
+ * Copyright (c) 2023, daeuniverse Organization <team@v2raya.org>
  */
 
 package main
 
 import (
+	"github.com/daeuniverse/dae-wing/cmd"
 	"github.com/json-iterator/go/extra"
-	"github.com/v2rayA/dae-wing/cmd"
 	"os"
 )
 

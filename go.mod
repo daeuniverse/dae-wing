@@ -1,4 +1,4 @@
-module github.com/v2rayA/dae-wing
+module github.com/daeuniverse/dae-wing
 
 go 1.18
 

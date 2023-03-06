@@ -21,7 +21,7 @@ go run -exec sudo . run
 API is powered by [GraphQL](https://graphql.org/). UI developers can export schema and write queries and mutations easily.
 
 ```shell
-git clone https://github.com/v2rayA/dae-wing
+git clone https://github.com/daeuniverse/dae-wing
 go build -o dae-wing
 ./dae-wing export schema > schema.graphql
 ```
@@ -35,7 +35,7 @@ Alternatively, you can use [raw format inputs](https://github.com/v2rayA/dae/blo
 **To generate outline**
 
 ```shell
-git clone https://github.com/v2rayA/dae-wing
+git clone https://github.com/daeuniverse/dae-wing
 go build -o dae-wing .
 ./dae-wing export outline > outline.json
 ```
