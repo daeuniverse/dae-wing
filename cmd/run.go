@@ -9,7 +9,6 @@ import (
 	"github.com/v2rayA/dae-wing/dae"
 	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql"
-	"github.com/v2rayA/dae-wing/graphql/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -51,14 +50,10 @@ var (
 			}
 
 			// Run dae.
-			emptyDaeConfig, err := config.EmptyDaeConfig()
-			if err != nil {
-				logrus.Fatalln(err)
-			}
 			go func() {
 				logrus.Fatalln(dae.Run(
 					logrus.StandardLogger(),
-					emptyDaeConfig, // TODO: boot with running.
+					dae.EmptyConfig, // TODO: boot with running.
 					disableTimestamp,
 					apiOnly,
 				))

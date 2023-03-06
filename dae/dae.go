@@ -11,11 +11,29 @@ import (
 	"github.com/sirupsen/logrus"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/control"
+	"github.com/v2rayA/dae/pkg/config_parser"
 	"github.com/v2rayA/dae/pkg/logger"
 	"runtime"
 )
 
-var ChReloadConfigs = make(chan *daeConfig.Config, 16)
+type ReloadMessage struct {
+	Config   *daeConfig.Config
+	Callback chan<- bool
+}
+
+var ChReloadConfigs = make(chan *ReloadMessage, 16)
+var EmptyConfig *daeConfig.Config
+
+func init() {
+	sections, err := config_parser.Parse(`global{} routing{}`)
+	if err != nil {
+		panic(err)
+	}
+	EmptyConfig, err = daeConfig.New(sections)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func Run(log *logrus.Logger, conf *daeConfig.Config, disableTimestamp bool, dry bool) (err error) {
 
@@ -49,13 +67,18 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, disableTimestamp bool, dry 
 		if listener, err = c.ListenAndServe(readyChan, conf.Global.TproxyPort); err != nil {
 			log.Errorln("ListenAndServe:", err)
 		}
+		// Exit
 		ChReloadConfigs <- nil
 	}()
 	reloading := false
+	isRollback := false
+	var chCallback chan<- bool
 loop:
-	for newConf := range ChReloadConfigs {
-		switch newConf {
+	for newReloadMsg := range ChReloadConfigs {
+		switch newReloadMsg {
 		case nil:
+			// We will receive nil after control plane being Closed.
+			// We'll judge if we are in a reloading.
 			if reloading {
 				// Serve.
 				reloading = false
@@ -65,10 +88,14 @@ loop:
 					if err := c.Serve(readyChan, listener); err != nil {
 						log.Errorln("ListenAndServe:", err)
 					}
+					// Exit
 					ChReloadConfigs <- nil
 				}()
 				<-readyChan
 				log.Warnln("[Reload] Finished")
+				if !isRollback {
+					chCallback <- true
+				}
 			} else {
 				// Listening error.
 				break loop
@@ -78,13 +105,13 @@ loop:
 			log.Warnln("[Reload] Received reload signal; prepare to reload")
 
 			// New logger.
-			log = logger.NewLogger(newConf.Global.LogLevel, disableTimestamp)
+			log = logger.NewLogger(newReloadMsg.Config.Global.LogLevel, disableTimestamp)
 			logrus.SetLevel(log.Level)
 
 			// New control plane.
 			obj := c.EjectBpf()
 			log.Warnln("[Reload] Load new control plane")
-			newC, err := newControlPlane(log, obj, newConf)
+			newC, err := newControlPlane(log, obj, newReloadMsg.Config)
 			if err != nil {
 				log.WithFields(logrus.Fields{
 					"err": err,
@@ -99,15 +126,25 @@ loop:
 					}).Fatalln("[Reload] Failed to roll back configuration")
 				}
 				log.Warnln("[Reload] Last reload failed; rolled back configuration")
+				newReloadMsg.Callback <- false
+				isRollback = true
 			} else {
 				log.Warnln("[Reload] Stopped old control plane")
+				isRollback = false
 			}
+
 			// Inject bpf objects into the new control plane life-cycle.
 			newC.InjectBpf(obj)
-			c.Close()
-			c = newC
-			conf = newConf
+
+			// Prepare new context.
+			conf = newReloadMsg.Config
 			reloading = true
+			chCallback = newReloadMsg.Callback
+			oldC := c
+			c = newC
+
+			// Ready to close.
+			oldC.Close()
 		}
 	}
 	if e := c.Close(); e != nil {

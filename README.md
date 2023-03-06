@@ -48,6 +48,10 @@ Config defined in dae-wing includes `global`, `dns` and `routing` sections in [d
 
 Users can switch between multiple configs. Nodes, subscriptions and groups are selectively shared by all configs.
 
+**Run**
+
+Selected config is the running config or config to run. If dae is not running, you can select a config and invoke run. If dae is already running with a config, selecting a new config will cause automatic switching and reloading, and removing the running config will cause to stop running.
+
 ### Subscription
 
 Subscription consists of its link and the collection of nodes resolved by the link.

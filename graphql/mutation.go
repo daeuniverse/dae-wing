@@ -59,7 +59,14 @@ func (r *MutationResolver) SelectConfig(args *struct {
 func (r *MutationResolver) Run(args *struct {
 	Dry bool
 }) (int32, error) {
-	return config.Run(context.TODO(), args.Dry)
+	tx := db.BeginTx(context.TODO())
+	ret, err := config.Run(tx, args.Dry)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	tx.Commit()
+	return ret, nil
 }
 
 func (r *MutationResolver) ImportNodes(args *struct {

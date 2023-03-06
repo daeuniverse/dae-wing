@@ -7,7 +7,6 @@ package config
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae-wing/common"
@@ -16,6 +15,8 @@ import (
 	"github.com/v2rayA/dae-wing/graphql/config/global"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"reflect"
 	"sort"
 	"strings"
@@ -115,10 +116,31 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if err != nil {
 		return 0, err
 	}
-	q := db.DB(ctx).Delete(&db.Config{ID: id})
+	tx := db.BeginTx(ctx)
+	m := db.Config{ID: id}
+	q := tx.Clauses(clause.Returning{Columns: []clause.Column{{Name: "selected"}}}).
+		Delete(&m)
 	if q.Error != nil {
+		tx.Rollback()
 		return 0, q.Error
 	}
+	// Check if the config to delete is selected.
+	if q.RowsAffected > 0 && m.Selected {
+		// Check if dae is running.
+		var sys db.System
+		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		if sys.Running {
+			// Stop running with dry-run.
+			if _, err = Run(tx, true); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
+	tx.Commit()
 	return int32(q.RowsAffected), nil
 }
 
@@ -129,12 +151,14 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	}
 	tx := db.BeginTx(ctx)
 	// Unset all selected.
-	if err = tx.Model(&db.Config{}).Where("selected = ?", true).Update("selected", false).Error; err != nil {
+	q := tx.Model(&db.Config{}).Where("selected = ?", true).Update("selected", false)
+	if err = q.Error; err != nil {
 		tx.Rollback()
 		return 0, err
 	}
+	isReplace := q.RowsAffected > 0
 	// Set selected.
-	q := tx.Model(&db.Config{ID: id}).Update("selected", true)
+	q = tx.Model(&db.Config{ID: id}).Update("selected", true)
 	if err = q.Error; err != nil {
 		tx.Rollback()
 		return 0, err
@@ -143,28 +167,52 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 		tx.Rollback()
 		return 0, fmt.Errorf("no such config")
 	}
+	if isReplace {
+		// Check if dae is running.
+		var sys db.System
+		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		if sys.Running {
+			// Run with new config.
+			if _, err = Run(tx, false); err != nil {
+				tx.Rollback()
+				return 0, err
+			}
+		}
+	}
 	tx.Commit()
 	return 1, nil
 }
 
-func Run(ctx context.Context, dry bool) (n int32, err error) {
+func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 	// Dry run.
 	if dry {
-		emptyDaeConfig, err := EmptyDaeConfig()
-		if err != nil {
+		ch := make(chan bool)
+		dae.ChReloadConfigs <- &dae.ReloadMessage{
+			Config:   dae.EmptyConfig,
+			Callback: ch,
+		}
+		suc := <-ch
+		if !suc {
+			return 0, fmt.Errorf("failed to dryrun: unexpected failure; see more in log and report bugs")
+		}
+
+		// Running -> false
+		var sys db.System
+		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
 			return 0, err
 		}
-		dae.ChReloadConfigs <- emptyDaeConfig
+		if err = tx.Model(&sys).Update("running", false).Error; err != nil {
+			tx.Rollback()
+			return 0, err
+		}
 		return 1, nil
 	}
 
 	// Run selected config.
 	var m db.Config
-	tx := db.DB(ctx).Begin(&sql.TxOptions{
-		Isolation: sql.LevelSnapshot,
-		ReadOnly:  true,
-	})
-	defer tx.Commit()
 	q := tx.Model(&db.Config{}).Where("selected = ?", true).First(&m)
 	if q.Error != nil {
 		return 0, q.Error
@@ -290,7 +338,24 @@ func Run(ctx context.Context, dry bool) (n int32, err error) {
 	}
 
 	/// Reload with current config.
-	dae.ChReloadConfigs <- c
+	chReloadCallback := make(chan bool)
+	dae.ChReloadConfigs <- &dae.ReloadMessage{
+		Config:   c,
+		Callback: chReloadCallback,
+	}
+	sucReload := <-chReloadCallback
+	if !sucReload {
+		return 0, fmt.Errorf("failed to load new config; see more in log")
+	}
+
+	// Running -> true
+	var sys db.System
+	if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
+		return 0, err
+	}
+	if err = tx.Model(&sys).Update("running", true).Error; err != nil {
+		return 0, err
+	}
 
 	return 1, nil
 }
