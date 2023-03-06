@@ -51,7 +51,7 @@ func (r *Resolver) Policy() string {
 }
 
 func (r *Resolver) PolicyParams() (rs []*internal.ParamResolver, err error) {
-	var params []db.GroupPolicyParamModel
+	var params []db.GroupPolicyParam
 	if err = db.DB(context.TODO()).Model(r.Group).Association("PolicyParams").Find(&params); err != nil {
 		return nil, err
 	}

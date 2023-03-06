@@ -18,7 +18,7 @@ func Create(ctx context.Context, name string, policy string, policyParams []conf
 	if err = common.ValidateId(name); err != nil {
 		return nil, err
 	}
-	params := make([]db.GroupPolicyParamModel, len(policyParams))
+	params := make([]db.GroupPolicyParam, len(policyParams))
 	for i := range params {
 		params[i].Unmarshal(&policyParams[i])
 	}
@@ -73,7 +73,7 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 		tx.Rollback()
 		return 0, err
 	}
-	if err = tx.Where("group_id = ?", id).Delete(&db.GroupPolicyParamModel{}).Error; err != nil {
+	if err = tx.Where("group_id = ?", id).Delete(&db.GroupPolicyParam{}).Error; err != nil {
 		tx.Rollback()
 		return 0, err
 	}

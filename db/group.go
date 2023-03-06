@@ -11,12 +11,12 @@ type Group struct {
 	ID           uint   `gorm:"primaryKey;autoIncrement"`
 	Name         string `gorm:"not null;unique;index"`
 	Policy       string `gorm:"not null"`
-	PolicyParams []GroupPolicyParamModel
+	PolicyParams []GroupPolicyParam
 	Node         []Node         `gorm:"many2many:group_nodes;"`
 	Subscription []Subscription `gorm:"many2many:group_subscriptions;"`
 }
 
-type GroupPolicyParamModel struct {
+type GroupPolicyParam struct {
 	ID    uint   `gorm:"primaryKey;autoIncrement"`
 	Key   string `gorm:"not null"`
 	Value string `gorm:"not null"`
@@ -26,14 +26,14 @@ type GroupPolicyParamModel struct {
 	Group   Group
 }
 
-func (m *GroupPolicyParamModel) Marshal() *config_parser.Param {
+func (m *GroupPolicyParam) Marshal() *config_parser.Param {
 	return &config_parser.Param{
 		Key: m.Key,
 		Val: m.Value,
 	}
 }
 
-func (m *GroupPolicyParamModel) Unmarshal(param *config_parser.Param) {
+func (m *GroupPolicyParam) Unmarshal(param *config_parser.Param) {
 	m.Key = param.Key
 	m.Value = param.Val
 }

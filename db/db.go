@@ -34,7 +34,8 @@ func InitDatabase(configDir string) (err error) {
 		&Node{},
 		&Subscription{},
 		&Group{},
-		&GroupPolicyParamModel{},
+		&GroupPolicyParam{},
+		&System{},
 	); err != nil {
 		return err
 	}

@@ -25,6 +25,7 @@ type Query {
 	groups(id: ID): [Group!]!
 	group(name: String!): Group!
 	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection!
+	general(): General!
 }
 type Mutation {
 	# createConfig create a config. Null arguments will be converted to default value.

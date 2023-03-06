@@ -10,6 +10,7 @@ import (
 	"github.com/v2rayA/dae-wing/graphql/config/dns"
 	"github.com/v2rayA/dae-wing/graphql/config/global"
 	"github.com/v2rayA/dae-wing/graphql/config/routing"
+	"github.com/v2rayA/dae-wing/graphql/general"
 	"github.com/v2rayA/dae-wing/graphql/service"
 	"github.com/v2rayA/dae-wing/graphql/service/group"
 	"github.com/v2rayA/dae-wing/graphql/service/node"
@@ -27,4 +28,5 @@ var schemaChains = []SchemaChain{
 	service.Schema,
 	node.Schema,
 	subscription.Schema,
+	general.Schema,
 }

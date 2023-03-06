@@ -12,6 +12,7 @@ import (
 	"github.com/v2rayA/dae-wing/common"
 	"github.com/v2rayA/dae-wing/db"
 	"github.com/v2rayA/dae-wing/graphql/config"
+	"github.com/v2rayA/dae-wing/graphql/general"
 	"github.com/v2rayA/dae-wing/graphql/service/group"
 	"github.com/v2rayA/dae-wing/graphql/service/node"
 	"github.com/v2rayA/dae-wing/graphql/service/subscription"
@@ -20,6 +21,9 @@ import (
 
 type queryResolver struct{}
 
+func (r *queryResolver) General() *general.Resolver {
+	return &general.Resolver{}
+}
 func (r *queryResolver) HealthCheck() int32 {
 	return 1
 }
