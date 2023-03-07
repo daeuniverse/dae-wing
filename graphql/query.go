@@ -8,14 +8,14 @@ package graphql
 import (
 	"context"
 	"errors"
-	"github.com/graph-gophers/graphql-go"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/config"
-	"github.com/daeuniverse/dae-wing/graphql/general"
+	"github.com/daeuniverse/dae-wing/graphql/service/general"
 	"github.com/daeuniverse/dae-wing/graphql/service/group"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
+	"github.com/graph-gophers/graphql-go"
 	"gorm.io/gorm"
 )
 

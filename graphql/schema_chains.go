@@ -10,8 +10,8 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/config/dns"
 	"github.com/daeuniverse/dae-wing/graphql/config/global"
 	"github.com/daeuniverse/dae-wing/graphql/config/routing"
-	"github.com/daeuniverse/dae-wing/graphql/general"
 	"github.com/daeuniverse/dae-wing/graphql/service"
+	"github.com/daeuniverse/dae-wing/graphql/service/general"
 	"github.com/daeuniverse/dae-wing/graphql/service/group"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
@@ -20,6 +20,7 @@ import (
 type SchemaChain func() (string, error)
 
 var schemaChains = []SchemaChain{
+	general.Schema,
 	config.Schema,
 	global.Schema,
 	group.Schema,
@@ -28,5 +29,4 @@ var schemaChains = []SchemaChain{
 	service.Schema,
 	node.Schema,
 	subscription.Schema,
-	general.Schema,
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/v2rayA/dae/control"
 	"github.com/v2rayA/dae/pkg/config_parser"
 	"github.com/v2rayA/dae/pkg/logger"
+	"os"
 	"runtime"
 )
 
@@ -175,6 +176,23 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, conf *daeConfig.Config
 		return nil, fmt.Errorf("daeConfig.subscription is not supported in dae-wing")
 	}
 
+	// Write kernel parameters.
+	params := []struct {
+		Format string
+		Value  []byte
+	}{
+		// https://github.com/v2rayA/dae/blob/main/docs/getting-started/README.md#kernel-parameters
+		{"/proc/sys/net/ipv4/conf/%v/forwarding", []byte{'1'}},
+		{"/proc/sys/net/ipv6/conf/%v/forwarding", []byte{'1'}},
+		{"/proc/sys/net/ipv4/conf/%v/send_redirects", []byte{'0'}},
+	}
+	for _, lanIfname := range conf.Global.LanInterface {
+		for _, param := range params {
+			_ = os.WriteFile(fmt.Sprintf(param.Format, lanIfname), param.Value, 0644)
+		}
+	}
+
+	// New dae control plane.
 	c, err = control.NewControlPlane(
 		log,
 		bpf,
