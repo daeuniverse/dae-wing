@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"github.com/daeuniverse/dae-wing/common"
+	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/config"
 	"github.com/daeuniverse/dae-wing/graphql/service/general"
@@ -61,6 +62,9 @@ func (r *queryResolver) Configs(args *struct {
 		})
 	}
 	return rs, nil
+}
+func (r *queryResolver) ConfigFlatDesc() []*dae.FlatDesc {
+	return dae.ExportFlatDesc()
 }
 
 func (r *queryResolver) Subscriptions(args *struct{ ID *graphql.ID }) (rs []*subscription.Resolver, err error) {

@@ -20,6 +20,7 @@ schema {
 }
 type Query {
 	healthCheck: Int!
+	configFlatDesc: [ConfigFlatDesc!]!
 	configs(id: ID, selected: Boolean): [Config!]!
 	subscriptions(id: ID): [Subscription!]!
 	groups(id: ID): [Group!]!
@@ -102,6 +103,15 @@ type SubscriptionImportResult {
 input PolicyParam {
 	key: String!
 	val: String!
+}
+type ConfigFlatDesc {
+	name: String!
+	mapping: String!
+	isArray: Boolean!
+	defaultValue: String!
+	required: Boolean!
+	type: String!
+	desc: String!
 }
 `
 
