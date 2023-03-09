@@ -30,12 +30,8 @@ func Create(ctx context.Context, glob *global.Input, dns string, routing string)
 	if err != nil {
 		return nil, err
 	}
-	if dns == "" {
-		dns = "dns {}"
-	}
-	if routing == "" {
-		routing = "routing {}"
-	}
+	dns = "dns {\n" + dns + "\n}"
+	routing = "routing {\n" + routing + "\n}"
 	m := db.Config{
 		ID:       0,
 		Global:   strGlobal,
@@ -93,11 +89,11 @@ func Update(ctx context.Context, _id graphql.ID, inputGlobal *global.Input, dns 
 		updates["global"] = m.Global
 	}
 	if dns != nil {
-		m.Dns = *dns
+		m.Dns = "dns {\n" + *dns + "\n}"
 		updates["dns"] = m.Dns
 	}
 	if routing != nil {
-		m.Routing = *routing
+		m.Routing = "routing {\n" + *routing + "\n}"
 		updates["routing"] = m.Routing
 	}
 	// Check grammar.
