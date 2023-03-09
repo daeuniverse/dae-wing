@@ -1,14 +1,16 @@
 package cmd
 
 import (
-	"github.com/graph-gophers/graphql-go/relay"
-	"github.com/rs/cors"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"context"
 	"github.com/daeuniverse/dae-wing/cmd/internal"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql"
+	"github.com/graph-gophers/graphql-go/relay"
+	"github.com/rs/cors"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	daeConfig "github.com/v2rayA/dae/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -50,10 +52,14 @@ var (
 			}
 
 			// Run dae.
+			config, err := getConfigToRun()
+			if err != nil {
+				logrus.Fatalln(err)
+			}
 			go func() {
 				logrus.Fatalln(dae.Run(
 					logrus.StandardLogger(),
-					dae.EmptyConfig, // TODO: boot with running.
+					config,
 					disableTimestamp,
 					apiOnly,
 				))
@@ -87,3 +93,27 @@ var (
 		},
 	}
 )
+
+func getConfigToRun() (config *daeConfig.Config, err error) {
+	var sys db.System
+	if err := db.DB(context.TODO()).Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
+		return nil, err
+	}
+	if !sys.Running {
+		return dae.EmptyConfig, nil
+	}
+	var m db.Config
+	q := db.DB(context.TODO()).Model(&db.Config{}).
+		Where("selected = ?", true).
+		First(&m)
+	if q.Error != nil {
+		return nil, q.Error
+	}
+	if q.RowsAffected == 0 {
+		// Data inconsistency.
+		logrus.Warnln("Data inconsistency detected: no selected config but last state is running")
+		_ = db.DB(context.TODO()).Model(&sys).Update("running", false).Error
+		return dae.EmptyConfig, nil
+	}
+	return m.ToDaeConfig()
+}
