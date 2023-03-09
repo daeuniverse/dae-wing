@@ -25,7 +25,9 @@ var (
 
 func InitDatabase(configDir string) (err error) {
 	path := filepath.Join(configDir, filename)
-	db, err = gorm.Open(sqlite.Open(path), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open(path), &gorm.Config{
+		//Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		return fmt.Errorf("%w: %v", err, path)
 	}

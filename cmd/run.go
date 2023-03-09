@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"github.com/daeuniverse/dae-wing/cmd/internal"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql"
+	"github.com/daeuniverse/dae-wing/graphql/config"
 	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	daeConfig "github.com/v2rayA/dae/config"
 	"net/http"
 	"os"
 	"os/signal"
@@ -52,18 +53,18 @@ var (
 			}
 
 			// Run dae.
-			config, err := getConfigToRun()
-			if err != nil {
-				logrus.Fatalln(err)
-			}
 			go func() {
 				logrus.Fatalln(dae.Run(
 					logrus.StandardLogger(),
-					config,
+					dae.EmptyConfig,
 					disableTimestamp,
 					apiOnly,
 				))
 			}()
+			// Reload with running state.
+			if err := restoreRunningState(); err != nil {
+				logrus.Warnln("Failed to restore last running state:", err)
+			}
 
 			// ListenAndServe GraphQL.
 			schema, err := graphql.Schema()
@@ -94,26 +95,61 @@ var (
 	}
 )
 
-func getConfigToRun() (config *daeConfig.Config, err error) {
+func restoreRunningState() (err error) {
+	reload, err := shouldReload()
+	if err != nil {
+		return err
+	}
+	if !reload {
+		return nil
+	}
+	tx := db.BeginTx(context.TODO())
+	// Reload.
+	if _, err = config.Run(tx, false); err != nil {
+		tx.Rollback()
+
+		// Another tx.
+		// Set running = false.
+		tx2 := db.BeginTx(context.TODO())
+		var sys db.System
+		if err2 := tx2.Model(&sys).Select("id").First(&sys).Error; err2 != nil {
+			tx2.Rollback()
+			return fmt.Errorf("%w; %v", err, err2)
+		}
+		if err2 := tx2.Model(&sys).Updates(map[string]interface{}{
+			"running":  false,
+			"modified": false,
+		}).Error; err2 != nil {
+			tx2.Rollback()
+			return fmt.Errorf("%w; %v", err, err2)
+		}
+		tx2.Commit()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func shouldReload() (ok bool, err error) {
 	var sys db.System
 	if err := db.DB(context.TODO()).Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-		return nil, err
+		return false, err
 	}
 	if !sys.Running {
-		return dae.EmptyConfig, nil
+		return false, nil
 	}
 	var m db.Config
 	q := db.DB(context.TODO()).Model(&db.Config{}).
 		Where("selected = ?", true).
 		First(&m)
 	if q.Error != nil {
-		return nil, q.Error
+		return false, q.Error
 	}
 	if q.RowsAffected == 0 {
 		// Data inconsistency.
 		logrus.Warnln("Data inconsistency detected: no selected config but last state is running")
 		_ = db.DB(context.TODO()).Model(&sys).Update("running", false).Error
-		return dae.EmptyConfig, nil
+		return false, nil
 	}
-	return m.ToDaeConfig()
+	return true, nil
 }

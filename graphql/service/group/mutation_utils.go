@@ -9,7 +9,7 @@ import (
 	"context"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
-	"github.com/daeuniverse/dae-wing/graphql/config"
+	"github.com/daeuniverse/dae-wing/graphql/service/internal"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae/pkg/config_parser"
 	"gorm.io/gorm"
@@ -38,30 +38,8 @@ func Create(ctx context.Context, name string, policy string, policyParams []conf
 	}, nil
 }
 
-func referenceGroups(d *gorm.DB) (groups []string, err error) {
-	var sys db.System
-	if err = d.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-		return nil, err
-	}
-
-	if !sys.Running {
-		return nil, nil
-	}
-
-	var conf db.Config
-	if err = d.Model(&db.Config{}).Where("selected = ?", true).First(&conf).Error; err != nil {
-		return nil, err
-	}
-	daeConf, err := conf.ToDaeConfig()
-	if err != nil {
-		return nil, err
-	}
-	groups = config.NecessaryOutbounds(&daeConf.Routing)
-	return groups, nil
-}
-
-func inReferenceGroups(d *gorm.DB, groupName string) (bool, error) {
-	groups, err := referenceGroups(d)
+func isReferencedByRunningConfig(d *gorm.DB, groupName string) (bool, error) {
+	groups, err := internal.ReferenceGroups(d)
 	if err != nil {
 		return false, err
 	}
@@ -71,15 +49,6 @@ func inReferenceGroups(d *gorm.DB, groupName string) (bool, error) {
 		}
 	}
 	return false, nil
-}
-
-func setModified(d *gorm.DB) (err error) {
-	var sys db.System
-	// Get ID.
-	if err = d.Model(&sys).Select("id").FirstOrCreate(&sys).Error; err != nil {
-		return err
-	}
-	return d.Model(&sys).Update("modified", true).Error
 }
 
 func autoUpdateModifiedById(d *gorm.DB, id uint) (err error) {
@@ -93,12 +62,12 @@ func autoUpdateModifiedById(d *gorm.DB, id uint) (err error) {
 
 func autoUpdateModifiedByName(d *gorm.DB, name string) (err error) {
 	// Set modified = true if the group is referenced by selected config.
-	isReferenced, err := inReferenceGroups(d, name)
+	isReferenced, err := isReferencedByRunningConfig(d, name)
 	if err != nil {
 		return err
 	}
 	if isReferenced {
-		if err = setModified(d); err != nil {
+		if err = internal.SetModified(d); err != nil {
 			return err
 		}
 	}

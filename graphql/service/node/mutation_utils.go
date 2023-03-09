@@ -9,10 +9,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/graph-gophers/graphql-go"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
+	internal2 "github.com/daeuniverse/dae-wing/graphql/service/internal"
+	"github.com/graph-gophers/graphql-go"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -75,17 +76,65 @@ func Import(d *gorm.DB, abortError bool, subscriptionId *uint, argument []*inter
 	return rs, nil
 }
 
+func isReferencedByRunningConfig(d *gorm.DB, id uint) (is bool, err error) {
+	groups, err := internal2.ReferenceGroups(d)
+	if err != nil {
+		return false, err
+	}
+	var nodes []db.Node
+	if err = d.Model(&db.Group{}).
+		Where("name in ?", groups).
+		Association("Node").
+		Find(&nodes, "id = ?", id); err != nil {
+		return false, err
+	}
+	return len(nodes) > 0, nil
+}
+
+func autoUpdateModifiedById(d *gorm.DB, id uint) (ok bool, err error) {
+	is, err := isReferencedByRunningConfig(d, id)
+	if err != nil {
+		return false, err
+	}
+	if !is {
+		return false, nil
+	}
+	if err = internal2.SetModified(d); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 	ids, err := common.DecodeCursorBatch(_ids)
 	if err != nil {
 		return 0, err
 	}
-	q := db.DB(ctx).
-		Where("id in ?", ids).
+	tx := db.BeginTx(ctx)
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
+	q := tx.Where("id in ?", ids).
 		Select(clause.Associations).
 		Delete(&db.Node{})
 	if q.Error != nil {
 		return 0, q.Error
+	}
+
+	// Update modified if any nodes are referenced by running config.
+	for _, id := range ids {
+		ok, err := autoUpdateModifiedById(tx, id)
+		if err != nil {
+			return 0, err
+		}
+		if ok {
+			// Already set true.
+			break
+		}
 	}
 	return int32(q.RowsAffected), nil
 }

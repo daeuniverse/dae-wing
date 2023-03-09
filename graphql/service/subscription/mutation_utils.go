@@ -10,6 +10,7 @@ import (
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
+	internal2 "github.com/daeuniverse/dae-wing/graphql/service/internal"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/sirupsen/logrus"
@@ -98,6 +99,35 @@ func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (
 	}, nil
 }
 
+func isReferencedByRunningConfig(d *gorm.DB, id uint) (is bool, err error) {
+	groups, err := internal2.ReferenceGroups(d)
+	if err != nil {
+		return false, err
+	}
+	var subs []db.Subscription
+	if err = d.Model(&db.Group{}).
+		Where("name in ?", groups).
+		Association("Subscription").
+		Find(&subs, "id = ?", id); err != nil {
+		return false, err
+	}
+	return len(subs) > 0, nil
+}
+
+func autoUpdateModifiedById(d *gorm.DB, id uint) (ok bool, err error) {
+	is, err := isReferencedByRunningConfig(d, id)
+	if err != nil {
+		return false, err
+	}
+	if !is {
+		return false, nil
+	}
+	if err = internal2.SetModified(d); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	subId, err := common.DecodeCursor(_id)
 	if err != nil {
@@ -148,6 +178,11 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 		Update("updated_at", time.Now()).Error; err != nil {
 		return nil, err
 	}
+
+	// Update modified if subscription is referenced by running config.
+	if _, err = autoUpdateModifiedById(tx, subId); err != nil {
+		return nil, err
+	}
 	return &Resolver{Subscription: &m}, nil
 }
 
@@ -166,6 +201,19 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 	if err = tx.Where("subscription_id in ?", ids).Delete(&db.Node{}).Error; err != nil {
 		return 0, err
 	}
+
+	// Update modified if any subscriptions are referenced by running config.
+	for _, id := range ids {
+		ok, err := autoUpdateModifiedById(tx, id)
+		if err != nil {
+			return 0, err
+		}
+		if ok {
+			// Already set true.
+			break
+		}
+	}
+
 	return int32(q.RowsAffected), nil
 }
 

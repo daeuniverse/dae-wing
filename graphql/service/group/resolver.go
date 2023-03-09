@@ -2,12 +2,12 @@ package group
 
 import (
 	"context"
-	"github.com/graph-gophers/graphql-go"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
+	"github.com/graph-gophers/graphql-go"
 )
 
 type Resolver struct {
