@@ -30,7 +30,7 @@ type Query {
 }
 type Mutation {
 	# createConfig create a config. Null arguments will be converted to default value.
-	createConfig(name: String!, global: globalInput, dns: String, routing: String): Config!
+	createConfig(name: String, global: globalInput, dns: String, routing: String): Config!
 
 	# updateConfig allows to partially update "global".
 	updateConfig(id: ID!, global: globalInput, dns: String, routing: String): Config!

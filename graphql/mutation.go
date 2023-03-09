@@ -21,19 +21,22 @@ import (
 type MutationResolver struct{}
 
 func (r *MutationResolver) CreateConfig(args *struct {
-	Name    string
+	Name    *string
 	Global  *global.Input
 	Dns     *string
 	Routing *string
 }) (c *config.Resolver, err error) {
-	var strDns, strRouting string
+	var strDns, strRouting, strName string
 	if args.Dns != nil {
 		strDns = *args.Dns
 	}
 	if args.Routing != nil {
 		strRouting = *args.Routing
 	}
-	return config.Create(context.TODO(), args.Name, args.Global, strDns, strRouting)
+	if args.Name != nil {
+		strName = *args.Name
+	}
+	return config.Create(context.TODO(), strName, args.Global, strDns, strRouting)
 }
 
 func (r *MutationResolver) UpdateConfig(args *struct {
