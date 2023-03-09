@@ -239,11 +239,7 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 	}
 	if q.RowsAffected != int64(len(outbounds)) {
 		// Find not found.
-		nameSet := map[string]struct{}{
-			"direct":      {},
-			"block":       {},
-			"must_direct": {},
-		}
+		nameSet := map[string]struct{}{}
 		for _, name := range outbounds {
 			nameSet[name] = struct{}{}
 		}
@@ -252,7 +248,12 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 		}
 		var notFound []string
 		for name := range nameSet {
-			notFound = append(notFound, name)
+			switch name {
+			case "direct", "block", "must_direct":
+				// Preset groups.
+			default:
+				notFound = append(notFound, name)
+			}
 		}
 		return 0, fmt.Errorf("groups not defined but referenced by routing: %v", strings.Join(notFound, ", "))
 	}
