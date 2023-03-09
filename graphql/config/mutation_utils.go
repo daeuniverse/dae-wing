@@ -22,7 +22,7 @@ import (
 	"strings"
 )
 
-func Create(ctx context.Context, glob *global.Input, dns string, routing string) (*Resolver, error) {
+func Create(ctx context.Context, name string, glob *global.Input, dns string, routing string) (*Resolver, error) {
 	if glob == nil {
 		glob = &global.Input{}
 	}
@@ -34,6 +34,7 @@ func Create(ctx context.Context, glob *global.Input, dns string, routing string)
 	routing = "routing {\n" + routing + "\n}"
 	m := db.Config{
 		ID:       0,
+		Name:     name,
 		Global:   strGlobal,
 		Dns:      dns,
 		Routing:  routing,
@@ -387,4 +388,17 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	}
 
 	return 1, nil
+}
+
+func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err error) {
+	id, err := common.DecodeCursor(_id)
+	if err != nil {
+		return 0, err
+	}
+	q := db.DB(ctx).Model(&db.Config{ID: id}).
+		Update("name", name)
+	if q.Error != nil {
+		return 0, q.Error
+	}
+	return int32(q.RowsAffected), nil
 }

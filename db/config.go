@@ -13,6 +13,7 @@ import (
 
 type Config struct {
 	ID      uint   `gorm:"primaryKey;autoIncrement"`
+	Name    string `gorm:"not null;default:''"`
 	Global  string `gorm:"not null"`
 	Dns     string `gorm:"not null"`
 	Routing string `gorm:"not null"`

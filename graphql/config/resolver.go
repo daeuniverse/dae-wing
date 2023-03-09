@@ -23,6 +23,11 @@ type Resolver struct {
 func (r *Resolver) ID() graphql.ID {
 	return common.EncodeCursor(r.Model.ID)
 }
+
+func (r *Resolver) Name() string {
+	return r.Model.Name
+}
+
 func (r *Resolver) Global() *global.Resolver {
 	return &global.Resolver{
 		Global: &r.Config.Global,

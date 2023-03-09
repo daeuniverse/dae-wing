@@ -30,10 +30,13 @@ type Query {
 }
 type Mutation {
 	# createConfig create a config. Null arguments will be converted to default value.
-	createConfig(global: globalInput, dns: String, routing: String): Config!
+	createConfig(name: String!, global: globalInput, dns: String, routing: String): Config!
 
 	# updateConfig allows to partially update "global".
 	updateConfig(id: ID!, global: globalInput, dns: String, routing: String): Config!
+
+	# renameConfig is to give the config a new name.
+	renameConfig(id: ID!, name: String!): Int!
 
 	# removeConfig is to remove a config with given config ID.
 	removeConfig(id: ID!): Int!
@@ -50,7 +53,7 @@ type Mutation {
 	# removeNodes is to remove nodes that have no subscription ID.
 	removeNodes(ids: [ID!]!): Int!
 
-	# tagNode is to give the node a tag.
+	# tagNode is to give the node a new tag.
 	tagNode(id: ID!, tag: String!): Int!
 
 	# importSubscription is to fetch and resolve the subscription into nodes.
@@ -59,7 +62,7 @@ type Mutation {
 	# removeSubscriptions is to remove subscriptions with given ID list.
 	removeSubscriptions(ids: [ID!]!): Int!
 
-	# tagNode is to give the subscription a tag.
+	# tagSubscription is to give the subscription a new tag.
 	tagSubscription(id: ID!, tag: String!): Int!
 
 	# updateSubscription is to re-fetch subscription and resolve subscription into nodes. Old nodes that independently belong to any groups will not be removed.

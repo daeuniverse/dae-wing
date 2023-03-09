@@ -21,6 +21,7 @@ import (
 type MutationResolver struct{}
 
 func (r *MutationResolver) CreateConfig(args *struct {
+	Name    string
 	Global  *global.Input
 	Dns     *string
 	Routing *string
@@ -32,7 +33,7 @@ func (r *MutationResolver) CreateConfig(args *struct {
 	if args.Routing != nil {
 		strRouting = *args.Routing
 	}
-	return config.Create(context.TODO(), args.Global, strDns, strRouting)
+	return config.Create(context.TODO(), args.Name, args.Global, strDns, strRouting)
 }
 
 func (r *MutationResolver) UpdateConfig(args *struct {
@@ -42,6 +43,13 @@ func (r *MutationResolver) UpdateConfig(args *struct {
 	Routing *string
 }) (*config.Resolver, error) {
 	return config.Update(context.TODO(), args.ID, args.Global, args.Dns, args.Routing)
+}
+
+func (r *MutationResolver) RenameConfig(args *struct {
+	ID   graphql.ID
+	Name string
+}) (int32, error) {
+	return config.Rename(context.TODO(), args.ID, args.Name)
 }
 
 func (r *MutationResolver) RemoveConfig(args *struct {

@@ -9,6 +9,7 @@ func Schema() (string, error) {
 	return `
 type Config {
 	id: ID!
+	name: String!
 	global: Global!
 	routing: Routing!
 	dns: Dns!
