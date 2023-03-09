@@ -7,7 +7,6 @@ package graphql
 
 import (
 	"context"
-	"github.com/graph-gophers/graphql-go"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/config"
 	"github.com/daeuniverse/dae-wing/graphql/config/global"
@@ -15,6 +14,7 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/group"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
+	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae/pkg/config_parser"
 )
 
@@ -132,11 +132,26 @@ func (r *MutationResolver) TagSubscription(args *struct {
 func (r *MutationResolver) CreateGroup(args *struct {
 	Name         string
 	Policy       string
-	PolicyParams *[]config_parser.Param
+	PolicyParams *[]struct {
+		Key *string
+		Val string
+	}
 }) (*group.Resolver, error) {
 	var policyParams []config_parser.Param
 	if args.PolicyParams != nil {
-		policyParams = *args.PolicyParams
+		// Convert.
+		var params []config_parser.Param
+		for _, p := range *args.PolicyParams {
+			var k string
+			if p.Key != nil {
+				k = *p.Key
+			}
+			params = append(params, config_parser.Param{
+				Key: k,
+				Val: p.Val,
+			})
+		}
+		policyParams = params
 	}
 	return group.Create(context.TODO(), args.Name, args.Policy, policyParams)
 }

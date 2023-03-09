@@ -13,6 +13,7 @@ type Config {
 	routing: Routing!
 	dns: Dns!
 	selected: Boolean!
+	referenceGroups: [String!]!
 }
 
 type Function {

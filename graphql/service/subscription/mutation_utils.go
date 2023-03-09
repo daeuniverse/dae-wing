@@ -114,6 +114,13 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	}
 
 	tx := db.BeginTx(ctx)
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
 	// Remove those subscription_id of which satisfied and are not independently in any groups.
 	subQuery := tx.Model(&db.Node{}).
 		Where("subscription_id = ?", subId).
@@ -124,7 +131,6 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 		Where("id not in (?)", subQuery).
 		Select(clause.Associations).
 		Delete(&db.Node{}).Error; err != nil {
-		tx.Rollback()
 		return nil, err
 	}
 	// Import node links.
@@ -133,7 +139,6 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 		args = append(args, &internal.ImportArgument{Link: link})
 	}
 	if _, err = node.Import(tx, false, &subId, args); err != nil {
-		tx.Callback()
 		return nil, err
 	}
 	// Update updated_at and return the latest version.
@@ -141,10 +146,8 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 		Clauses(clause.Returning{}).
 		Where(&db.Subscription{ID: subId}).
 		Update("updated_at", time.Now()).Error; err != nil {
-		tx.Callback()
 		return nil, err
 	}
-	tx.Commit()
 	return &Resolver{Subscription: &m}, nil
 }
 
@@ -158,14 +161,11 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 		Select(clause.Associations).
 		Delete(&db.Subscription{})
 	if q.Error != nil {
-		tx.Rollback()
 		return 0, q.Error
 	}
 	if err = tx.Where("subscription_id in ?", ids).Delete(&db.Node{}).Error; err != nil {
-		tx.Rollback()
 		return 0, err
 	}
-	tx.Commit()
 	return int32(q.RowsAffected), nil
 }
 

@@ -6,6 +6,7 @@
 package db
 
 type System struct {
-	ID      uint `gorm:"primaryKey;autoIncrement"`
-	Running bool `gorm:"not null;default:false"`
+	ID       uint `gorm:"primaryKey;autoIncrement"`
+	Running  bool `gorm:"not null;default:false"`
+	Modified bool `gorm:"not null;default:false"`
 }

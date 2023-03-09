@@ -6,12 +6,12 @@
 package config
 
 import (
-	"github.com/graph-gophers/graphql-go"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/config/dns"
 	"github.com/daeuniverse/dae-wing/graphql/config/global"
 	"github.com/daeuniverse/dae-wing/graphql/config/routing"
+	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae/config"
 )
 
@@ -43,4 +43,8 @@ func (r *Resolver) Dns() *dns.Resolver {
 
 func (r *Resolver) Selected() bool {
 	return r.Model.Selected
+}
+
+func (r *Resolver) ReferenceGroups() []string {
+	return NecessaryOutbounds(&r.Config.Routing)
 }

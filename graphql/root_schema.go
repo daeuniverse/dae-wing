@@ -101,7 +101,7 @@ type SubscriptionImportResult {
 	sub: Subscription!
 }
 input PolicyParam {
-	key: String!
+	key: String
 	val: String!
 }
 type ConfigFlatDesc {

@@ -63,9 +63,15 @@ func Update(ctx context.Context, _id graphql.ID, inputGlobal *global.Input, dns 
 		return nil, err
 	}
 	tx := db.BeginTx(ctx)
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
 	var m db.Config
 	if err = tx.Model(&db.Config{}).Where("id = ?", id).First(&m).Error; err != nil {
-		tx.Rollback()
 		return nil, err
 	}
 	updates := map[string]interface{}{}
@@ -97,14 +103,25 @@ func Update(ctx context.Context, _id graphql.ID, inputGlobal *global.Input, dns 
 	// Check grammar.
 	c, err := m.ToDaeConfig()
 	if err != nil {
-		tx.Rollback()
 		return nil, err
 	}
 	if err = tx.Model(&db.Config{ID: id}).Updates(updates).Error; err != nil {
-		tx.Rollback()
 		return nil, err
 	}
-	tx.Commit()
+	// Update that config is modified.
+	if m.Selected {
+		// Check if dae is running.
+		var sys db.System
+		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
+			return nil, err
+		}
+		if sys.Running {
+			sys.Modified = true
+			if err = tx.Model(&sys).Update("modified", true).Error; err != nil {
+				return nil, err
+			}
+		}
+	}
 	return &Resolver{
 		Config: c,
 		Model:  &m,
@@ -117,11 +134,17 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 		return 0, err
 	}
 	tx := db.BeginTx(ctx)
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
 	m := db.Config{ID: id}
 	q := tx.Clauses(clause.Returning{Columns: []clause.Column{{Name: "selected"}}}).
 		Delete(&m)
 	if q.Error != nil {
-		tx.Rollback()
 		return 0, q.Error
 	}
 	// Check if the config to delete is selected.
@@ -129,18 +152,15 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 		// Check if dae is running.
 		var sys db.System
 		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 		if sys.Running {
 			// Stop running with dry-run.
 			if _, err = Run(tx, true); err != nil {
-				tx.Rollback()
 				return 0, err
 			}
 		}
 	}
-	tx.Commit()
 	return int32(q.RowsAffected), nil
 }
 
@@ -150,45 +170,46 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 		return 0, err
 	}
 	tx := db.BeginTx(ctx)
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
 	// Unset all selected.
 	q := tx.Model(&db.Config{}).Where("selected = ?", true).Update("selected", false)
 	if err = q.Error; err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 	isReplace := q.RowsAffected > 0
 	// Set selected.
 	q = tx.Model(&db.Config{ID: id}).Update("selected", true)
 	if err = q.Error; err != nil {
-		tx.Rollback()
 		return 0, err
 	}
 	if q.RowsAffected == 0 {
-		tx.Rollback()
 		return 0, fmt.Errorf("no such config")
 	}
 	if isReplace {
 		// Check if dae is running.
 		var sys db.System
 		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-			tx.Rollback()
 			return 0, err
 		}
 		if sys.Running {
 			// Run with new config.
 			if _, err = Run(tx, false); err != nil {
-				tx.Rollback()
 				return 0, err
 			}
 		}
 	}
-	tx.Commit()
 	return 1, nil
 }
 
-func Run(tx *gorm.DB, dry bool) (n int32, err error) {
+func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	// Dry run.
-	if dry {
+	if noLoad {
 		ch := make(chan bool)
 		dae.ChReloadConfigs <- &dae.ReloadMessage{
 			Config:   dae.EmptyConfig,
@@ -201,11 +222,13 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 
 		// Running -> false
 		var sys db.System
-		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
+		if err = d.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
 			return 0, err
 		}
-		if err = tx.Model(&sys).Update("running", false).Error; err != nil {
-			tx.Rollback()
+		if err = d.Model(&sys).Updates(map[string]interface{}{
+			"running":  false,
+			"modified": false,
+		}).Error; err != nil {
 			return 0, err
 		}
 		return 1, nil
@@ -213,7 +236,7 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 
 	// Run selected config.
 	var m db.Config
-	q := tx.Model(&db.Config{}).Where("selected = ?", true).First(&m)
+	q := d.Model(&db.Config{}).Where("selected = ?", true).First(&m)
 	if q.Error != nil {
 		return 0, q.Error
 	}
@@ -228,7 +251,7 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 	// Find groups needed by routing.
 	outbounds := NecessaryOutbounds(&c.Routing)
 	var groups []db.Group
-	q = tx.Model(&db.Group{}).
+	q = d.Model(&db.Group{}).
 		Where("name in ?", outbounds).
 		Preload("PolicyParams").
 		Preload("Subscription").
@@ -269,7 +292,7 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 		}
 	}
 	var separateNodes []db.Node
-	if err = tx.Model(&db.Group{}).
+	if err = d.Model(&db.Group{}).
 		Where("name in ?", outbounds).
 		Association("Node").
 		Find(&separateNodes, "subscription_id not in ?", subIds); err != nil {
@@ -281,7 +304,7 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 	sort.SliceStable(nodes, func(i, j int) bool {
 		return nodes[i].Tag != nil && nodes[j].Tag == nil
 	})
-	var nameToNodes map[string]*db.Node
+	nameToNodes := make(map[string]*db.Node)
 	for i := range nodes {
 		node := &nodes[i]
 		if node.Tag != nil {
@@ -357,10 +380,13 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 
 	// Running -> true
 	var sys db.System
-	if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
+	if err = d.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
 		return 0, err
 	}
-	if err = tx.Model(&sys).Update("running", true).Error; err != nil {
+	if err = d.Model(&sys).Updates(map[string]interface{}{
+		"running":  true,
+		"modified": false,
+	}).Error; err != nil {
 		return 0, err
 	}
 

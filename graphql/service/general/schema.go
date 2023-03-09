@@ -13,6 +13,8 @@ type General {
 }
 type Dae {
   running: Boolean!
+  # modified indicates whether the running config has been modified.
+  modified: Boolean!
 }
 type Interface {
   name: String!
