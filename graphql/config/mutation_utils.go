@@ -239,7 +239,11 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 	}
 	if q.RowsAffected != int64(len(outbounds)) {
 		// Find not found.
-		nameSet := map[string]struct{}{}
+		nameSet := map[string]struct{}{
+			"direct":      {},
+			"block":       {},
+			"must_direct": {},
+		}
 		for _, name := range outbounds {
 			nameSet[name] = struct{}{}
 		}
