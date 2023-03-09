@@ -255,7 +255,9 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 				notFound = append(notFound, name)
 			}
 		}
-		return 0, fmt.Errorf("groups not defined but referenced by routing: %v", strings.Join(notFound, ", "))
+		if len(notFound) > 0 {
+			return 0, fmt.Errorf("groups not defined but referenced by routing: %v", strings.Join(notFound, ", "))
+		}
 	}
 	// Find nodes in groups.
 	var nodes []db.Node
@@ -270,7 +272,7 @@ func Run(tx *gorm.DB, dry bool) (n int32, err error) {
 	if err = tx.Model(&db.Group{}).
 		Where("name in ?", outbounds).
 		Association("Node").
-		Find(separateNodes, "subscription_id not in ?", subIds); err != nil {
+		Find(&separateNodes, "subscription_id not in ?", subIds); err != nil {
 		return 0, err
 	}
 	nodes = append(nodes, separateNodes...)

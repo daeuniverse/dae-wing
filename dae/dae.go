@@ -46,6 +46,7 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, disableTimestamp bool, dry 
 			case nil:
 				break dryLoop
 			default:
+				newConf.Callback <- true
 			}
 		}
 		return nil
