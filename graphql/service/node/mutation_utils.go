@@ -83,9 +83,10 @@ func isReferencedByRunningConfig(d *gorm.DB, id uint) (is bool, err error) {
 	}
 	var nodes []db.Node
 	if err = d.Model(&db.Group{}).
-		Where("name in ?", groups).
+		Joins("inner join groups on group_nodes.group_id = groups.id").
+		Where("groups.name in ?", groups).
 		Association("Node").
-		Find(&nodes, "id = ?", id); err != nil {
+		Find(&nodes, "nodes.id = ?", id); err != nil {
 		return false, err
 	}
 	return len(nodes) > 0, nil

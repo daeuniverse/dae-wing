@@ -106,9 +106,10 @@ func isReferencedByRunningConfig(d *gorm.DB, id uint) (is bool, err error) {
 	}
 	var subs []db.Subscription
 	if err = d.Model(&db.Group{}).
-		Where("name in ?", groups).
+		Joins("inner join groups on group_subscriptions.group_id = groups.id").
+		Where("groups.name in ?", groups).
 		Association("Subscription").
-		Find(&subs, "id = ?", id); err != nil {
+		Find(&subs, "subscriptions.id = ?", id); err != nil {
 		return false, err
 	}
 	return len(subs) > 0, nil
@@ -192,6 +193,13 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 		return 0, err
 	}
 	tx := db.BeginTx(ctx)
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
 	q := tx.Where("id in ?", ids).
 		Select(clause.Associations).
 		Delete(&db.Subscription{})
