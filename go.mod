@@ -11,7 +11,9 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stoewer/go-strcase v1.2.1
-	github.com/v2rayA/dae v0.0.0-20230303085309-4706f58d229e
+	github.com/v2rayA/dae v0.0.0-20230311030957-2edbdae72f37
+	github.com/vishvananda/netlink v1.1.0
+	golang.org/x/sys v0.5.0
 	golang.org/x/tools v0.1.12
 	gorm.io/driver/sqlite v1.4.4
 	gorm.io/gorm v1.24.5
@@ -45,7 +47,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/v2rayA/ahocorasick-domain v0.0.0-20230218160829-122a074c48c8 // indirect
 	github.com/v2rayA/dae-config-dist/go/dae_config v0.0.0-20230219173344-413f12027632 // indirect
-	github.com/vishvananda/netlink v1.1.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	gitlab.com/yawning/chacha20.git v0.0.0-20190903091407-6d1cb28dc72c // indirect
@@ -53,7 +54,6 @@ require (
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.6.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20221227171554-f9683d7f8bef // indirect

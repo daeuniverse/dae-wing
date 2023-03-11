@@ -105,8 +105,8 @@ github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKs
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/v2rayA/ahocorasick-domain v0.0.0-20230218160829-122a074c48c8 h1:2Liq3JvM/acVQZ7Gq9U5PpznMzlFRPYMPQxC2yXSi74=
 github.com/v2rayA/ahocorasick-domain v0.0.0-20230218160829-122a074c48c8/go.mod h1:mWch8I826zic/bKaCyE9ZZbWtFgEW0ox3EQ0NGm5DGw=
-github.com/v2rayA/dae v0.0.0-20230303085309-4706f58d229e h1:BDB3AwtAo8wKz0+5uVvH7l6kjMxpLvZsyep8cx8zgyQ=
-github.com/v2rayA/dae v0.0.0-20230303085309-4706f58d229e/go.mod h1:gCRawsZf7bELE0tdZqrjvwN8wcK73hlR4ROPx4OaoMM=
+github.com/v2rayA/dae v0.0.0-20230311030957-2edbdae72f37 h1:7WwgR/VAgpNyMA9vdn5LoZhTDMhjQlxMrDlTzkrf1O8=
+github.com/v2rayA/dae v0.0.0-20230311030957-2edbdae72f37/go.mod h1:gCRawsZf7bELE0tdZqrjvwN8wcK73hlR4ROPx4OaoMM=
 github.com/v2rayA/dae-config-dist/go/dae_config v0.0.0-20230219173344-413f12027632 h1:MJ6+M3MpiVMdiZn3An88ZFNeLcLiN7hTaPsd2bVyduI=
 github.com/v2rayA/dae-config-dist/go/dae_config v0.0.0-20230219173344-413f12027632/go.mod h1:JiTWeZybOkBfCqv/fy5jbFhXTxuLlyrI76gRNazz2sU=
 github.com/vishvananda/netlink v1.1.0 h1:1iyaYNBLmP6L0220aDnYQpo1QEV4t4hJ+xEEhhJH8j0=

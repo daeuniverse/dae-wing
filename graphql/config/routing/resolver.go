@@ -10,6 +10,7 @@ import (
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
 	"reflect"
+	"strings"
 )
 
 type Resolver struct {
@@ -18,10 +19,13 @@ type Resolver struct {
 
 func (r *Resolver) String() (string, error) {
 	marshaller := daeConfig.Marshaller{IndentSpace: 2}
-	if err := marshaller.MarshalSection("routing", reflect.ValueOf(*r.Routing), 0); err != nil {
+	if err := marshaller.MarshalSection("routing", reflect.ValueOf(*r.Routing), -1); err != nil {
 		return "", err
 	}
-	return string(marshaller.Bytes()), nil
+	section := strings.TrimSpace(string(marshaller.Bytes()))
+	section = strings.TrimPrefix(section, "routing {")
+	section = strings.TrimSuffix(section, "}")
+	return strings.TrimSpace(section), nil
 }
 
 func (r *Resolver) Rules() (rs []*RuleResolver) {

@@ -15,7 +15,7 @@ else
 	VERSION ?= unstable-$(date).r$(count).$(commit)
 endif
 
-.PHONY: schema-resolver dae-deps deps dae-wing
+.PHONY: schema-resolver dae-deps deps dae-wing vendor
 
 all: dae-wing
 
@@ -24,7 +24,10 @@ deps: schema-resolver dae-deps
 dae-wing: deps
 	go build -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/v2rayA/dae/cmd.Version=$(VERSION)" .
 
-schema-resolver:
+vendor:
+	go mod vendor
+
+schema-resolver: vendor
 	unset GOOS && \
 	unset GOARCH && \
 	unset GOARM && \
@@ -32,8 +35,7 @@ schema-resolver:
 
 dae-deps: DAE_VERSION := $(shell grep '\s*github.com/v2rayA/dae\s*v' go.mod | awk '{print $2}' | cut -d- -f3)
 dae-deps: BUILD_DIR := ./build-dae-ebpf
-dae-deps:
-	go mod vendor && \
+dae-deps: vendor
 	git clone https://github.com/v2rayA/dae build-dae-ebpf && \
 	pushd "$(BUILD_DIR)" && \
 	git checkout $(DAE_VERSION) && \

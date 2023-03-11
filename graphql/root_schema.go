@@ -22,6 +22,8 @@ type Query {
 	healthCheck: Int!
 	configFlatDesc: [ConfigFlatDesc!]!
 	configs(id: ID, selected: Boolean): [Config!]!
+	parsedRouting(raw: String!): Routing!
+	parsedDns(raw: String!): Dns!
 	subscriptions(id: ID): [Subscription!]!
 	groups(id: ID): [Group!]!
 	group(name: String!): Group!

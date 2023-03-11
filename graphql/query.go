@@ -12,11 +12,15 @@ import (
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/config"
+	"github.com/daeuniverse/dae-wing/graphql/config/dns"
+	"github.com/daeuniverse/dae-wing/graphql/config/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/general"
 	"github.com/daeuniverse/dae-wing/graphql/service/group"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 	"github.com/graph-gophers/graphql-go"
+	daeConfig "github.com/v2rayA/dae/config"
+	"github.com/v2rayA/dae/pkg/config_parser"
 	"gorm.io/gorm"
 )
 
@@ -66,7 +70,32 @@ func (r *queryResolver) Configs(args *struct {
 func (r *queryResolver) ConfigFlatDesc() []*dae.FlatDesc {
 	return dae.ExportFlatDesc()
 }
-
+func (r *queryResolver) ParsedRouting(args *struct{ Raw string }) (rr *routing.Resolver, err error) {
+	sections, err := config_parser.Parse("global{} routing {" + args.Raw + "}")
+	if err != nil {
+		return nil, err
+	}
+	conf, err := daeConfig.New(sections)
+	if err != nil {
+		return nil, err
+	}
+	return &routing.Resolver{
+		Routing: &conf.Routing,
+	}, nil
+}
+func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.Resolver, err error) {
+	sections, err := config_parser.Parse("global{} dns {" + args.Raw + "} routing{}")
+	if err != nil {
+		return nil, err
+	}
+	conf, err := daeConfig.New(sections)
+	if err != nil {
+		return nil, err
+	}
+	return &dns.Resolver{
+		Dns: &conf.Dns,
+	}, nil
+}
 func (r *queryResolver) Subscriptions(args *struct{ ID *graphql.ID }) (rs []*subscription.Resolver, err error) {
 	q := db.DB(context.TODO()).
 		Model(&db.Subscription{})
