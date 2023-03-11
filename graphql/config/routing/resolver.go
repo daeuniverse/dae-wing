@@ -9,10 +9,19 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/internal"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
+	"reflect"
 )
 
 type Resolver struct {
 	*daeConfig.Routing
+}
+
+func (r *Resolver) String() (string, error) {
+	marshaller := daeConfig.Marshaller{IndentSpace: 2}
+	if err := marshaller.MarshalSection("routing", reflect.ValueOf(*r.Routing), 0); err != nil {
+		return "", err
+	}
+	return string(marshaller.Bytes()), nil
 }
 
 func (r *Resolver) Rules() (rs []*RuleResolver) {

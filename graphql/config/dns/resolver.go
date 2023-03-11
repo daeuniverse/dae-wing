@@ -11,10 +11,19 @@ import (
 	"github.com/v2rayA/dae/common"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
+	"reflect"
 )
 
 type Resolver struct {
 	*daeConfig.Dns
+}
+
+func (r *Resolver) String() (string, error) {
+	marshaller := daeConfig.Marshaller{IndentSpace: 2}
+	if err := marshaller.MarshalSection("dns", reflect.ValueOf(*r.Dns), 0); err != nil {
+		return "", err
+	}
+	return string(marshaller.Bytes()), nil
 }
 
 func (r *Resolver) Upstream() (rs []*internal.ParamResolver) {

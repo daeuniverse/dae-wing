@@ -8,6 +8,7 @@ package routing
 func Schema() (string, error) {
 	return `
 type Routing {
+	string: String!
 	rules: [RoutingRule!]!
 	fallback: FunctionOrPlaintext!
 }

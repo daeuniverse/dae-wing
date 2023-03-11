@@ -8,6 +8,7 @@ package dns
 func Schema() (string, error) {
 	return `
 type Dns {
+	string: String!
 	upstream: [Param!]!
 	routing: DnsRouting!
 }
