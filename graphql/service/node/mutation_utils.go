@@ -12,7 +12,6 @@ import (
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
-	internal2 "github.com/daeuniverse/dae-wing/graphql/service/internal"
 	"github.com/graph-gophers/graphql-go"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -76,34 +75,23 @@ func Import(d *gorm.DB, abortError bool, subscriptionId *uint, argument []*inter
 	return rs, nil
 }
 
-func isReferencedByRunningConfig(d *gorm.DB, id uint) (is bool, err error) {
-	groups, err := internal2.ReferenceGroups(d)
-	if err != nil {
-		return false, err
+func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
+	var sys db.System
+	if err = d.Model(&db.System{}).
+		FirstOrCreate(&sys).Error; err != nil {
+		return err
 	}
-	var nodes []db.Node
-	if err = d.Model(&db.Group{}).
-		Joins("inner join groups on group_nodes.group_id = groups.id").
-		Where("groups.name in ?", groups).
-		Association("Node").
-		Find(&nodes, "nodes.id = ?", id); err != nil {
-		return false, err
+	if !sys.Running {
+		return nil
 	}
-	return len(nodes) > 0, nil
-}
 
-func autoUpdateModifiedById(d *gorm.DB, id uint) (ok bool, err error) {
-	is, err := isReferencedByRunningConfig(d, id)
-	if err != nil {
-		return false, err
+	if err = d.Model(&db.Group{}).
+		Joins("inner join group_nodes on groups.system_id = ? and groups.id = group_nodes.group_id and group_nodes.node_id in ?", sys.ID, ids).
+		Update("groups.version", gorm.Expr("groups.version + 1")).Error; err != nil {
+		return err
 	}
-	if !is {
-		return false, nil
-	}
-	if err = internal2.SetModified(d); err != nil {
-		return false, err
-	}
-	return true, nil
+
+	return nil
 }
 
 func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
@@ -127,16 +115,10 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 	}
 
 	// Update modified if any nodes are referenced by running config.
-	for _, id := range ids {
-		ok, err := autoUpdateModifiedById(tx, id)
-		if err != nil {
-			return 0, err
-		}
-		if ok {
-			// Already set true.
-			break
-		}
+	if err = autoUpdateVersionByIds(tx, ids); err != nil {
+		return 0, err
 	}
+
 	return int32(q.RowsAffected), nil
 }
 

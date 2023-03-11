@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/stoewer/go-strcase"
-	"github.com/v2rayA/dae/config"
+	daeConfig "github.com/v2rayA/dae/config"
 	"os"
 	"reflect"
 	"strings"
@@ -46,14 +46,14 @@ func (b *builder) WriteMarshalFunc(fieldName string, name string, retTyp string)
 
 func (b *builder) Build() (string, error) {
 
-	v := reflect.ValueOf(config.Global{})
+	v := reflect.ValueOf(daeConfig.Global{})
 	t := v.Type()
 	b.WriteLine(0, "// Generated code; DO NOT EDIT.\n")
 	b.WriteLine(0, "package global\n")
 	b.WriteLine(0, fmt.Sprintf(`import "%v"`, t.PkgPath()))
 	b.WriteLine(0, fmt.Sprintf(`import "github.com/daeuniverse/dae-wing/graphql/scalar"`))
 	b.WriteLine(0, `type Resolver struct {
-	*config.Global
+	*daeConfig.Global
 }`)
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)

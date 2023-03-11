@@ -6,7 +6,19 @@
 package db
 
 type System struct {
-	ID       uint `gorm:"primaryKey;autoIncrement"`
-	Running  bool `gorm:"not null;default:false"`
-	Modified bool `gorm:"not null;default:false"`
+	ID                    uint   `gorm:"primaryKey;autoIncrement"`
+	Running               bool   `gorm:"not null;default:false"`
+	RunningConfigVersion  uint   `gorm:"not null;default:0"`
+	RunningDnsVersion     uint   `gorm:"not null;default:0"`
+	RunningRoutingVersion uint   `gorm:"not null;default:0"`
+	RunningGroupVersions  string `gorm:"not null;default:0"`
+
+	// Foreign keys.
+	RunningConfigID  *uint
+	RunningConfig    *Config
+	RunningDnsID     *uint
+	RunningDns       *Dns
+	RunningRoutingID *uint
+	RunningRouting   *Config
+	RunningGroups    []Group
 }

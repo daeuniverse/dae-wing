@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/stoewer/go-strcase"
-	"github.com/v2rayA/dae/config"
+	daeConfig "github.com/v2rayA/dae/config"
 	"reflect"
 	"strings"
 	"time"
@@ -29,7 +29,7 @@ func (b *builder) WriteLine(depth int, line string) {
 
 func (b *builder) Build() (string, error) {
 
-	v := reflect.ValueOf(config.Global{})
+	v := reflect.ValueOf(daeConfig.Global{})
 	t := v.Type()
 	b.WriteLine(0, b.Head+" {")
 	for i := 0; i < v.NumField(); i++ {

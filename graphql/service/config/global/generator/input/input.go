@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/stoewer/go-strcase"
-	"github.com/v2rayA/dae/config"
+	daeConfig "github.com/v2rayA/dae/config"
 	"os"
 	"reflect"
 	"strings"
@@ -58,7 +58,7 @@ func (b *builder) WriteMethodScalar(fieldName string, name string, scalarField s
 
 func (b *builder) Build() (string, error) {
 
-	v := reflect.ValueOf(config.Global{})
+	v := reflect.ValueOf(daeConfig.Global{})
 	t := v.Type()
 	b.WriteLine(0, "// Generated code; DO NOT EDIT.\n")
 	b.WriteLine(0, "package global\n")

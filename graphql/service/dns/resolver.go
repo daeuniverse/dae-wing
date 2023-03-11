@@ -6,9 +6,12 @@
 package dns
 
 import (
-	"github.com/daeuniverse/dae-wing/graphql/config/routing"
+	"github.com/daeuniverse/dae-wing/common"
+	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
-	"github.com/v2rayA/dae/common"
+	"github.com/daeuniverse/dae-wing/graphql/service/routing"
+	"github.com/graph-gophers/graphql-go"
+	daeCommon "github.com/v2rayA/dae/common"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
 	"reflect"
@@ -16,10 +19,33 @@ import (
 )
 
 type Resolver struct {
+	DaeDns *daeConfig.Dns
+	Model  *db.Dns
+}
+
+func (r *Resolver) ID() graphql.ID {
+	return common.EncodeCursor(r.Model.ID)
+}
+
+func (r *Resolver) Name() string {
+	return r.Model.Name
+}
+
+func (r *Resolver) Dns() *DaeResolver {
+	return &DaeResolver{
+		Dns: r.DaeDns,
+	}
+}
+
+func (r *Resolver) Selected() bool {
+	return r.Model.Selected
+}
+
+type DaeResolver struct {
 	*daeConfig.Dns
 }
 
-func (r *Resolver) String() (string, error) {
+func (r *DaeResolver) String() (string, error) {
 	marshaller := daeConfig.Marshaller{IndentSpace: 2}
 	if err := marshaller.MarshalSection("dns", reflect.ValueOf(*r.Dns), -1); err != nil {
 		return "", err
@@ -30,9 +56,9 @@ func (r *Resolver) String() (string, error) {
 	return strings.TrimSpace(section), nil
 }
 
-func (r *Resolver) Upstream() (rs []*internal.ParamResolver) {
+func (r *DaeResolver) Upstream() (rs []*internal.ParamResolver) {
 	for _, upstream := range r.Dns.Upstream {
-		tag, afterTag := common.GetTagFromLinkLikePlaintext(string(upstream))
+		tag, afterTag := daeCommon.GetTagFromLinkLikePlaintext(string(upstream))
 		rs = append(rs, &internal.ParamResolver{Param: &config_parser.Param{
 			Key: tag,
 			Val: afterTag,
@@ -41,7 +67,7 @@ func (r *Resolver) Upstream() (rs []*internal.ParamResolver) {
 	return rs
 }
 
-func (r *Resolver) Routing() *RoutingResolver {
+func (r *DaeResolver) Routing() *RoutingResolver {
 	return &RoutingResolver{DnsRouting: &r.Dns.Routing}
 }
 
@@ -49,14 +75,14 @@ type RoutingResolver struct {
 	*daeConfig.DnsRouting
 }
 
-func (r *RoutingResolver) Request() *routing.Resolver {
-	return &routing.Resolver{Routing: &daeConfig.Routing{
+func (r *RoutingResolver) Request() *routing.DaeResolver {
+	return &routing.DaeResolver{Routing: &daeConfig.Routing{
 		Rules:    r.DnsRouting.Request.Rules,
 		Fallback: r.DnsRouting.Request.Fallback,
 	}}
 }
-func (r *RoutingResolver) Response() *routing.Resolver {
-	return &routing.Resolver{Routing: &daeConfig.Routing{
+func (r *RoutingResolver) Response() *routing.DaeResolver {
+	return &routing.DaeResolver{Routing: &daeConfig.Routing{
 		Rules:    r.DnsRouting.Response.Rules,
 		Fallback: r.DnsRouting.Response.Fallback,
 	}}

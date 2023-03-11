@@ -8,13 +8,19 @@ package dns
 func Schema() (string, error) {
 	return `
 type Dns {
+	id: ID!
+	name: String!
+	dns: DaeDns!
+	selected: Boolean!
+}
+type DaeDns {
 	string: String!
 	upstream: [Param!]!
 	routing: DnsRouting!
 }
 type DnsRouting {
-	request: Routing!
-	response: Routing!
+	request: DaeRouting!
+	response: DaeRouting!
 }
 `, nil
 }

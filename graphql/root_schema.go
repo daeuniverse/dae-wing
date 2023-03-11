@@ -22,8 +22,10 @@ type Query {
 	healthCheck: Int!
 	configFlatDesc: [ConfigFlatDesc!]!
 	configs(id: ID, selected: Boolean): [Config!]!
-	parsedRouting(raw: String!): Routing!
-	parsedDns(raw: String!): Dns!
+	dnss(id: ID, selected: Boolean): [Dns!]!
+	routings(id: ID, selected: Boolean): [Routing!]!
+	parsedRouting(raw: String!): DaeRouting!
+	parsedDns(raw: String!): DaeDns!
 	subscriptions(id: ID): [Subscription!]!
 	groups(id: ID): [Group!]!
 	group(name: String!): Group!
@@ -31,22 +33,42 @@ type Query {
 	general(): General!
 }
 type Mutation {
-	# createConfig create a config. Null arguments will be converted to default value.
-	createConfig(name: String, global: globalInput, dns: String, routing: String): Config!
+	# createConfig create a global config. Null arguments will be converted to default value.
+	createConfig(name: String, global: globalInput): Config!
+	# createConfig create a dns config. Null arguments will be converted to default value.
+	createDns(name: String, dns: String): Dns!
+	# createConfig create a routing config. Null arguments will be converted to default value.
+	createRouting(name: String, routing: String): Routing!
 
-	# updateConfig allows to partially update "global".
-	updateConfig(id: ID!, global: globalInput, dns: String, routing: String): Config!
+	# updateConfig allows to partially update global config with given id.
+	updateConfig(id: ID!, global: globalInput!): Config!
+	# updateDns is to update dns config with given id.
+	updateDns(id: ID!, dns: String!): Dns!
+	# updateRouting is to update routing config with given id.
+	updateRouting(id: ID!, routing: String!): Routing!
 
 	# renameConfig is to give the config a new name.
 	renameConfig(id: ID!, name: String!): Int!
+	# renameDns is to give the dns config a new name.
+	renameDns(id: ID!, name: String!): Int!
+	# renameRouting is to give the routing config a new name.
+	renameRouting(id: ID!, name: String!): Int!
 
 	# removeConfig is to remove a config with given config ID.
 	removeConfig(id: ID!): Int!
+	# removeDns is to remove a dns config with given dns ID.
+	removeDns(id: ID!): Int!
+	# removeRouting is to remove a routing config with given routing ID.
+	removeRouting(id: ID!): Int!
 
 	# selectConfig is to select a config as the current config.
 	selectConfig(id: ID!): Int!
+	# selectConfig is to select a dns config as the current dns.
+	selectDns(id: ID!): Int!
+	# selectConfig is to select a routing config as the current routing.
+	selectRouting(id: ID!): Int!
 
-	# run proxy with the current config. Dry-run can be used to stop the proxy.
+	# run proxy with selected config+dns+routing. Dry-run can be used to stop the proxy.
 	run(dry: Boolean!): Int!
 
 	# importNodes is to import nodes with no subscription ID. rollbackError means abort the import on error.
@@ -72,6 +94,9 @@ type Mutation {
 
 	# createGroup is to create a group.
 	createGroup(name: String!, policy: Policy!, policyParams: [PolicyParam!]): Group!
+
+	# groupSetPolicy is to set the group a new policy.
+	groupSetPolicy(id: ID!, policy: Policy!, policyParams: [PolicyParam!]): Int!
 
 	# groupAddSubscriptions is to add subscriptions to the group.
 	groupAddSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int!

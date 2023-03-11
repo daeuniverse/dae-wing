@@ -10,7 +10,6 @@ import (
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
-	internal2 "github.com/daeuniverse/dae-wing/graphql/service/internal"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/sirupsen/logrus"
@@ -99,34 +98,23 @@ func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (
 	}, nil
 }
 
-func isReferencedByRunningConfig(d *gorm.DB, id uint) (is bool, err error) {
-	groups, err := internal2.ReferenceGroups(d)
-	if err != nil {
-		return false, err
+func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
+	var sys db.System
+	if err = d.Model(&db.System{}).
+		FirstOrCreate(&sys).Error; err != nil {
+		return err
 	}
-	var subs []db.Subscription
-	if err = d.Model(&db.Group{}).
-		Joins("inner join groups on group_subscriptions.group_id = groups.id").
-		Where("groups.name in ?", groups).
-		Association("Subscription").
-		Find(&subs, "subscriptions.id = ?", id); err != nil {
-		return false, err
+	if !sys.Running {
+		return nil
 	}
-	return len(subs) > 0, nil
-}
 
-func autoUpdateModifiedById(d *gorm.DB, id uint) (ok bool, err error) {
-	is, err := isReferencedByRunningConfig(d, id)
-	if err != nil {
-		return false, err
+	if err = d.Model(&db.Group{}).
+		Joins("inner join group_subscriptions on groups.system_id = ? and groups.id = group_subscriptions.group_id and group_subscriptions.subscription_id in ?", sys.ID, ids).
+		Update("groups.version", gorm.Expr("groups.version + 1")).Error; err != nil {
+		return err
 	}
-	if !is {
-		return false, nil
-	}
-	if err = internal2.SetModified(d); err != nil {
-		return false, err
-	}
-	return true, nil
+
+	return nil
 }
 
 func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
@@ -181,7 +169,7 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	}
 
 	// Update modified if subscription is referenced by running config.
-	if _, err = autoUpdateModifiedById(tx, subId); err != nil {
+	if err = autoUpdateVersionByIds(tx, []uint{subId}); err != nil {
 		return nil, err
 	}
 	return &Resolver{Subscription: &m}, nil
@@ -211,15 +199,8 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 	}
 
 	// Update modified if any subscriptions are referenced by running config.
-	for _, id := range ids {
-		ok, err := autoUpdateModifiedById(tx, id)
-		if err != nil {
-			return 0, err
-		}
-		if ok {
-			// Already set true.
-			break
-		}
+	if err = autoUpdateVersionByIds(tx, ids); err != nil {
+		return 0, err
 	}
 
 	return int32(q.RowsAffected), nil

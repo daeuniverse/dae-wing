@@ -8,11 +8,13 @@ package graphql
 import (
 	"context"
 	"github.com/daeuniverse/dae-wing/db"
-	"github.com/daeuniverse/dae-wing/graphql/config"
-	"github.com/daeuniverse/dae-wing/graphql/config/global"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
+	"github.com/daeuniverse/dae-wing/graphql/service/config"
+	"github.com/daeuniverse/dae-wing/graphql/service/config/global"
+	"github.com/daeuniverse/dae-wing/graphql/service/dns"
 	"github.com/daeuniverse/dae-wing/graphql/service/group"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
+	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae/pkg/config_parser"
@@ -21,31 +23,21 @@ import (
 type MutationResolver struct{}
 
 func (r *MutationResolver) CreateConfig(args *struct {
-	Name    *string
-	Global  *global.Input
-	Dns     *string
-	Routing *string
+	Name   *string
+	Global *global.Input
 }) (c *config.Resolver, err error) {
-	var strDns, strRouting, strName string
-	if args.Dns != nil {
-		strDns = *args.Dns
-	}
-	if args.Routing != nil {
-		strRouting = *args.Routing
-	}
+	var strName string
 	if args.Name != nil {
 		strName = *args.Name
 	}
-	return config.Create(context.TODO(), strName, args.Global, strDns, strRouting)
+	return config.Create(context.TODO(), strName, args.Global)
 }
 
 func (r *MutationResolver) UpdateConfig(args *struct {
-	ID      graphql.ID
-	Global  *global.Input
-	Dns     *string
-	Routing *string
+	ID     graphql.ID
+	Global global.Input
 }) (*config.Resolver, error) {
-	return config.Update(context.TODO(), args.ID, args.Global, args.Dns, args.Routing)
+	return config.Update(context.TODO(), args.ID, args.Global)
 }
 
 func (r *MutationResolver) RenameConfig(args *struct {
@@ -78,6 +70,86 @@ func (r *MutationResolver) Run(args *struct {
 	}
 	tx.Commit()
 	return ret, nil
+}
+
+func (r *MutationResolver) CreateDns(args *struct {
+	Name *string
+	Dns  *string
+}) (c *dns.Resolver, err error) {
+	var strDns, strName string
+	if args.Dns != nil {
+		strDns = *args.Dns
+	}
+	if args.Name != nil {
+		strName = *args.Name
+	}
+	return dns.Create(context.TODO(), strName, strDns)
+}
+
+func (r *MutationResolver) UpdateDns(args *struct {
+	ID  graphql.ID
+	Dns string
+}) (*dns.Resolver, error) {
+	return dns.Update(context.TODO(), args.ID, args.Dns)
+}
+
+func (r *MutationResolver) RenameDns(args *struct {
+	ID   graphql.ID
+	Name string
+}) (int32, error) {
+	return dns.Rename(context.TODO(), args.ID, args.Name)
+}
+
+func (r *MutationResolver) RemoveDns(args *struct {
+	ID graphql.ID
+}) (int32, error) {
+	return dns.Remove(context.TODO(), args.ID)
+}
+
+func (r *MutationResolver) SelectDns(args *struct {
+	ID graphql.ID
+}) (int32, error) {
+	return dns.Select(context.TODO(), args.ID)
+}
+
+func (r *MutationResolver) CreateRouting(args *struct {
+	Name    *string
+	Routing *string
+}) (c *routing.Resolver, err error) {
+	var strRouting, strName string
+	if args.Routing != nil {
+		strRouting = *args.Routing
+	}
+	if args.Name != nil {
+		strName = *args.Name
+	}
+	return routing.Create(context.TODO(), strName, strRouting)
+}
+
+func (r *MutationResolver) UpdateRouting(args *struct {
+	ID      graphql.ID
+	Routing string
+}) (*routing.Resolver, error) {
+	return routing.Update(context.TODO(), args.ID, args.Routing)
+}
+
+func (r *MutationResolver) RenameRouting(args *struct {
+	ID   graphql.ID
+	Name string
+}) (int32, error) {
+	return routing.Rename(context.TODO(), args.ID, args.Name)
+}
+
+func (r *MutationResolver) RemoveRouting(args *struct {
+	ID graphql.ID
+}) (int32, error) {
+	return routing.Remove(context.TODO(), args.ID)
+}
+
+func (r *MutationResolver) SelectRouting(args *struct {
+	ID graphql.ID
+}) (int32, error) {
+	return routing.Select(context.TODO(), args.ID)
 }
 
 func (r *MutationResolver) ImportNodes(args *struct {
@@ -165,6 +237,33 @@ func (r *MutationResolver) CreateGroup(args *struct {
 		policyParams = params
 	}
 	return group.Create(context.TODO(), args.Name, args.Policy, policyParams)
+}
+
+func (r *MutationResolver) GroupSetPolicy(args *struct {
+	ID           graphql.ID
+	Policy       string
+	PolicyParams *[]struct {
+		Key *string
+		Val string
+	}
+}) (int32, error) {
+	var policyParams []config_parser.Param
+	if args.PolicyParams != nil {
+		// Convert.
+		var params []config_parser.Param
+		for _, p := range *args.PolicyParams {
+			var k string
+			if p.Key != nil {
+				k = *p.Key
+			}
+			params = append(params, config_parser.Param{
+				Key: k,
+				Val: p.Val,
+			})
+		}
+		policyParams = params
+	}
+	return group.SetPolicy(context.TODO(), args.ID, args.Policy, policyParams)
 }
 
 func (r *MutationResolver) RemoveGroup(args *struct {

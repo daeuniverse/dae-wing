@@ -7,7 +7,7 @@ import (
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql"
-	"github.com/daeuniverse/dae-wing/graphql/config"
+	"github.com/daeuniverse/dae-wing/graphql/service/config"
 	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"

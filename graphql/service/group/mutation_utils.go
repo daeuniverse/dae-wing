@@ -9,7 +9,6 @@ import (
 	"context"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
-	"github.com/daeuniverse/dae-wing/graphql/service/internal"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/v2rayA/dae/pkg/config_parser"
 	"gorm.io/gorm"
@@ -38,40 +37,9 @@ func Create(ctx context.Context, name string, policy string, policyParams []conf
 	}, nil
 }
 
-func isReferencedByRunningConfig(d *gorm.DB, groupName string) (bool, error) {
-	groups, err := internal.ReferenceGroups(d)
-	if err != nil {
-		return false, err
-	}
-	for _, g := range groups {
-		if g == groupName {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func autoUpdateModifiedById(d *gorm.DB, id uint) (err error) {
-	// Set modified = true if the group is referenced by selected config.
-	var g db.Group
-	if err = d.Select("name").Model(&db.Group{ID: id}).First(&g).Error; err != nil {
-		return err
-	}
-	return autoUpdateModifiedByName(d, g.Name)
-}
-
-func autoUpdateModifiedByName(d *gorm.DB, name string) (err error) {
-	// Set modified = true if the group is referenced by selected config.
-	isReferenced, err := isReferencedByRunningConfig(d, name)
-	if err != nil {
-		return err
-	}
-	if isReferenced {
-		if err = internal.SetModified(d); err != nil {
-			return err
-		}
-	}
-	return nil
+func autoUpdateVersionById(d *gorm.DB, id uint) (err error) {
+	return d.Model(db.Group{ID: id}).
+		Update("version", gorm.Expr("version + 1")).Error
 }
 
 func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err error) {
@@ -100,7 +68,7 @@ func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err erro
 	}
 	// Set modified = true if the group is changed and referenced by selected config.
 	if q.Statement.Changed() {
-		if err = autoUpdateModifiedByName(tx, g.Name); err != nil {
+		if err = autoUpdateVersionById(tx, g.ID); err != nil {
 			return 0, err
 		}
 	}
@@ -137,8 +105,7 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if err = tx.Where("group_id = ?", id).Delete(&db.GroupPolicyParam{}).Error; err != nil {
 		return 0, err
 	}
-	// Set modified = true if the group is referenced by selected config.
-	if err = autoUpdateModifiedByName(tx, g.Name); err != nil {
+	if err = autoUpdateVersionById(tx, g.ID); err != nil {
 		return 0, err
 	}
 	return int32(q.RowsAffected), nil
@@ -171,8 +138,7 @@ func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 		return 0, err
 	}
 
-	// Set modified = true if the group is referenced by selected config.
-	if err = autoUpdateModifiedById(tx, id); err != nil {
+	if err = autoUpdateVersionById(tx, id); err != nil {
 		return 0, err
 	}
 	return int32(len(subscriptionIds)), nil
@@ -205,8 +171,7 @@ func DelSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 		return 0, err
 	}
 
-	// Set modified = true if the group is referenced by selected config.
-	if err = autoUpdateModifiedById(tx, id); err != nil {
+	if err = autoUpdateVersionById(tx, id); err != nil {
 		return 0, err
 	}
 	return int32(len(subscriptionIds)), nil
@@ -239,8 +204,7 @@ func AddNodes(ctx context.Context, _id graphql.ID, _nodeIds []graphql.ID) (int32
 		return 0, err
 	}
 
-	// Set modified = true if the group is referenced by selected config.
-	if err = autoUpdateModifiedById(tx, id); err != nil {
+	if err = autoUpdateVersionById(tx, id); err != nil {
 		return 0, err
 	}
 	return int32(len(_nodeIds)), nil
@@ -273,9 +237,43 @@ func DelNodes(ctx context.Context, _id graphql.ID, _nodeIds []graphql.ID) (int32
 		return 0, err
 	}
 
-	// Set modified = true if the group is referenced by selected config.
-	if err = autoUpdateModifiedById(tx, id); err != nil {
+	if err = autoUpdateVersionById(tx, id); err != nil {
 		return 0, err
 	}
 	return int32(len(_nodeIds)), nil
+}
+
+func SetPolicy(ctx context.Context, _id graphql.ID, policy string, policyParams []config_parser.Param) (n int32, err error) {
+	id, err := common.DecodeCursor(_id)
+	if err != nil {
+		return 0, err
+	}
+	tx := db.BeginTx(ctx)
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
+	q := tx.Model(&db.Group{ID: id}).Update("policy", policy)
+	if err = q.Error; err != nil {
+		return 0, err
+	}
+	if q.RowsAffected == 0 {
+		return 0, nil
+	}
+	params := make([]db.GroupPolicyParam, len(policyParams))
+	for i := range params {
+		params[i].Unmarshal(&policyParams[i])
+	}
+	if err = tx.Model(&db.Group{ID: id}).Association("PolicyParams").Replace(params); err != nil {
+		return 0, err
+	}
+
+	if err = autoUpdateVersionById(tx, id); err != nil {
+		return 0, err
+	}
+
+	return int32(q.RowsAffected), nil
 }

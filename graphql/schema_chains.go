@@ -6,14 +6,14 @@
 package graphql
 
 import (
-	"github.com/daeuniverse/dae-wing/graphql/config"
-	"github.com/daeuniverse/dae-wing/graphql/config/dns"
-	"github.com/daeuniverse/dae-wing/graphql/config/global"
-	"github.com/daeuniverse/dae-wing/graphql/config/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service"
+	"github.com/daeuniverse/dae-wing/graphql/service/config"
+	"github.com/daeuniverse/dae-wing/graphql/service/config/global"
+	"github.com/daeuniverse/dae-wing/graphql/service/dns"
 	"github.com/daeuniverse/dae-wing/graphql/service/general"
 	"github.com/daeuniverse/dae-wing/graphql/service/group"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
+	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 )
 

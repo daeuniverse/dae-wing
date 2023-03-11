@@ -3,20 +3,26 @@
  * Copyright (c) 2023, daeuniverse Organization <team@v2raya.org>
  */
 
-package config
+package routing
 
 func Schema() (string, error) {
 	return `
-type Config {
+type Routing {
 	id: ID!
 	name: String!
-	global: Global!
-	routing: Routing!
-	dns: Dns!
+	routing: DaeRouting!
 	selected: Boolean!
 	referenceGroups: [String!]!
 }
-
+type DaeRouting {
+	string: String!
+	rules: [RoutingRule!]!
+	fallback: FunctionOrPlaintext!
+}
+type RoutingRule {
+	conditions: AndFunctions!
+	outbound: Function!
+}
 type Function {
 	name: String!
 	not: Boolean!
@@ -37,6 +43,5 @@ type Plaintext {
 
 union AndFunctionsOrPlaintext = AndFunctions | Plaintext
 union FunctionOrPlaintext = Function | Plaintext
-
 `, nil
 }

@@ -33,6 +33,8 @@ func InitDatabase(configDir string) (err error) {
 	}
 	if err = db.AutoMigrate(
 		&Config{},
+		&Dns{},
+		&Routing{},
 		&Node{},
 		&Subscription{},
 		&Group{},
@@ -60,5 +62,11 @@ func BeginTx(ctx context.Context) *gorm.DB {
 	return DB(ctx).Begin(&sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 		ReadOnly:  false,
+	})
+}
+func BeginReadOnlyTx(ctx context.Context) *gorm.DB {
+	return DB(ctx).Begin(&sql.TxOptions{
+		Isolation: sql.LevelSerializable,
+		ReadOnly:  true,
 	})
 }

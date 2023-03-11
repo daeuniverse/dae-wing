@@ -5,13 +5,11 @@
 
 package db
 
-type Config struct {
-	ID     uint   `gorm:"primaryKey;autoIncrement"`
-	Name   string `gorm:"not null;default:''"`
-	Global string `gorm:"not null"`
+type Routing struct {
+	ID      uint   `gorm:"primaryKey;autoIncrement"`
+	Name    string `gorm:"not null;default:''"`
+	Routing string `gorm:"not null"`
 
 	Selected bool `gorm:"not null"` // Redundancy for convenient.
 	Version  uint `gorm:"not null;default:0"`
-
-	versionUpdated uint32
 }

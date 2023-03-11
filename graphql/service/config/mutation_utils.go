@@ -7,11 +7,12 @@ package config
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
-	"github.com/daeuniverse/dae-wing/graphql/config/global"
+	"github.com/daeuniverse/dae-wing/graphql/service/config/global"
 	"github.com/graph-gophers/graphql-go"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
@@ -19,10 +20,11 @@ import (
 	"gorm.io/gorm/clause"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 )
 
-func Create(ctx context.Context, name string, glob *global.Input, dns string, routing string) (*Resolver, error) {
+func Create(ctx context.Context, name string, glob *global.Input) (*Resolver, error) {
 	if glob == nil {
 		glob = &global.Input{}
 	}
@@ -30,18 +32,14 @@ func Create(ctx context.Context, name string, glob *global.Input, dns string, ro
 	if err != nil {
 		return nil, err
 	}
-	dns = "dns {\n" + dns + "\n}"
-	routing = "routing {\n" + routing + "\n}"
 	m := db.Config{
 		ID:       0,
 		Name:     name,
 		Global:   strGlobal,
-		Dns:      dns,
-		Routing:  routing,
 		Selected: false,
 	}
 	// Check grammar and to dae config.
-	c, err := m.ToDaeConfig()
+	c, err := dae.ParseConfig(&m.Global, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -49,12 +47,12 @@ func Create(ctx context.Context, name string, glob *global.Input, dns string, ro
 		return nil, err
 	}
 	return &Resolver{
-		Config: c,
-		Model:  &m,
+		DaeGlobal: &c.Global,
+		Model:     &m,
 	}, nil
 }
 
-func Update(ctx context.Context, _id graphql.ID, inputGlobal *global.Input, dns *string, routing *string) (*Resolver, error) {
+func Update(ctx context.Context, _id graphql.ID, inputGlobal global.Input) (*Resolver, error) {
 	id, err := common.DecodeCursor(_id)
 	if err != nil {
 		return nil, err
@@ -71,57 +69,29 @@ func Update(ctx context.Context, _id graphql.ID, inputGlobal *global.Input, dns 
 	if err = tx.Model(&db.Config{}).Where("id = ?", id).First(&m).Error; err != nil {
 		return nil, err
 	}
-	updates := map[string]interface{}{}
-	if inputGlobal != nil {
-		// Convert global string in database to daeConfig.Global.
-		c, err := m.ToDaeConfig()
-		if err != nil {
-			return nil, fmt.Errorf("bad current config: %w", err)
-		}
-		// Assign input items to daeConfig.Global.
-		inputGlobal.Assign(&c.Global)
-		// Marshal back to string.
-		marshaller := daeConfig.Marshaller{IndentSpace: 2}
-		if err = marshaller.MarshalSection("global", reflect.ValueOf(c.Global), 0); err != nil {
-			return nil, err
-		}
-		// This column should be updated.
-		m.Global = string(marshaller.Bytes())
-		updates["global"] = m.Global
-	}
-	if dns != nil {
-		m.Dns = "dns {\n" + *dns + "\n}"
-		updates["dns"] = m.Dns
-	}
-	if routing != nil {
-		m.Routing = "routing {\n" + *routing + "\n}"
-		updates["routing"] = m.Routing
-	}
-	// Check grammar.
-	c, err := m.ToDaeConfig()
+	// Prepare to partially update.
+	// Convert global string in database to daeConfig.Global.
+	c, err := dae.ParseConfig(&m.Global, nil, nil)
 	if err != nil {
+		return nil, fmt.Errorf("bad current config: %w", err)
+	}
+	// Assign input items to daeConfig.Global.
+	inputGlobal.Assign(&c.Global)
+	// Marshal back to string.
+	marshaller := daeConfig.Marshaller{IndentSpace: 2}
+	if err = marshaller.MarshalSection("global", reflect.ValueOf(c.Global), 0); err != nil {
 		return nil, err
 	}
-	if err = tx.Model(&db.Config{ID: id}).Updates(updates).Error; err != nil {
+	// Update.
+	if err = tx.Model(&db.Config{ID: id}).Updates(map[string]interface{}{
+		"global":  string(marshaller.Bytes()),
+		"version": gorm.Expr("version + 1"),
+	}).Error; err != nil {
 		return nil, err
-	}
-	// Update that config is modified.
-	if m.Selected {
-		// Check if dae is running.
-		var sys db.System
-		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-			return nil, err
-		}
-		if sys.Running {
-			sys.Modified = true
-			if err = tx.Model(&sys).Update("modified", true).Error; err != nil {
-				return nil, err
-			}
-		}
 	}
 	return &Resolver{
-		Config: c,
-		Model:  &m,
+		DaeGlobal: &c.Global,
+		Model:     &m,
 	}, nil
 }
 
@@ -140,6 +110,7 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	}()
 	m := db.Config{ID: id}
 	q := tx.Clauses(clause.Returning{Columns: []clause.Column{{Name: "selected"}}}).
+		Select(clause.Associations).
 		Delete(&m)
 	if q.Error != nil {
 		return 0, q.Error
@@ -204,8 +175,21 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	return 1, nil
 }
 
+func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err error) {
+	id, err := common.DecodeCursor(_id)
+	if err != nil {
+		return 0, err
+	}
+	q := db.DB(ctx).Model(&db.Config{ID: id}).
+		Update("name", name)
+	if q.Error != nil {
+		return 0, q.Error
+	}
+	return int32(q.RowsAffected), nil
+}
+
 func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
-	// Dry run.
+	//// Dry run.
 	if noLoad {
 		ch := make(chan bool)
 		dae.ChReloadConfigs <- &dae.ReloadMessage{
@@ -223,30 +207,46 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 			return 0, err
 		}
 		if err = d.Model(&sys).Updates(map[string]interface{}{
-			"running":  false,
-			"modified": false,
+			"running": false,
 		}).Error; err != nil {
 			return 0, err
 		}
 		return 1, nil
 	}
 
-	// Run selected config.
-	var m db.Config
-	q := d.Model(&db.Config{}).Where("selected = ?", true).First(&m)
+	//// Run selected global+dns+routing.
+	/// Get them from database and parse them to daeConfig.
+	var mConfig db.Config
+	var mDns db.Dns
+	var mRouting db.Routing
+	q := d.Model(&db.Config{}).Where("selected = ?", true).First(&mConfig)
+	if (q.Error == nil && q.RowsAffected == 0) || errors.Is(q.Error, gorm.ErrRecordNotFound) {
+		return 0, fmt.Errorf("please select a dns")
+	}
 	if q.Error != nil {
 		return 0, q.Error
 	}
-	if q.RowsAffected == 0 {
-		return 0, fmt.Errorf("please select a config")
+	q = d.Model(&db.Dns{}).Where("selected = ?", true).First(&mDns)
+	if (q.Error == nil && q.RowsAffected == 0) || errors.Is(q.Error, gorm.ErrRecordNotFound) {
+		return 0, fmt.Errorf("please select a dns")
 	}
-	c, err := m.ToDaeConfig()
+	if q.Error != nil {
+		return 0, q.Error
+	}
+	q = d.Model(&db.Routing{}).Where("selected = ?", true).First(&mRouting)
+	if (q.Error == nil && q.RowsAffected == 0) || errors.Is(q.Error, gorm.ErrRecordNotFound) {
+		return 0, fmt.Errorf("please select a dns")
+	}
+	if q.Error != nil {
+		return 0, q.Error
+	}
+	c, err := dae.ParseConfig(&mConfig.Global, &mDns.Dns, &mRouting.Routing)
 	if err != nil {
 		return 0, err
 	}
 	/// Fill in necessary groups and nodes.
 	// Find groups needed by routing.
-	outbounds := NecessaryOutbounds(&c.Routing)
+	outbounds := dae.NecessaryOutbounds(&c.Routing)
 	var groups []db.Group
 	q = d.Model(&db.Group{}).
 		Where("name in ?", outbounds).
@@ -375,30 +375,30 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		return 0, fmt.Errorf("failed to load new config; see more in log")
 	}
 
-	// Running -> true
+	// Save running status
 	var sys db.System
 	if err = d.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
 		return 0, err
 	}
+	var groupVersions []string
+	for _, g := range groups {
+		groupVersions = append(groupVersions, strconv.FormatUint(uint64(g.Version), 10))
+	}
 	if err = d.Model(&sys).Updates(map[string]interface{}{
-		"running":  true,
-		"modified": false,
+		"running":                 true,
+		"running_config_id":       mConfig.ID,
+		"running_config_version":  mConfig.Version,
+		"running_dns_id":          mDns.ID,
+		"running_dns_version":     mDns.Version,
+		"running_routing_id":      mRouting.ID,
+		"running_routing_version": mRouting.Version,
+		"running_group_versions":  strings.Join(groupVersions, ","),
 	}).Error; err != nil {
+		return 0, err
+	}
+	if err = d.Model(&sys).Association("RunningGroups").Replace(groups); err != nil {
 		return 0, err
 	}
 
 	return 1, nil
-}
-
-func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err error) {
-	id, err := common.DecodeCursor(_id)
-	if err != nil {
-		return 0, err
-	}
-	q := db.DB(ctx).Model(&db.Config{ID: id}).
-		Update("name", name)
-	if q.Error != nil {
-		return 0, q.Error
-	}
-	return int32(q.RowsAffected), nil
 }

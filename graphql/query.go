@@ -11,12 +11,12 @@ import (
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
-	"github.com/daeuniverse/dae-wing/graphql/config"
-	"github.com/daeuniverse/dae-wing/graphql/config/dns"
-	"github.com/daeuniverse/dae-wing/graphql/config/routing"
+	"github.com/daeuniverse/dae-wing/graphql/service/config"
+	"github.com/daeuniverse/dae-wing/graphql/service/dns"
 	"github.com/daeuniverse/dae-wing/graphql/service/general"
 	"github.com/daeuniverse/dae-wing/graphql/service/group"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
+	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 	"github.com/graph-gophers/graphql-go"
 	daeConfig "github.com/v2rayA/dae/config"
@@ -56,21 +56,94 @@ func (r *queryResolver) Configs(args *struct {
 	}
 	for i := range models {
 		m := &models[i]
-		c, err := m.ToDaeConfig()
+		c, err := dae.ParseConfig(&m.Global, nil, nil)
 		if err != nil {
 			return nil, err
 		}
 		rs = append(rs, &config.Resolver{
-			Config: c,
+			DaeGlobal: &c.Global,
+			Model:     m,
+		})
+	}
+	return rs, nil
+}
+
+func (r *queryResolver) Dnss(args *struct {
+	ID       *graphql.ID
+	Selected *bool
+}) (rs []*dns.Resolver, err error) {
+	// Check if query specific ID.
+	var id uint
+	q := db.DB(context.TODO()).Model(&db.Dns{})
+	if args.ID != nil {
+		id, err = common.DecodeCursor(*args.ID)
+		if err != nil {
+			return nil, err
+		}
+		q = q.Where("id = ?", id)
+	}
+	if args.Selected != nil {
+		q = q.Where("selected = ?", *args.Selected)
+	}
+	// Get dns from DB.
+	var models []db.Dns
+	if err = q.Find(&models).Error; err != nil {
+		return nil, err
+	}
+	for i := range models {
+		m := &models[i]
+		c, err := dae.ParseConfig(nil, &m.Dns, nil)
+		if err != nil {
+			return nil, err
+		}
+		rs = append(rs, &dns.Resolver{
+			DaeDns: &c.Dns,
 			Model:  m,
 		})
 	}
 	return rs, nil
 }
+
+func (r *queryResolver) Routings(args *struct {
+	ID       *graphql.ID
+	Selected *bool
+}) (rs []*routing.Resolver, err error) {
+	// Check if query specific ID.
+	var id uint
+	q := db.DB(context.TODO()).Model(&db.Routing{})
+	if args.ID != nil {
+		id, err = common.DecodeCursor(*args.ID)
+		if err != nil {
+			return nil, err
+		}
+		q = q.Where("id = ?", id)
+	}
+	if args.Selected != nil {
+		q = q.Where("selected = ?", *args.Selected)
+	}
+	// Get routing from DB.
+	var models []db.Routing
+	if err = q.Find(&models).Error; err != nil {
+		return nil, err
+	}
+	for i := range models {
+		m := &models[i]
+		c, err := dae.ParseConfig(nil, nil, &m.Routing)
+		if err != nil {
+			return nil, err
+		}
+		rs = append(rs, &routing.Resolver{
+			DaeRouting: &c.Routing,
+			Model:      m,
+		})
+	}
+	return rs, nil
+}
+
 func (r *queryResolver) ConfigFlatDesc() []*dae.FlatDesc {
 	return dae.ExportFlatDesc()
 }
-func (r *queryResolver) ParsedRouting(args *struct{ Raw string }) (rr *routing.Resolver, err error) {
+func (r *queryResolver) ParsedRouting(args *struct{ Raw string }) (rr *routing.DaeResolver, err error) {
 	sections, err := config_parser.Parse("global{} routing {" + args.Raw + "}")
 	if err != nil {
 		return nil, err
@@ -79,11 +152,11 @@ func (r *queryResolver) ParsedRouting(args *struct{ Raw string }) (rr *routing.R
 	if err != nil {
 		return nil, err
 	}
-	return &routing.Resolver{
+	return &routing.DaeResolver{
 		Routing: &conf.Routing,
 	}, nil
 }
-func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.Resolver, err error) {
+func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.DaeResolver, err error) {
 	sections, err := config_parser.Parse("global{} dns {" + args.Raw + "} routing{}")
 	if err != nil {
 		return nil, err
@@ -92,7 +165,7 @@ func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.Resolver,
 	if err != nil {
 		return nil, err
 	}
-	return &dns.Resolver{
+	return &dns.DaeResolver{
 		Dns: &conf.Dns,
 	}, nil
 }

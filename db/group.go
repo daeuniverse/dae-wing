@@ -5,7 +5,9 @@
 
 package db
 
-import "github.com/v2rayA/dae/pkg/config_parser"
+import (
+	"github.com/v2rayA/dae/pkg/config_parser"
+)
 
 type Group struct {
 	ID           uint   `gorm:"primaryKey;autoIncrement"`
@@ -14,6 +16,9 @@ type Group struct {
 	PolicyParams []GroupPolicyParam
 	Node         []Node         `gorm:"many2many:group_nodes;"`
 	Subscription []Subscription `gorm:"many2many:group_subscriptions;"`
+
+	Version  uint `gorm:"not null;default:0"`
+	SystemID *uint
 }
 
 type GroupPolicyParam struct {
