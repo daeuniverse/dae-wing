@@ -22,6 +22,7 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go"
+	"github.com/tidwall/gjson"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
 	"golang.org/x/crypto/sha3"
@@ -98,6 +99,36 @@ func numberUsers(d *gorm.DB) (int32, error) {
 func (r *queryResolver) NumberUsers() (int32, error) {
 	return numberUsers(db.DB(context.TODO()))
 }
+
+func userFromContext(ctx context.Context) (user *db.User, err error) {
+	_user := ctx.Value("user")
+	if _user == nil {
+		return nil, fmt.Errorf("failed to get user")
+	}
+	user, ok := _user.(*db.User)
+	if !ok {
+		return nil, fmt.Errorf("failed to get user")
+	}
+	return user, nil
+}
+func (r *queryResolver) JsonStorage(ctx context.Context, args *struct {
+	Paths *[]string
+}) ([]string, error) {
+	user, err := userFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if args.Paths == nil {
+		return []string{user.JsonStorage}, nil
+	}
+	results := gjson.GetMany(user.JsonStorage, *args.Paths...)
+	var ret []string
+	for _, r := range results {
+		ret = append(ret, r.Raw)
+	}
+	return ret, nil
+}
+
 func (r *queryResolver) General() *general.Resolver {
 	return &general.Resolver{}
 }

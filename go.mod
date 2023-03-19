@@ -12,8 +12,11 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stoewer/go-strcase v1.2.1
+	github.com/tidwall/gjson v1.14.4
+	github.com/tidwall/sjson v1.2.5
 	github.com/v2rayA/dae v0.0.0-20230311030957-2edbdae72f37
 	github.com/vishvananda/netlink v1.1.0
+	golang.org/x/crypto v0.5.0
 	golang.org/x/sys v0.5.0
 	golang.org/x/tools v0.1.12
 	gorm.io/driver/sqlite v1.4.4
@@ -46,12 +49,13 @@ require (
 	github.com/safchain/ethtool v0.0.0-20230116090318-67cc41908669 // indirect
 	github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/v2rayA/ahocorasick-domain v0.0.0-20230218160829-122a074c48c8 // indirect
 	github.com/v2rayA/dae-config-dist/go/dae_config v0.0.0-20230219173344-413f12027632 // indirect
 	github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	gitlab.com/yawning/chacha20.git v0.0.0-20190903091407-6d1cb28dc72c // indirect
-	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.6.0 // indirect

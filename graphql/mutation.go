@@ -20,6 +20,8 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 	"github.com/graph-gophers/graphql-go"
+	"github.com/sirupsen/logrus"
+	"github.com/tidwall/sjson"
 	"github.com/v2rayA/dae/pkg/config_parser"
 	"io"
 	"strings"
@@ -71,6 +73,53 @@ func (r *MutationResolver) CreateUser(args *struct {
 	}
 	// Return token.
 	return getToken(tx, args.Username, args.Password)
+}
+func (r *MutationResolver) SetJsonStorage(ctx context.Context, args *struct {
+	Paths  []string
+	Values []string
+}) (int32, error) {
+	user, err := userFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if len(args.Paths) != len(args.Values) {
+		return 0, fmt.Errorf("len(paths) != len(values)")
+	}
+	for i := range args.Paths {
+		user.JsonStorage, err = sjson.SetRaw(user.JsonStorage, args.Paths[i], args.Values[i])
+		if err != nil {
+			return 0, err
+		}
+	}
+	logrus.Println(user)
+	if err = db.DB(context.TODO()).Model(&user).Update("json_storage", user.JsonStorage).Error; err != nil {
+		return 0, err
+	}
+	return int32(len(args.Paths)), nil
+}
+func (r *MutationResolver) RemoveJsonStorage(ctx context.Context, args *struct {
+	Paths *[]string
+}) (n int32, err error) {
+	user, err := userFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if args.Paths == nil {
+		user.JsonStorage = "{}"
+		n = 1
+	} else {
+		for i := range *args.Paths {
+			user.JsonStorage, err = sjson.Delete(user.JsonStorage, (*args.Paths)[i])
+			if err != nil {
+				return 0, err
+			}
+		}
+		n = int32(len(*args.Paths))
+	}
+	if err = db.DB(context.TODO()).Model(&user).Update("json_storage", user.JsonStorage).Error; err != nil {
+		return 0, err
+	}
+	return n, nil
 }
 func (r *MutationResolver) CreateConfig(args *struct {
 	Name   *string

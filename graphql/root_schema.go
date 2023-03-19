@@ -26,6 +26,8 @@ type Query {
 	healthCheck: Int!
 	token(username: String!, password: String!): String!
 	numberUsers: Int!
+	# jsonStorage get given paths from user related json storage. Empty paths is to get all. Refer to https://github.com/tidwall/gjson
+	jsonStorage(paths: [String!]): [String!]! @hasRole(role: ADMIN)
 	configFlatDesc: [ConfigFlatDesc!]! @hasRole(role: ADMIN)
 	configs(id: ID, selected: Boolean): [Config!]! @hasRole(role: ADMIN)
 	dnss(id: ID, selected: Boolean): [Dns!]! @hasRole(role: ADMIN)
@@ -47,6 +49,11 @@ type Mutation {
 	createDns(name: String, dns: String): Dns! @hasRole(role: ADMIN)
 	# createConfig creates a routing config. Null arguments will be converted to default value.
 	createRouting(name: String, routing: String): Routing! @hasRole(role: ADMIN)
+
+	# setJsonStorage set given paths to values in user related json storage. Refer to https://github.com/tidwall/sjson
+	setJsonStorage(paths: [String!]!, values: [String!]!): Int! @hasRole(role: ADMIN)
+	# removeJsonStorage remove given paths from user related json storage. Empty paths is to clear json storage. Refer to https://github.com/tidwall/sjson
+	removeJsonStorage(paths: [String!]): Int! @hasRole(role: ADMIN)
 
 	# updateConfig allows to partially update global config with given id.
 	updateConfig(id: ID!, global: globalInput!): Config! @hasRole(role: ADMIN)

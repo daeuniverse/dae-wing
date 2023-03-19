@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -75,7 +76,7 @@ var (
 				dae.ChReloadConfigs <- nil
 				os.Exit(1)
 			}
-			http.Handle("/graphql", cors.AllowAll().Handler(&relay.Handler{Schema: schema}))
+			http.Handle("/graphql", auth(cors.AllowAll().Handler(&relay.Handler{Schema: schema})))
 
 			go func() {
 				if err = http.ListenAndServe(listen, nil); err != nil {
@@ -158,8 +159,9 @@ func shouldReload() (ok bool, err error) {
 
 func auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authorization := r.Header.Get("Authorization")
-		token, _ := jwt.Parse(authorization, func(token *jwt.Token) (interface{}, error) {
+		authorization := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		var user db.User
+		token, err := jwt.Parse(authorization, func(token *jwt.Token) (interface{}, error) {
 			// Don't forget to validate the alg is what you expect:
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -169,7 +171,6 @@ func auth(next http.Handler) http.Handler {
 			if err != nil {
 				return nil, err
 			}
-			var user db.User
 			q := db.DB(context.TODO()).Model(&db.User{}).Where("username = ?", subject).First(&user)
 			if q.Error != nil {
 				return nil, q.Error
@@ -180,9 +181,12 @@ func auth(next http.Handler) http.Handler {
 			return []byte(user.JwtSecret), nil
 		})
 		ctx := context.Background()
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			if expireAt, err := token.Claims.GetExpirationTime(); err == nil && time.Now().Before(expireAt.Time) {
-				ctx = context.WithValue(ctx, "role", claims["role"])
+		if err == nil {
+			if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+				if expireAt, err := token.Claims.GetExpirationTime(); err == nil && time.Now().Before(expireAt.Time) {
+					ctx = context.WithValue(ctx, "role", claims["role"])
+					ctx = context.WithValue(ctx, "user", &user)
+				}
 			}
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
