@@ -3,6 +3,7 @@ module github.com/daeuniverse/dae-wing
 go 1.18
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230228210639-f05ace9f4a41
 	github.com/json-iterator/go v1.1.12
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826

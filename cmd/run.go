@@ -8,6 +8,7 @@ import (
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql"
 	"github.com/daeuniverse/dae-wing/graphql/service/config"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func init() {
@@ -152,4 +154,37 @@ func shouldReload() (ok bool, err error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+func auth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization := r.Header.Get("Authorization")
+		token, _ := jwt.Parse(authorization, func(token *jwt.Token) (interface{}, error) {
+			// Don't forget to validate the alg is what you expect:
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			// Get corresponding secret.
+			subject, err := token.Claims.GetSubject()
+			if err != nil {
+				return nil, err
+			}
+			var user db.User
+			q := db.DB(context.TODO()).Model(&db.User{}).Where("username = ?", subject).First(&user)
+			if q.Error != nil {
+				return nil, q.Error
+			}
+			if q.RowsAffected == 0 {
+				return nil, fmt.Errorf("no such user")
+			}
+			return []byte(user.JwtSecret), nil
+		})
+		ctx := context.Background()
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			if expireAt, err := token.Claims.GetExpirationTime(); err == nil && time.Now().Before(expireAt.Time) {
+				ctx = context.WithValue(ctx, "role", claims["role"])
+			}
+		}
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

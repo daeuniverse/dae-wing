@@ -7,7 +7,9 @@ package graphql
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
@@ -18,19 +20,86 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go"
 	daeConfig "github.com/v2rayA/dae/config"
 	"github.com/v2rayA/dae/pkg/config_parser"
+	"golang.org/x/crypto/sha3"
 	"gorm.io/gorm"
+	"io"
+	"time"
 )
 
 type queryResolver struct{}
 
-func (r *queryResolver) General() *general.Resolver {
-	return &general.Resolver{}
-}
 func (r *queryResolver) HealthCheck() int32 {
 	return 1
+}
+func hashPassword(salt []byte, password string) (string, error) {
+	h := sha3.NewShake256()
+	_, err := h.Write(salt)
+	if err != nil {
+		return "", err
+	}
+	_, err = h.Write([]byte(password))
+	if err != nil {
+		return "", err
+	}
+	var hash [32]byte
+	_, err = io.ReadFull(h, hash[:])
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash[:]), nil
+}
+func getToken(
+	d *gorm.DB,
+	username string,
+	password string) (string, error) {
+	var m db.User
+	// Check username.
+	q := d.Model(&db.User{}).Where("username = ?", username).First(&m)
+	if q.Error != nil || q.RowsAffected == 0 {
+		return "", fmt.Errorf("incorrect username or password")
+	}
+	// Check password.
+	hashedPassword, err := hashPassword([]byte(m.JwtSecret), password)
+	if err != nil {
+		return "", err
+	}
+	if hashedPassword != m.PasswordHash {
+		return "", fmt.Errorf("incorrect username or password")
+	}
+
+	// File a token.
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"role": "admin",
+		"sub":  m.Username,
+		"exp":  time.Now().Add(30 * time.Hour * 24).UTC().Unix(),
+	})
+	// Sign and get the complete encoded token as a string using the secret
+	return token.SignedString([]byte(m.JwtSecret))
+}
+
+func (r *queryResolver) Token(args *struct {
+	Username string
+	Password string
+}) (string, error) {
+	return getToken(db.DB(context.TODO()), args.Username, args.Password)
+}
+func numberUsers(d *gorm.DB) (int32, error) {
+	var cnt int64
+	if err := d.Model(&db.User{}).Count(&cnt).Error; err != nil {
+		return 0, err
+	}
+	return int32(cnt), nil
+
+}
+func (r *queryResolver) NumberUsers() (int32, error) {
+	return numberUsers(db.DB(context.TODO()))
+}
+func (r *queryResolver) General() *general.Resolver {
+	return &general.Resolver{}
 }
 func (r *queryResolver) Configs(args *struct {
 	ID       *graphql.ID

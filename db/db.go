@@ -32,6 +32,7 @@ func InitDatabase(configDir string) (err error) {
 		return fmt.Errorf("%w: %v", err, path)
 	}
 	if err = db.AutoMigrate(
+		&User{},
 		&Config{},
 		&Dns{},
 		&Routing{},

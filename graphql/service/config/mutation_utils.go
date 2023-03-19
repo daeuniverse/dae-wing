@@ -221,7 +221,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	var mRouting db.Routing
 	q := d.Model(&db.Config{}).Where("selected = ?", true).First(&mConfig)
 	if (q.Error == nil && q.RowsAffected == 0) || errors.Is(q.Error, gorm.ErrRecordNotFound) {
-		return 0, fmt.Errorf("please select a dns")
+		return 0, fmt.Errorf("please select a config")
 	}
 	if q.Error != nil {
 		return 0, q.Error
@@ -235,7 +235,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	}
 	q = d.Model(&db.Routing{}).Where("selected = ?", true).First(&mRouting)
 	if (q.Error == nil && q.RowsAffected == 0) || errors.Is(q.Error, gorm.ErrRecordNotFound) {
-		return 0, fmt.Errorf("please select a dns")
+		return 0, fmt.Errorf("please select a routing")
 	}
 	if q.Error != nil {
 		return 0, q.Error

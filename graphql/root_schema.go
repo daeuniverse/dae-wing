@@ -6,6 +6,8 @@
 package graphql
 
 import (
+	"context"
+	"fmt"
 	"github.com/graph-gophers/graphql-go"
 	"strings"
 )
@@ -14,107 +16,116 @@ var rootSchema = `
 scalar Duration
 scalar Time
 
+directive @hasRole(role: Role!) on FIELD_DEFINITION
+
 schema {
 	query: Query
 	mutation: Mutation
 }
 type Query {
 	healthCheck: Int!
-	configFlatDesc: [ConfigFlatDesc!]!
-	configs(id: ID, selected: Boolean): [Config!]!
-	dnss(id: ID, selected: Boolean): [Dns!]!
-	routings(id: ID, selected: Boolean): [Routing!]!
-	parsedRouting(raw: String!): DaeRouting!
-	parsedDns(raw: String!): DaeDns!
-	subscriptions(id: ID): [Subscription!]!
-	groups(id: ID): [Group!]!
-	group(name: String!): Group!
-	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection!
-	general(): General!
+	token(username: String!, password: String!): String!
+	numberUsers: Int!
+	configFlatDesc: [ConfigFlatDesc!]! @hasRole(role: ADMIN)
+	configs(id: ID, selected: Boolean): [Config!]! @hasRole(role: ADMIN)
+	dnss(id: ID, selected: Boolean): [Dns!]! @hasRole(role: ADMIN)
+	routings(id: ID, selected: Boolean): [Routing!]! @hasRole(role: ADMIN)
+	parsedRouting(raw: String!): DaeRouting! @hasRole(role: ADMIN)
+	parsedDns(raw: String!): DaeDns! @hasRole(role: ADMIN)
+	subscriptions(id: ID): [Subscription!]! @hasRole(role: ADMIN)
+	groups(id: ID): [Group!]! @hasRole(role: ADMIN)
+	group(name: String!): Group! @hasRole(role: ADMIN)
+	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection! @hasRole(role: ADMIN)
+	general(): General! @hasRole(role: ADMIN)
 }
 type Mutation {
-	# createConfig create a global config. Null arguments will be converted to default value.
-	createConfig(name: String, global: globalInput): Config!
-	# createConfig create a dns config. Null arguments will be converted to default value.
-	createDns(name: String, dns: String): Dns!
-	# createConfig create a routing config. Null arguments will be converted to default value.
-	createRouting(name: String, routing: String): Routing!
+	# createUser creates a user if there is no user.
+	createUser(username: String!, password: String!): String!
+	# createConfig creates a global config. Null arguments will be converted to default value.
+	createConfig(name: String, global: globalInput): Config! @hasRole(role: ADMIN)
+	# createConfig creates a dns config. Null arguments will be converted to default value.
+	createDns(name: String, dns: String): Dns! @hasRole(role: ADMIN)
+	# createConfig creates a routing config. Null arguments will be converted to default value.
+	createRouting(name: String, routing: String): Routing! @hasRole(role: ADMIN)
 
 	# updateConfig allows to partially update global config with given id.
-	updateConfig(id: ID!, global: globalInput!): Config!
+	updateConfig(id: ID!, global: globalInput!): Config! @hasRole(role: ADMIN)
 	# updateDns is to update dns config with given id.
-	updateDns(id: ID!, dns: String!): Dns!
+	updateDns(id: ID!, dns: String!): Dns! @hasRole(role: ADMIN)
 	# updateRouting is to update routing config with given id.
-	updateRouting(id: ID!, routing: String!): Routing!
+	updateRouting(id: ID!, routing: String!): Routing! @hasRole(role: ADMIN)
 
 	# renameConfig is to give the config a new name.
-	renameConfig(id: ID!, name: String!): Int!
+	renameConfig(id: ID!, name: String!): Int! @hasRole(role: ADMIN)
 	# renameDns is to give the dns config a new name.
-	renameDns(id: ID!, name: String!): Int!
+	renameDns(id: ID!, name: String!): Int! @hasRole(role: ADMIN)
 	# renameRouting is to give the routing config a new name.
-	renameRouting(id: ID!, name: String!): Int!
+	renameRouting(id: ID!, name: String!): Int! @hasRole(role: ADMIN)
 
 	# removeConfig is to remove a config with given config ID.
-	removeConfig(id: ID!): Int!
+	removeConfig(id: ID!): Int! @hasRole(role: ADMIN)
 	# removeDns is to remove a dns config with given dns ID.
-	removeDns(id: ID!): Int!
+	removeDns(id: ID!): Int! @hasRole(role: ADMIN)
 	# removeRouting is to remove a routing config with given routing ID.
-	removeRouting(id: ID!): Int!
+	removeRouting(id: ID!): Int! @hasRole(role: ADMIN)
 
 	# selectConfig is to select a config as the current config.
-	selectConfig(id: ID!): Int!
+	selectConfig(id: ID!): Int! @hasRole(role: ADMIN)
 	# selectConfig is to select a dns config as the current dns.
-	selectDns(id: ID!): Int!
+	selectDns(id: ID!): Int! @hasRole(role: ADMIN)
 	# selectConfig is to select a routing config as the current routing.
-	selectRouting(id: ID!): Int!
+	selectRouting(id: ID!): Int! @hasRole(role: ADMIN)
 
 	# run proxy with selected config+dns+routing. Dry-run can be used to stop the proxy.
-	run(dry: Boolean!): Int!
+	run(dry: Boolean!): Int! @hasRole(role: ADMIN)
 
 	# importNodes is to import nodes with no subscription ID. rollbackError means abort the import on error.
-	importNodes(rollbackError: Boolean!, args: [ImportArgument!]!): [NodeImportResult!]!
+	importNodes(rollbackError: Boolean!, args: [ImportArgument!]!): [NodeImportResult!]! @hasRole(role: ADMIN)
 
 	# removeNodes is to remove nodes that have no subscription ID.
-	removeNodes(ids: [ID!]!): Int!
+	removeNodes(ids: [ID!]!): Int! @hasRole(role: ADMIN)
 
 	# tagNode is to give the node a new tag.
-	tagNode(id: ID!, tag: String!): Int!
+	tagNode(id: ID!, tag: String!): Int! @hasRole(role: ADMIN)
 
 	# importSubscription is to fetch and resolve the subscription into nodes.
-	importSubscription(rollbackError: Boolean!, arg: ImportArgument!): SubscriptionImportResult!
+	importSubscription(rollbackError: Boolean!, arg: ImportArgument!): SubscriptionImportResult! @hasRole(role: ADMIN)
 
 	# removeSubscriptions is to remove subscriptions with given ID list.
-	removeSubscriptions(ids: [ID!]!): Int!
+	removeSubscriptions(ids: [ID!]!): Int! @hasRole(role: ADMIN)
 
 	# tagSubscription is to give the subscription a new tag.
-	tagSubscription(id: ID!, tag: String!): Int!
+	tagSubscription(id: ID!, tag: String!): Int! @hasRole(role: ADMIN)
 
 	# updateSubscription is to re-fetch subscription and resolve subscription into nodes. Old nodes that independently belong to any groups will not be removed.
-	updateSubscription(id: ID!): Subscription!
+	updateSubscription(id: ID!): Subscription! @hasRole(role: ADMIN)
 
 	# createGroup is to create a group.
-	createGroup(name: String!, policy: Policy!, policyParams: [PolicyParam!]): Group!
+	createGroup(name: String!, policy: Policy!, policyParams: [PolicyParam!]): Group! @hasRole(role: ADMIN)
 
 	# groupSetPolicy is to set the group a new policy.
-	groupSetPolicy(id: ID!, policy: Policy!, policyParams: [PolicyParam!]): Int!
+	groupSetPolicy(id: ID!, policy: Policy!, policyParams: [PolicyParam!]): Int! @hasRole(role: ADMIN)
 
 	# groupAddSubscriptions is to add subscriptions to the group.
-	groupAddSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int!
+	groupAddSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int! @hasRole(role: ADMIN)
 
 	# groupDelSubscriptions is to remove subscriptions from the group.
-	groupDelSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int!
+	groupDelSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int! @hasRole(role: ADMIN)
 
 	# groupAddNodes is to add nodes to the group. Nodes will not be removed from its subscription when subscription update.
-	groupAddNodes(id: ID!, nodeIDs: [ID!]!): Int!
+	groupAddNodes(id: ID!, nodeIDs: [ID!]!): Int! @hasRole(role: ADMIN)
 
 	# groupDelNodes is to remove nodes from the group.
-	groupDelNodes(id: ID!, nodeIDs: [ID!]!): Int!
+	groupDelNodes(id: ID!, nodeIDs: [ID!]!): Int! @hasRole(role: ADMIN)
 
 	# renameGroup is to rename a group.
-	renameGroup(id: ID!, name: String!): Int!
+	renameGroup(id: ID!, name: String!): Int! @hasRole(role: ADMIN)
 
 	# removeGroup is to remove a group.
-	removeGroup(id: ID!): Int!
+	removeGroup(id: ID!): Int! @hasRole(role: ADMIN)
+}
+enum Role {
+	admin
 }
 input ImportArgument {
 	link: String!
@@ -144,6 +155,25 @@ type ConfigFlatDesc {
 	desc: String!
 }
 `
+
+type hasRoleDirective struct {
+	Role string
+}
+
+func (h *hasRoleDirective) ImplementsDirective() string {
+	return "hasRole"
+}
+
+func (h *hasRoleDirective) Validate(ctx context.Context, _ interface{}) error {
+	role := ctx.Value("role")
+	if role == nil {
+		return fmt.Errorf("access denied")
+	}
+	if !strings.EqualFold(role.(string), h.Role) {
+		return fmt.Errorf("access denied, %q role required", h.Role)
+	}
+	return nil
+}
 
 type resolver struct{}
 
@@ -177,6 +207,6 @@ func Schema() (*graphql.Schema, error) {
 		schema,
 		&resolver{},
 		graphql.UseFieldResolvers(),
-		graphql.Directives(),
+		graphql.Directives(&hasRoleDirective{}),
 	), nil
 }
