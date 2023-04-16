@@ -86,7 +86,7 @@ func (r *MutationResolver) SetJsonStorage(ctx context.Context, args *struct {
 		return 0, fmt.Errorf("len(paths) != len(values)")
 	}
 	for i := range args.Paths {
-		user.JsonStorage, err = sjson.SetRaw(user.JsonStorage, args.Paths[i], args.Values[i])
+		user.JsonStorage, err = sjson.Set(user.JsonStorage, args.Paths[i], args.Values[i])
 		if err != nil {
 			return 0, err
 		}

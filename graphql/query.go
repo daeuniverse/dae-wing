@@ -124,7 +124,7 @@ func (r *queryResolver) JsonStorage(ctx context.Context, args *struct {
 	results := gjson.GetMany(user.JsonStorage, *args.Paths...)
 	var ret []string
 	for _, r := range results {
-		ret = append(ret, r.Raw)
+		ret = append(ret, r.String())
 	}
 	return ret, nil
 }
