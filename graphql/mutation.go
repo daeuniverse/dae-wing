@@ -20,7 +20,6 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 	"github.com/graph-gophers/graphql-go"
-	"github.com/sirupsen/logrus"
 	"github.com/tidwall/sjson"
 	"github.com/v2rayA/dae/pkg/config_parser"
 	"io"
@@ -91,7 +90,6 @@ func (r *MutationResolver) SetJsonStorage(ctx context.Context, args *struct {
 			return 0, err
 		}
 	}
-	logrus.Println(user)
 	if err = db.DB(context.TODO()).Model(&user).Update("json_storage", user.JsonStorage).Error; err != nil {
 		return 0, err
 	}
