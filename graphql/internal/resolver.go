@@ -6,8 +6,8 @@
 package internal
 
 import (
-	"github.com/v2rayA/dae/config"
-	"github.com/v2rayA/dae/pkg/config_parser"
+	"github.com/daeuniverse/dae/config"
+	"github.com/daeuniverse/dae/pkg/config_parser"
 )
 
 type FunctionOrPlaintextResolver struct {

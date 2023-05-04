@@ -11,9 +11,9 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/internal"
 	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/graph-gophers/graphql-go"
-	daeCommon "github.com/v2rayA/dae/common"
-	daeConfig "github.com/v2rayA/dae/config"
-	"github.com/v2rayA/dae/pkg/config_parser"
+	daeCommon "github.com/daeuniverse/dae/common"
+	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/daeuniverse/dae/pkg/config_parser"
 	"reflect"
 	"strings"
 )

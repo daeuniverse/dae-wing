@@ -3,30 +3,33 @@ module github.com/daeuniverse/dae-wing
 go 1.18
 
 require (
-	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
+	github.com/daeuniverse/dae v0.1.8
+	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230228210639-f05ace9f4a41
 	github.com/json-iterator/go v1.1.12
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
-	github.com/mzz2017/softwind v0.0.0-20230224125402-d460ce1c5b4b
+	github.com/mzz2017/softwind v0.0.0-20230501115403-98d9a7116d72
 	github.com/rs/cors v1.8.3
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/stoewer/go-strcase v1.2.1
 	github.com/tidwall/gjson v1.14.4
 	github.com/tidwall/sjson v1.2.5
-	github.com/v2rayA/dae v0.0.0-20230311030957-2edbdae72f37
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/crypto v0.5.0
 	golang.org/x/sys v0.5.0
-	golang.org/x/tools v0.1.12
+	golang.org/x/tools v0.2.0
 	gorm.io/driver/sqlite v1.4.4
 	gorm.io/gorm v1.24.5
 )
 
 require (
 	github.com/adrg/xdg v0.4.0 // indirect
-	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20221202181307-76fa05c21b12 // indirect
+	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect
+	github.com/bits-and-blooms/bitset v1.3.1 // indirect
+	github.com/bits-and-blooms/bloom/v3 v3.3.1 // indirect
 	github.com/cilium/ebpf v0.10.0 // indirect
+	github.com/daeuniverse/dae-config-dist/go/dae_config v0.0.0-20230314065856-e49435a874d8 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-idea v0.0.0-20170306091226-d2fb45a411fb // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
@@ -52,12 +55,11 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/v2rayA/ahocorasick-domain v0.0.0-20230218160829-122a074c48c8 // indirect
-	github.com/v2rayA/dae-config-dist/go/dae_config v0.0.0-20230219173344-413f12027632 // indirect
 	github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	gitlab.com/yawning/chacha20.git v0.0.0-20190903091407-6d1cb28dc72c // indirect
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2 // indirect
+	golang.org/x/mod v0.6.0 // indirect
 	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
@@ -66,4 +68,4 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 )
 
-//replace github.com/v2rayA/dae => /home/mzz/ebpfProjects/ragdoll/foo
+//replace github.com/daeuniverse/dae => /home/mzz/ebpfProjects/ragdoll/foo

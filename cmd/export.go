@@ -11,7 +11,7 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/spf13/cobra"
-	daeConfig "github.com/v2rayA/dae/config"
+	daeConfig "github.com/daeuniverse/dae/config"
 	"os"
 )
 

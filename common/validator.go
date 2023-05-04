@@ -21,7 +21,7 @@ func ValidateTag(tag string) error {
 }
 
 func ValidateId(id string) error {
-	// https://github.com/v2rayA/dae-config-dist/blob/main/dae_config.g4
+	// https://github.com/daeuniverse/dae-config-dist/blob/main/dae_config.g4
 	if !regexp.MustCompile(`^[a-zA-Z_][-a-zA-Z0-9_/\\^*+.=@$!#%]*$`).MatchString(id) {
 		return InvalidIdFormatError
 	}

@@ -7,7 +7,7 @@ package db
 
 import (
 	"github.com/daeuniverse/dae-wing/common"
-	"github.com/v2rayA/dae/component/outbound/dialer"
+	"github.com/daeuniverse/dae/component/outbound/dialer"
 	"strings"
 )
 

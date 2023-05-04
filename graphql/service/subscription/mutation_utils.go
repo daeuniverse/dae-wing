@@ -13,7 +13,7 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/sirupsen/logrus"
-	"github.com/v2rayA/dae/common/subscription"
+	"github.com/daeuniverse/dae/common/subscription"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"io"

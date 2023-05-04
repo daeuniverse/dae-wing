@@ -6,9 +6,9 @@
 package dae
 
 import (
-	daeCommon "github.com/v2rayA/dae/common"
-	daeConfig "github.com/v2rayA/dae/config"
-	"github.com/v2rayA/dae/pkg/config_parser"
+	daeCommon "github.com/daeuniverse/dae/common"
+	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/daeuniverse/dae/pkg/config_parser"
 	"strings"
 )
 

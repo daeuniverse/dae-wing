@@ -13,7 +13,7 @@ import (
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/service/config"
 	"github.com/graph-gophers/graphql-go"
-	daeConfig "github.com/v2rayA/dae/config"
+	daeConfig "github.com/daeuniverse/dae/config"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"reflect"

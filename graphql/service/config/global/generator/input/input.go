@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/stoewer/go-strcase"
-	daeConfig "github.com/v2rayA/dae/config"
+	daeConfig "github.com/daeuniverse/dae/config"
 	"os"
 	"reflect"
 	"strings"
@@ -64,7 +64,7 @@ func (b *builder) Build() (string, error) {
 	b.WriteLine(0, "package global\n")
 	b.WriteLine(0, fmt.Sprintf(`import "%v"`, t.PkgPath()))
 	b.WriteLine(0, fmt.Sprintf(`import "github.com/daeuniverse/dae-wing/graphql/scalar"`))
-	b.WriteLine(0, fmt.Sprintf(`import daeConfig "github.com/v2rayA/dae/config"`))
+	b.WriteLine(0, fmt.Sprintf(`import daeConfig "github.com/daeuniverse/dae/config"`))
 	b.WriteLine(0, `type Input struct {`)
 	b.WriteMethodLine(0, `func (i *Input) Assign(g *daeConfig.Global) {`)
 	for i := 0; i < v.NumField(); i++ {

@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"github.com/mohae/deepcopy"
 	"github.com/sirupsen/logrus"
-	daeConfig "github.com/v2rayA/dae/config"
-	"github.com/v2rayA/dae/control"
-	"github.com/v2rayA/dae/pkg/config_parser"
-	"github.com/v2rayA/dae/pkg/logger"
+	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/daeuniverse/dae/control"
+	"github.com/daeuniverse/dae/pkg/config_parser"
+	"github.com/daeuniverse/dae/pkg/logger"
 	"os"
 	"runtime"
 )
@@ -182,7 +182,7 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, conf *daeConfig.Config
 		Format string
 		Value  []byte
 	}{
-		// https://github.com/v2rayA/dae/blob/main/docs/getting-started/README.md#kernel-parameters
+		// https://github.com/daeuniverse/dae/blob/main/docs/getting-started/README.md#kernel-parameters
 		{"/proc/sys/net/ipv4/conf/%v/forwarding", []byte{'1'}},
 		{"/proc/sys/net/ipv6/conf/%v/forwarding", []byte{'1'}},
 		{"/proc/sys/net/ipv4/conf/%v/send_redirects", []byte{'0'}},

@@ -21,7 +21,7 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/tidwall/sjson"
-	"github.com/v2rayA/dae/pkg/config_parser"
+	"github.com/daeuniverse/dae/pkg/config_parser"
 	"io"
 	"strings"
 	"unicode"
