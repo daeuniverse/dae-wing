@@ -23,8 +23,3 @@ repos:
         entry: gofmt -w .
         language: golang
         types: [go]
-    # - id: check-x
-    #   name: Check X
-    #   entry: ./bin/check-x.sh
-    #   language: script
-    #   files: \.x$
