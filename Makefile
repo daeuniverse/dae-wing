@@ -43,3 +43,6 @@ dae-deps: vendor
 	popd && \
 	cp "$(BUILD_DIR)"/control/bpf_bpf*.{go,o} vendor/github.com/daeuniverse/dae/control/ && \
 	rm -rf "$(BUILD_DIR)"
+
+fmt:
+	go fmt ./...
