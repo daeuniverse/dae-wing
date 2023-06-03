@@ -57,13 +57,15 @@ var (
 
 			// Run dae.
 			go func() {
-				logrus.Fatalln(dae.Run(
+				if err := dae.Run(
 					logrus.StandardLogger(),
 					dae.EmptyConfig,
 					[]string{cfgDir},
 					disableTimestamp,
 					apiOnly,
-				))
+				); err != nil {
+					logrus.Fatalln("dae.Run:", err)
+				}
 			}()
 			// Reload with running state.
 			if err := restoreRunningState(); err != nil {
@@ -75,6 +77,7 @@ var (
 			if err != nil {
 				logrus.Errorf("Exiting: %v", err)
 				dae.ChReloadConfigs <- nil
+				<-dae.GracefullyExit
 				os.Exit(1)
 			}
 			http.Handle("/graphql", auth(cors.AllowAll().Handler(&relay.Handler{Schema: schema})))
@@ -84,6 +87,7 @@ var (
 					// Notify to Close().
 					logrus.Errorf("Exiting: %v", err)
 					dae.ChReloadConfigs <- nil
+					<-dae.GracefullyExit
 					os.Exit(1)
 				}
 			}()
@@ -93,6 +97,7 @@ var (
 				// Notify to Close().
 				logrus.Errorf("Exiting: %v", sig.String())
 				dae.ChReloadConfigs <- nil
+				<-dae.GracefullyExit
 				return
 			}
 		},

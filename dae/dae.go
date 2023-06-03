@@ -22,6 +22,7 @@ type ReloadMessage struct {
 }
 
 var ChReloadConfigs = make(chan *ReloadMessage, 16)
+var GracefullyExit = make(chan struct{})
 var EmptyConfig *daeConfig.Config
 
 func init() {
@@ -36,7 +37,7 @@ func init() {
 }
 
 func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string, disableTimestamp bool, dry bool) (err error) {
-
+	defer close(GracefullyExit)
 	// Not really run dae.
 	if dry {
 		log.Infoln("Dry run in api-only mode")
@@ -73,6 +74,10 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 		ChReloadConfigs <- nil
 	}()
 	reloading := false
+	/* dae-wing start */
+	isRollback := false
+	var chCallback chan<- bool
+	/* dae-wing end */
 loop:
 	for newReloadMsg := range ChReloadConfigs {
 		switch newReloadMsg {
@@ -93,6 +98,12 @@ loop:
 				}()
 				<-readyChan
 				log.Warnln("[Reload] Finished")
+				/* dae-wing start */
+				if !isRollback {
+					// To notify the success.
+					chCallback <- true
+				}
+				/* dae-wing end */
 			} else {
 				// Listening error.
 				break loop
@@ -101,7 +112,9 @@ loop:
 			// Reload signal.
 			log.Warnln("[Reload] Received reload signal; prepare to reload")
 
+			/* dae-wing start */
 			newConf := newReloadMsg.Config
+			/* dae-wing end */
 			// New logger.
 			log = logger.NewLogger(newConf.Global.LogLevel, disableTimestamp)
 			logrus.SetLevel(log.Level)
@@ -132,6 +145,9 @@ loop:
 				log.Errorln("[Reload] Last reload failed; rolled back configuration")
 			} else {
 				log.Warnln("[Reload] Stopped old control plane")
+				/* dae-wing start */
+				isRollback = false
+				/* dae-wing end */
 			}
 
 			// Inject bpf objects into the new control plane life-cycle.
@@ -142,6 +158,9 @@ loop:
 			c = newC
 			conf = newConf
 			reloading = true
+			/* dae-wing start */
+			chCallback = newReloadMsg.Callback
+			/* dae-wing end */
 
 			// Ready to close.
 			oldC.Close()
