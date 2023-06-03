@@ -256,7 +256,7 @@ func (r *queryResolver) ParsedRouting(args *struct{ Raw string }) (rr *routing.D
 		Routing: &conf.Routing,
 	}, nil
 }
-func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.DaeResolver, err error) {
+func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.DnsResolver, err error) {
 	sections, err := config_parser.Parse("global{} dns {" + args.Raw + "} routing{}")
 	if err != nil {
 		return nil, err
@@ -265,7 +265,7 @@ func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.DaeResolv
 	if err != nil {
 		return nil, err
 	}
-	return &dns.DaeResolver{
+	return &dns.DnsResolver{
 		Dns: &conf.Dns,
 	}, nil
 }
