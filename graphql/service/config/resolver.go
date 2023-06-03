@@ -9,8 +9,8 @@ import (
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/service/config/global"
-	"github.com/graph-gophers/graphql-go"
 	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/graph-gophers/graphql-go"
 )
 
 type Resolver struct {

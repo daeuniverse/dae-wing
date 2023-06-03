@@ -10,10 +10,10 @@ import (
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
 	"github.com/daeuniverse/dae-wing/graphql/service/routing"
-	"github.com/graph-gophers/graphql-go"
 	daeCommon "github.com/daeuniverse/dae/common"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/pkg/config_parser"
+	"github.com/graph-gophers/graphql-go"
 	"reflect"
 	"strings"
 )

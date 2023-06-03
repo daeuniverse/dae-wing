@@ -6,9 +6,9 @@
 package node
 
 import (
-	"github.com/graph-gophers/graphql-go"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
+	"github.com/graph-gophers/graphql-go"
 )
 
 type Resolver struct {
