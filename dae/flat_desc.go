@@ -6,7 +6,7 @@
 package dae
 
 import (
-	daeConfig "github.com/v2rayA/dae/config"
+	daeConfig "github.com/daeuniverse/dae/config"
 	"reflect"
 )
 

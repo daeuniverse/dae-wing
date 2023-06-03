@@ -6,7 +6,7 @@
 package db
 
 import (
-	"github.com/v2rayA/dae/pkg/config_parser"
+	"github.com/daeuniverse/dae/pkg/config_parser"
 )
 
 type Group struct {

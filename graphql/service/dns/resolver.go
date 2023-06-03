@@ -10,10 +10,10 @@ import (
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
 	"github.com/daeuniverse/dae-wing/graphql/service/routing"
+	daeCommon "github.com/daeuniverse/dae/common"
+	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/graph-gophers/graphql-go"
-	daeCommon "github.com/v2rayA/dae/common"
-	daeConfig "github.com/v2rayA/dae/config"
-	"github.com/v2rayA/dae/pkg/config_parser"
 	"reflect"
 	"strings"
 )
@@ -31,8 +31,8 @@ func (r *Resolver) Name() string {
 	return r.Model.Name
 }
 
-func (r *Resolver) Dns() *DaeResolver {
-	return &DaeResolver{
+func (r *Resolver) Dns() *DnsResolver {
+	return &DnsResolver{
 		Dns: r.DaeDns,
 	}
 }
@@ -41,11 +41,11 @@ func (r *Resolver) Selected() bool {
 	return r.Model.Selected
 }
 
-type DaeResolver struct {
+type DnsResolver struct {
 	*daeConfig.Dns
 }
 
-func (r *DaeResolver) String() (string, error) {
+func (r *DnsResolver) String() (string, error) {
 	marshaller := daeConfig.Marshaller{IndentSpace: 2}
 	if err := marshaller.MarshalSection("dns", reflect.ValueOf(*r.Dns), -1); err != nil {
 		return "", err
@@ -56,7 +56,7 @@ func (r *DaeResolver) String() (string, error) {
 	return strings.TrimSpace(section), nil
 }
 
-func (r *DaeResolver) Upstream() (rs []*internal.ParamResolver) {
+func (r *DnsResolver) Upstream() (rs []*internal.ParamResolver) {
 	for _, upstream := range r.Dns.Upstream {
 		tag, afterTag := daeCommon.GetTagFromLinkLikePlaintext(string(upstream))
 		rs = append(rs, &internal.ParamResolver{Param: &config_parser.Param{
@@ -67,7 +67,7 @@ func (r *DaeResolver) Upstream() (rs []*internal.ParamResolver) {
 	return rs
 }
 
-func (r *DaeResolver) Routing() *RoutingResolver {
+func (r *DnsResolver) Routing() *RoutingResolver {
 	return &RoutingResolver{DnsRouting: &r.Dns.Routing}
 }
 

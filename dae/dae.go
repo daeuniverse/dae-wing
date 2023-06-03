@@ -7,13 +7,12 @@ package dae
 
 import (
 	"fmt"
+	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/daeuniverse/dae/control"
+	"github.com/daeuniverse/dae/pkg/config_parser"
+	"github.com/daeuniverse/dae/pkg/logger"
 	"github.com/mohae/deepcopy"
 	"github.com/sirupsen/logrus"
-	daeConfig "github.com/v2rayA/dae/config"
-	"github.com/v2rayA/dae/control"
-	"github.com/v2rayA/dae/pkg/config_parser"
-	"github.com/v2rayA/dae/pkg/logger"
-	"os"
 	"runtime"
 )
 
@@ -36,10 +35,11 @@ func init() {
 	}
 }
 
-func Run(log *logrus.Logger, conf *daeConfig.Config, disableTimestamp bool, dry bool) (err error) {
+func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string, disableTimestamp bool, dry bool) (err error) {
 
 	// Not really run dae.
 	if dry {
+		log.Infoln("Dry run in api-only mode")
 	dryLoop:
 		for newConf := range ChReloadConfigs {
 			switch newConf {
@@ -53,7 +53,7 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, disableTimestamp bool, dry 
 	}
 
 	// New ControlPlane.
-	c, err := newControlPlane(log, nil, conf)
+	c, err := newControlPlane(log, nil, nil, conf, externGeoDataDirs)
 	if err != nil {
 		return err
 	}
@@ -73,8 +73,6 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, disableTimestamp bool, dry 
 		ChReloadConfigs <- nil
 	}()
 	reloading := false
-	isRollback := false
-	var chCallback chan<- bool
 loop:
 	for newReloadMsg := range ChReloadConfigs {
 		switch newReloadMsg {
@@ -95,9 +93,6 @@ loop:
 				}()
 				<-readyChan
 				log.Warnln("[Reload] Finished")
-				if !isRollback {
-					chCallback <- true
-				}
 			} else {
 				// Listening error.
 				break loop
@@ -106,20 +101,26 @@ loop:
 			// Reload signal.
 			log.Warnln("[Reload] Received reload signal; prepare to reload")
 
+			newConf := newReloadMsg.Config
 			// New logger.
-			log = logger.NewLogger(newReloadMsg.Config.Global.LogLevel, disableTimestamp)
+			log = logger.NewLogger(newConf.Global.LogLevel, disableTimestamp)
 			logrus.SetLevel(log.Level)
 
 			// New control plane.
 			obj := c.EjectBpf()
+			var dnsCache map[string]*control.DnsCache
+			if conf.Dns.IpVersionPrefer == newConf.Dns.IpVersionPrefer {
+				// Only keep dns cache when ip version preference not change.
+				dnsCache = c.CloneDnsCache()
+			}
 			log.Warnln("[Reload] Load new control plane")
-			newC, err := newControlPlane(log, obj, newReloadMsg.Config)
+			newC, err := newControlPlane(log, obj, dnsCache, newConf, externGeoDataDirs)
 			if err != nil {
 				log.WithFields(logrus.Fields{
 					"err": err,
 				}).Errorln("[Reload] Failed to reload; try to roll back configuration")
 				// Load last config back.
-				newC, err = newControlPlane(log, obj, conf)
+				newC, err = newControlPlane(log, obj, dnsCache, conf, externGeoDataDirs)
 				if err != nil {
 					obj.Close()
 					c.Close()
@@ -127,23 +128,20 @@ loop:
 						"err": err,
 					}).Fatalln("[Reload] Failed to roll back configuration")
 				}
-				log.Warnln("[Reload] Last reload failed; rolled back configuration")
-				newReloadMsg.Callback <- false
-				isRollback = true
+				newConf = conf
+				log.Errorln("[Reload] Last reload failed; rolled back configuration")
 			} else {
 				log.Warnln("[Reload] Stopped old control plane")
-				isRollback = false
 			}
 
 			// Inject bpf objects into the new control plane life-cycle.
 			newC.InjectBpf(obj)
 
 			// Prepare new context.
-			conf = newReloadMsg.Config
-			reloading = true
-			chCallback = newReloadMsg.Callback
 			oldC := c
 			c = newC
+			conf = newConf
+			reloading = true
 
 			// Ready to close.
 			oldC.Close()
@@ -155,7 +153,7 @@ loop:
 	return nil
 }
 
-func newControlPlane(log *logrus.Logger, bpf interface{}, conf *daeConfig.Config) (c *control.ControlPlane, err error) {
+func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*control.DnsCache, conf *daeConfig.Config, externGeoDataDirs []string) (c *control.ControlPlane, err error) {
 
 	// Print configuration.
 	if log.IsLevelEnabled(logrus.DebugLevel) {
@@ -177,31 +175,17 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, conf *daeConfig.Config
 		return nil, fmt.Errorf("daeConfig.subscription is not supported in dae-wing")
 	}
 
-	// Write kernel parameters.
-	params := []struct {
-		Format string
-		Value  []byte
-	}{
-		// https://github.com/v2rayA/dae/blob/main/docs/getting-started/README.md#kernel-parameters
-		{"/proc/sys/net/ipv4/conf/%v/forwarding", []byte{'1'}},
-		{"/proc/sys/net/ipv6/conf/%v/forwarding", []byte{'1'}},
-		{"/proc/sys/net/ipv4/conf/%v/send_redirects", []byte{'0'}},
-	}
-	for _, lanIfname := range conf.Global.LanInterface {
-		for _, param := range params {
-			_ = os.WriteFile(fmt.Sprintf(param.Format, lanIfname), param.Value, 0644)
-		}
-	}
-
 	// New dae control plane.
 	c, err = control.NewControlPlane(
 		log,
 		bpf,
+		dnsCache,
 		subscriptionToNodeList,
 		conf.Group,
 		&conf.Routing,
 		&conf.Global,
 		&conf.Dns,
+		externGeoDataDirs,
 	)
 	if err != nil {
 		return nil, err

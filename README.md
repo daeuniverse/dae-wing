@@ -1,4 +1,4 @@
-# [dae](https://github.com/v2rayA/dae)-wing
+# [dae](https://github.com/daeuniverse/dae)-wing
 
 ## Run
 
@@ -30,7 +30,7 @@ go build -o dae-wing
 
 ### Config generator
 
-Alternatively, you can use [raw format inputs](https://github.com/v2rayA/dae/blob/main/example.dae), use [dae-outline2config](https://github.com/v2rayA/dae-outline2config) to generate config related raw format.
+Alternatively, you can use [raw format inputs](https://github.com/daeuniverse/dae/blob/main/example.dae), use [dae-outline2config](https://github.com/daeuniverse/dae-outline2config) to generate config related raw format.
 
 **To generate outline**
 
@@ -44,7 +44,7 @@ go build -o dae-wing .
 
 ### Config
 
-Config defined in dae-wing includes `global`, `dns` and `routing` sections in [dae](https://github.com/v2rayA/dae).
+Config defined in dae-wing includes `global`, `dns` and `routing` sections in [dae](https://github.com/daeuniverse/dae).
 
 Users can switch between multiple configs. Nodes, subscriptions and groups are selectively shared by all configs.
 

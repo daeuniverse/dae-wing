@@ -7,9 +7,9 @@ package main
 
 import (
 	"fmt"
+	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/sirupsen/logrus"
 	"github.com/stoewer/go-strcase"
-	daeConfig "github.com/v2rayA/dae/config"
 	"os"
 	"reflect"
 	"strings"

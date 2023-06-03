@@ -60,6 +60,7 @@ var (
 				logrus.Fatalln(dae.Run(
 					logrus.StandardLogger(),
 					dae.EmptyConfig,
+					[]string{cfgDir},
 					disableTimestamp,
 					apiOnly,
 				))

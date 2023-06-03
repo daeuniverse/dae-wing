@@ -20,11 +20,11 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
+	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/tidwall/gjson"
-	daeConfig "github.com/v2rayA/dae/config"
-	"github.com/v2rayA/dae/pkg/config_parser"
 	"golang.org/x/crypto/sha3"
 	"gorm.io/gorm"
 	"io"
@@ -256,7 +256,7 @@ func (r *queryResolver) ParsedRouting(args *struct{ Raw string }) (rr *routing.D
 		Routing: &conf.Routing,
 	}, nil
 }
-func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.DaeResolver, err error) {
+func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.DnsResolver, err error) {
 	sections, err := config_parser.Parse("global{} dns {" + args.Raw + "} routing{}")
 	if err != nil {
 		return nil, err
@@ -265,7 +265,7 @@ func (r *queryResolver) ParsedDns(args *struct{ Raw string }) (dr *dns.DaeResolv
 	if err != nil {
 		return nil, err
 	}
-	return &dns.DaeResolver{
+	return &dns.DnsResolver{
 		Dns: &conf.Dns,
 	}, nil
 }

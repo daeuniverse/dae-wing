@@ -9,8 +9,8 @@ import (
 	"context"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
+	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/graph-gophers/graphql-go"
-	"github.com/v2rayA/dae/pkg/config_parser"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

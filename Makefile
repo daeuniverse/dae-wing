@@ -22,7 +22,7 @@ all: dae-wing
 deps: schema-resolver dae-deps
 
 dae-wing: deps
-	go build -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/v2rayA/dae/cmd.Version=$(VERSION)" .
+	go build -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/daeuniverse/dae/cmd.Version=$(VERSION)" .
 
 vendor:
 	go mod vendor
@@ -33,14 +33,13 @@ schema-resolver: vendor
 	unset GOARM && \
 	go generate ./...
 
-dae-deps: DAE_VERSION := $(shell grep '\s*github.com/v2rayA/dae\s*v' go.mod | awk '{print $2}' | cut -d- -f3)
+dae-deps: DAE_VERSION := $(shell grep '\s*github.com/daeuniverse/dae\s*v' go.mod | rev | cut -d' ' -f1 | cut -d- -f1 | rev )
 dae-deps: BUILD_DIR := ./build-dae-ebpf
 dae-deps: vendor
-	git clone https://github.com/v2rayA/dae build-dae-ebpf && \
+	git clone --single-branch -- https://github.com/daeuniverse/dae $(BUILD_DIR) && \
 	pushd "$(BUILD_DIR)" && \
-	git checkout $(DAE_VERSION) && \
-	git submodule update --init && \
+	git checkout $(DAE_VERSION) && git submodule update --init --recursive && \
 	make ebpf && \
 	popd && \
-	cp "$(BUILD_DIR)"/control/bpf_bpf*.{go,o} vendor/github.com/v2rayA/dae/control/ && \
+	cp "$(BUILD_DIR)"/control/bpf_bpf*.{go,o} vendor/github.com/daeuniverse/dae/control/ && \
 	rm -rf "$(BUILD_DIR)"
