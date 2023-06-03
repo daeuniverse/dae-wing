@@ -33,11 +33,12 @@ schema-resolver: vendor
 	unset GOARM && \
 	go generate ./...
 
-dae-deps: DAE_VERSION := $(shell grep '\s*github.com/daeuniverse/dae\s*v' go.mod | rev | cut -d' ' -f1 | rev)
+dae-deps: DAE_VERSION := $(shell grep '\s*github.com/daeuniverse/dae\s*v' go.mod | rev | cut -d' ' -f1 | cut -d- -f1 | rev )
 dae-deps: BUILD_DIR := ./build-dae-ebpf
 dae-deps: vendor
-	git clone --branch $(DAE_VERSION) --single-branch --recursive -- https://github.com/daeuniverse/dae $(BUILD_DIR) && \
+	git clone --single-branch -- https://github.com/daeuniverse/dae $(BUILD_DIR) && \
 	pushd "$(BUILD_DIR)" && \
+	git checkout $(DAE_VERSION) && git submodule update --init --recursive && \
 	make ebpf && \
 	popd && \
 	cp "$(BUILD_DIR)"/control/bpf_bpf*.{go,o} vendor/github.com/daeuniverse/dae/control/ && \

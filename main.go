@@ -12,16 +12,7 @@ import (
 )
 
 import (
-	_ "github.com/daeuniverse/dae/component/outbound/dialer/http"
-	_ "github.com/daeuniverse/dae/component/outbound/dialer/shadowsocks"
-	_ "github.com/daeuniverse/dae/component/outbound/dialer/shadowsocksr"
-	_ "github.com/daeuniverse/dae/component/outbound/dialer/socks"
-	_ "github.com/daeuniverse/dae/component/outbound/dialer/trojan"
-	_ "github.com/daeuniverse/dae/component/outbound/dialer/v2ray"
-	_ "github.com/mzz2017/softwind/protocol/shadowsocks"
-	_ "github.com/mzz2017/softwind/protocol/trojanc"
-	_ "github.com/mzz2017/softwind/protocol/vless"
-	_ "github.com/mzz2017/softwind/protocol/vmess"
+	_ "github.com/daeuniverse/dae/component/outbound"
 )
 
 func main() {
