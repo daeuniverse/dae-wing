@@ -126,8 +126,7 @@ func restoreRunningState() (err error) {
 			return fmt.Errorf("%w; %v", err, err2)
 		}
 		if err2 := tx2.Model(&sys).Updates(map[string]interface{}{
-			"running":  false,
-			"modified": false,
+			"running": false,
 		}).Error; err2 != nil {
 			tx2.Rollback()
 			return fmt.Errorf("%w; %v", err, err2)
