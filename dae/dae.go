@@ -99,10 +99,7 @@ loop:
 				<-readyChan
 				log.Warnln("[Reload] Finished")
 				/* dae-wing start */
-				if !isRollback {
-					// To notify the success.
-					chCallback <- true
-				}
+				chCallback <- !isRollback
 				/* dae-wing end */
 			} else {
 				// Listening error.
@@ -143,8 +140,13 @@ loop:
 				}
 				newConf = conf
 				log.Errorln("[Reload] Last reload failed; rolled back configuration")
+
+				/* dae-wing start */
+				isRollback = true
+				/* dae-wing end */
 			} else {
 				log.Warnln("[Reload] Stopped old control plane")
+
 				/* dae-wing start */
 				isRollback = false
 				/* dae-wing end */
