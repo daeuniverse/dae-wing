@@ -289,10 +289,9 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		}
 	}
 	var separateNodes []db.Node
-	if err = d.Model(&db.Group{}).
-		Where("name in ?", outbounds).
+	if err = d.Model(groups).
 		Association("Node").
-		Find(&separateNodes, "subscription_id not in ?", subIds); err != nil {
+		Find(&separateNodes, "subscription_id is null"); err != nil {
 		return 0, err
 	}
 	nodes = append(nodes, separateNodes...)
