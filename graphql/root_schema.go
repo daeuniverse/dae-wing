@@ -28,6 +28,7 @@ type Query {
 	numberUsers: Int!
 	# jsonStorage get given paths from user related json storage. Empty paths is to get all. Refer to https://github.com/tidwall/gjson
 	jsonStorage(paths: [String!]): [String!]! @hasRole(role: ADMIN)
+    user(): User! @hasRole(role: ADMIN)
 	configFlatDesc: [ConfigFlatDesc!]! @hasRole(role: ADMIN)
 	configs(id: ID, selected: Boolean): [Config!]! @hasRole(role: ADMIN)
 	dnss(id: ID, selected: Boolean): [Dns!]! @hasRole(role: ADMIN)
@@ -54,6 +55,8 @@ type Mutation {
 	setJsonStorage(paths: [String!]!, values: [String!]!): Int! @hasRole(role: ADMIN)
 	# removeJsonStorage remove given paths from user related json storage. Empty paths is to clear json storage. Refer to https://github.com/tidwall/sjson
 	removeJsonStorage(paths: [String!]): Int! @hasRole(role: ADMIN)
+    # updateAvatar set avatar for current user. Remove avatar if avatar is null. Blob base64 encoded image is recommended.
+    updateAvatar(avatar: String): Int! @hasRole(role: ADMIN)
 
 	# updateConfig allows to partially update global config with given id.
 	updateConfig(id: ID!, global: globalInput!): Config! @hasRole(role: ADMIN)

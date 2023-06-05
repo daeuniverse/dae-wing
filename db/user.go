@@ -6,9 +6,11 @@
 package db
 
 type User struct {
-	ID           uint   `gorm:"primaryKey;autoIncrement"`
-	Username     string `gorm:"unique;not null;index"`
-	PasswordHash string `gorm:"not null"`
-	JwtSecret    string `gorm:"not null"`
-	JsonStorage  string `gorm:"not null;default:'{}'"`
+	ID           uint    `gorm:"primaryKey;autoIncrement"`
+	Username     string  `gorm:"unique;not null;index"`
+	PasswordHash string  `gorm:"not null"`
+	JwtSecret    string  `gorm:"not null"`
+	JsonStorage  string  `gorm:"not null;default:'{}'"`
+	Avatar       *string `gorm:"null"`
+	Name         *string `gorm:"null"`
 }
