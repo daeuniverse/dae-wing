@@ -132,6 +132,19 @@ func (r *MutationResolver) UpdateAvatar(ctx context.Context, args *struct {
 	}
 	return int32(q.RowsAffected), nil
 }
+func (r *MutationResolver) UpdateName(ctx context.Context, args *struct {
+    Name *string
+}) (int32, error) {
+    u, err := userFromContext(ctx)
+    if err != nil {
+        return 0, err
+    }
+    q := db.DB(context.TODO()).Model(&u).Update("name", args.Name)
+    if err = q.Error; err != nil {
+        return 0, err
+    }
+    return int32(q.RowsAffected), nil
+}
 func (r *MutationResolver) CreateConfig(args *struct {
 	Name   *string
 	Global *global.Input

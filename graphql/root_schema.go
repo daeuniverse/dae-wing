@@ -57,6 +57,8 @@ type Mutation {
 	removeJsonStorage(paths: [String!]): Int! @hasRole(role: ADMIN)
     # updateAvatar set avatar for current user. Remove avatar if avatar is null. Blob base64 encoded image is recommended.
     updateAvatar(avatar: String): Int! @hasRole(role: ADMIN)
+    # updateName set name for current user. Remove name if name is null.
+    updateName(name: String): Int! @hasRole(role: ADMIN)
 
 	# updateConfig allows to partially update global config with given id.
 	updateConfig(id: ID!, global: globalInput!): Config! @hasRole(role: ADMIN)
