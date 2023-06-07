@@ -77,7 +77,7 @@ func (r *MutationResolver) SetJsonStorage(ctx context.Context, args *struct {
 	Paths  []string
 	Values []string
 }) (int32, error) {
-	user, err := userFromContext(ctx)
+	u, err := userFromContext(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -85,12 +85,12 @@ func (r *MutationResolver) SetJsonStorage(ctx context.Context, args *struct {
 		return 0, fmt.Errorf("len(paths) != len(values)")
 	}
 	for i := range args.Paths {
-		user.JsonStorage, err = sjson.Set(user.JsonStorage, args.Paths[i], args.Values[i])
+		u.JsonStorage, err = sjson.Set(u.JsonStorage, args.Paths[i], args.Values[i])
 		if err != nil {
 			return 0, err
 		}
 	}
-	if err = db.DB(context.TODO()).Model(&user).Update("json_storage", user.JsonStorage).Error; err != nil {
+	if err = db.DB(context.TODO()).Model(&u).Update("json_storage", u.JsonStorage).Error; err != nil {
 		return 0, err
 	}
 	return int32(len(args.Paths)), nil
@@ -98,26 +98,105 @@ func (r *MutationResolver) SetJsonStorage(ctx context.Context, args *struct {
 func (r *MutationResolver) RemoveJsonStorage(ctx context.Context, args *struct {
 	Paths *[]string
 }) (n int32, err error) {
-	user, err := userFromContext(ctx)
+	u, err := userFromContext(ctx)
 	if err != nil {
 		return 0, err
 	}
 	if args.Paths == nil {
-		user.JsonStorage = "{}"
+		u.JsonStorage = "{}"
 		n = 1
 	} else {
 		for i := range *args.Paths {
-			user.JsonStorage, err = sjson.Delete(user.JsonStorage, (*args.Paths)[i])
+			u.JsonStorage, err = sjson.Delete(u.JsonStorage, (*args.Paths)[i])
 			if err != nil {
 				return 0, err
 			}
 		}
 		n = int32(len(*args.Paths))
 	}
-	if err = db.DB(context.TODO()).Model(&user).Update("json_storage", user.JsonStorage).Error; err != nil {
+	if err = db.DB(context.TODO()).Model(&u).Update("json_storage", u.JsonStorage).Error; err != nil {
 		return 0, err
 	}
 	return n, nil
+}
+func (r *MutationResolver) UpdateAvatar(ctx context.Context, args *struct {
+	Avatar *string
+}) (int32, error) {
+	u, err := userFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	q := db.DB(context.TODO()).Model(&u).Update("avatar", args.Avatar)
+	if err = q.Error; err != nil {
+		return 0, err
+	}
+	return int32(q.RowsAffected), nil
+}
+func (r *MutationResolver) UpdateName(ctx context.Context, args *struct {
+	Name *string
+}) (int32, error) {
+	u, err := userFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	q := db.DB(context.TODO()).Model(&u).Update("name", args.Name)
+	if err = q.Error; err != nil {
+		return 0, err
+	}
+	return int32(q.RowsAffected), nil
+}
+func (r *MutationResolver) UpdateUsername(ctx context.Context, args *struct {
+	Username string
+}) (int32, error) {
+	u, err := userFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	q := db.DB(context.TODO()).Model(&u).Update("username", args.Username)
+	if err = q.Error; err != nil {
+		return 0, err
+	}
+	return int32(q.RowsAffected), nil
+}
+func (r *MutationResolver) UpdatePassword(ctx context.Context, args *struct {
+	CurrentPassword string
+	NewPassword     string
+}) (string, error) {
+	u, err := userFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// Check password.
+	hashedPassword, err := hashPassword([]byte(u.JwtSecret), args.CurrentPassword)
+	if err != nil {
+		return "", err
+	}
+	if hashedPassword != u.PasswordHash {
+		return "", fmt.Errorf("incorrect password")
+	}
+
+	// Generate new jwt secret (to log out others) and password hash.
+	hashedPassword, err = hashPassword([]byte(u.JwtSecret), args.NewPassword)
+	if err != nil {
+		return "", err
+	}
+	var sec [32]byte
+	if _, err = io.ReadFull(rand.Reader, sec[:]); err != nil {
+		return "", err
+	}
+	secret := hex.EncodeToString(sec[:])
+	tx := db.BeginTx(ctx)
+	q := tx.Model(u).Updates(db.User{
+		PasswordHash: hashedPassword,
+		JwtSecret:    secret,
+	})
+	if q.Error != nil {
+		return "", q.Error
+	}
+
+	// Return token.
+	return getToken(tx, u.Username, args.NewPassword)
 }
 func (r *MutationResolver) CreateConfig(args *struct {
 	Name   *string

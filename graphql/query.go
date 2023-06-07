@@ -20,6 +20,7 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
+	"github.com/daeuniverse/dae-wing/graphql/service/user"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/golang-jwt/jwt/v5"
@@ -100,33 +101,40 @@ func (r *queryResolver) NumberUsers() (int32, error) {
 	return numberUsers(db.DB(context.TODO()))
 }
 
-func userFromContext(ctx context.Context) (user *db.User, err error) {
+func userFromContext(ctx context.Context) (u *db.User, err error) {
 	_user := ctx.Value("user")
 	if _user == nil {
 		return nil, fmt.Errorf("failed to get user")
 	}
-	user, ok := _user.(*db.User)
+	u, ok := _user.(*db.User)
 	if !ok {
 		return nil, fmt.Errorf("failed to get user")
 	}
-	return user, nil
+	return u, nil
 }
 func (r *queryResolver) JsonStorage(ctx context.Context, args *struct {
 	Paths *[]string
 }) ([]string, error) {
-	user, err := userFromContext(ctx)
+	u, err := userFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if args.Paths == nil {
-		return []string{user.JsonStorage}, nil
+		return []string{u.JsonStorage}, nil
 	}
-	results := gjson.GetMany(user.JsonStorage, *args.Paths...)
+	results := gjson.GetMany(u.JsonStorage, *args.Paths...)
 	var ret []string
 	for _, r := range results {
 		ret = append(ret, r.String())
 	}
 	return ret, nil
+}
+func (r *queryResolver) User(ctx context.Context) (*user.Resolver, error) {
+	u, err := userFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &user.Resolver{User: u}, nil
 }
 
 func (r *queryResolver) General() *general.Resolver {
