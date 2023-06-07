@@ -133,17 +133,70 @@ func (r *MutationResolver) UpdateAvatar(ctx context.Context, args *struct {
 	return int32(q.RowsAffected), nil
 }
 func (r *MutationResolver) UpdateName(ctx context.Context, args *struct {
-    Name *string
+	Name *string
 }) (int32, error) {
-    u, err := userFromContext(ctx)
-    if err != nil {
-        return 0, err
-    }
-    q := db.DB(context.TODO()).Model(&u).Update("name", args.Name)
-    if err = q.Error; err != nil {
-        return 0, err
-    }
-    return int32(q.RowsAffected), nil
+	u, err := userFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	q := db.DB(context.TODO()).Model(&u).Update("name", args.Name)
+	if err = q.Error; err != nil {
+		return 0, err
+	}
+	return int32(q.RowsAffected), nil
+}
+func (r *MutationResolver) UpdateUsername(ctx context.Context, args *struct {
+	Username string
+}) (int32, error) {
+	u, err := userFromContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	q := db.DB(context.TODO()).Model(&u).Update("username", args.Username)
+	if err = q.Error; err != nil {
+		return 0, err
+	}
+	return int32(q.RowsAffected), nil
+}
+func (r *MutationResolver) UpdatePassword(ctx context.Context, args *struct {
+	CurrentPassword string
+	NewPassword     string
+}) (string, error) {
+	u, err := userFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// Check password.
+	hashedPassword, err := hashPassword([]byte(u.JwtSecret), args.CurrentPassword)
+	if err != nil {
+		return "", err
+	}
+	if hashedPassword != u.PasswordHash {
+		return "", fmt.Errorf("incorrect password")
+	}
+
+	// Generate new jwt secret (to log out others) and password hash.
+	hashedPassword, err = hashPassword([]byte(u.JwtSecret), args.NewPassword)
+	if err != nil {
+		return "", err
+	}
+	var sec [32]byte
+	if _, err = io.ReadFull(rand.Reader, sec[:]); err != nil {
+		return "", err
+	}
+	secret := hex.EncodeToString(sec[:])
+	tx := db.BeginTx(ctx)
+	q := tx.Model(u).Updates(db.User{
+		PasswordHash: hashedPassword,
+		JwtSecret:    secret,
+	})
+	if q.Error != nil {
+		return "", q.Error
+	}
+
+	// Return token.
+	return getToken(tx, u.Username, args.NewPassword)
 }
 func (r *MutationResolver) CreateConfig(args *struct {
 	Name   *string
