@@ -85,9 +85,11 @@ func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 		return nil
 	}
 
-	if err = d.Model(&db.Group{}).
-		Joins("inner join group_nodes on groups.system_id = ? and groups.id = group_nodes.group_id and group_nodes.node_id in ?", sys.ID, ids).
-		Update("groups.version", gorm.Expr("groups.version + 1")).Error; err != nil {
+	if err = d.Raw(`update groups
+                set groups.version = groups.version + 1
+                from groups
+                    inner join group_nodes
+                    on groups.system_id = ? and groups.id = group_nodes.group_id and group_nodes.node_id in ?`, sys.ID, ids).Error; err != nil {
 		return err
 	}
 
