@@ -108,9 +108,11 @@ func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 		return nil
 	}
 
-	if err = d.Model(&db.Group{}).
-		Joins("inner join group_subscriptions on groups.system_id = ? and groups.id = group_subscriptions.group_id and group_subscriptions.subscription_id in ?", sys.ID, ids).
-		Update("groups.version", gorm.Expr("groups.version + 1")).Error; err != nil {
+	if err = d.Raw(`update groups
+                set groups.version = groups.version + 1
+                from groups
+                    inner join group_subscriptions
+                    on groups.system_id = ? and groups.id = group_subscriptions.group_id and group_subscriptions.subscription_id in ?`, sys.ID, ids).Error; err != nil {
 		return err
 	}
 
@@ -141,10 +143,10 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 		}
 	}()
 	// Remove those subscription_id of which satisfied and are not independently in any groups.
-	subQuery := tx.Model(&db.Node{}).
-		Where("subscription_id = ?", subId).
-		Select("nodes.id as id").
-		Joins("inner join group_nodes on group_nodes.node_id = nodes.id")
+	subQuery := tx.Raw(`select nodes.id as id
+                from nodes
+                inner join group_nodes on group_nodes.node_id = nodes.id
+                where subscription_id = ?`, subId)
 
 	if err = tx.Where("subscription_id = ?", subId).
 		Where("id not in (?)", subQuery).
