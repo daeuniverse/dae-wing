@@ -5,6 +5,8 @@
 SHELL := /bin/bash
 OUTPUT ?= dae-wing
 
+include functions.mk
+
 # Get version from .git.
 date=$(shell git log -1 --format="%cd" --date=short | sed s/-//g)
 count=$(shell git rev-list --count HEAD)
@@ -15,14 +17,11 @@ else
 	VERSION ?= unstable-$(date).r$(count).$(commit)
 endif
 
-.PHONY: schema-resolver dae-deps deps dae-wing vendor
+.PHONY: schema-resolver dae-deps deps dae-wing vendor bundle
 
 all: dae-wing
 
 deps: schema-resolver dae-deps
-
-dae-wing: deps
-	go build -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/daeuniverse/dae/cmd.Version=$(VERSION)" .
 
 vendor:
 	go mod vendor
@@ -46,3 +45,11 @@ dae-deps: vendor
 
 fmt:
 	go fmt ./...
+
+dae-wing: deps
+	go build -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/daeuniverse/dae/cmd.Version=$(VERSION)" .
+
+bundle:
+	$(call check_defined, WEB_DIST)
+	@[ $$(realpath "$(WEB_DIST)") == $$(realpath "webrender/web") ] || cp -r $(WEB_DIST) webrender/web && \
+	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/daeuniverse/dae/cmd.Version=$(VERSION)" .

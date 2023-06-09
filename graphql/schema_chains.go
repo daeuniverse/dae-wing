@@ -15,7 +15,7 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae-wing/graphql/service/routing"
 	"github.com/daeuniverse/dae-wing/graphql/service/subscription"
-    "github.com/daeuniverse/dae-wing/graphql/service/user"
+	"github.com/daeuniverse/dae-wing/graphql/service/user"
 )
 
 type SchemaChain func() (string, error)
@@ -30,5 +30,5 @@ var schemaChains = []SchemaChain{
 	service.Schema,
 	node.Schema,
 	subscription.Schema,
-    user.Schema,
+	user.Schema,
 }
