@@ -51,5 +51,8 @@ dae-wing: deps
 
 bundle:
 	$(call check_defined, WEB_DIST)
-	@[ $$(realpath "$(WEB_DIST)") == $$(realpath "webrender/web") ] || cp -r $(WEB_DIST) webrender/web && \
+	@if [ $$(realpath "$(WEB_DIST)") != $$(realpath "webrender/web") ]; then \
+		rm -r webrender/web 2>/dev/null; \
+		cp -r $(WEB_DIST) webrender/web; \
+	fi && \
 	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/daeuniverse/dae/cmd.Version=$(VERSION)" .
