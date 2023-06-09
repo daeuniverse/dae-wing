@@ -81,9 +81,6 @@ var (
 				os.Exit(1)
 			}
 			http.Handle("/graphql", auth(cors.AllowAll().Handler(&relay.Handler{Schema: schema})))
-			http.HandleFunc("/*", func(writer http.ResponseWriter, request *http.Request) {
-				writer.WriteHeader(400)
-			})
 
 			go func() {
 				if err = http.ListenAndServe(listen, nil); err != nil {
