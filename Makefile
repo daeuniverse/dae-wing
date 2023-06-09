@@ -4,6 +4,7 @@
 #
 SHELL := /bin/bash
 OUTPUT ?= dae-wing
+DAE_READY = vendor/github.com/daeuniverse/dae/control/headers
 
 include functions.mk
 
@@ -17,14 +18,14 @@ else
 	VERSION ?= unstable-$(date).r$(count).$(commit)
 endif
 
-.PHONY: schema-resolver dae-deps deps dae-wing vendor bundle
+.PHONY: schema-resolver deps dae-wing bundle
 
 all: dae-wing
 
-deps: schema-resolver dae-deps
+deps: schema-resolver $(DAE_READY)
 
-vendor:
-	go mod vendor
+vendor: go.mod go.sum
+	go mod vendor && touch vendor
 
 schema-resolver: vendor
 	unset GOOS && \
@@ -32,16 +33,17 @@ schema-resolver: vendor
 	unset GOARM && \
 	go generate ./...
 
-dae-deps: DAE_VERSION := $(shell grep '\s*github.com/daeuniverse/dae\s*v' go.mod | rev | cut -d' ' -f1 | cut -d- -f1 | rev )
-dae-deps: BUILD_DIR := ./build-dae-ebpf
-dae-deps: vendor
+$(DAE_READY): DAE_VERSION := $(shell grep '\s*github.com/daeuniverse/dae\s*v' go.mod | rev | cut -d' ' -f1 | cut -d- -f1 | rev )
+$(DAE_READY): BUILD_DIR := ./build-dae-ebpf
+$(DAE_READY): vendor
 	git clone --single-branch -- https://github.com/daeuniverse/dae $(BUILD_DIR) && \
 	pushd "$(BUILD_DIR)" && \
 	git checkout $(DAE_VERSION) && git submodule update --init --recursive && \
 	make ebpf && \
 	popd && \
 	cp "$(BUILD_DIR)"/control/bpf_bpf*.{go,o} vendor/github.com/daeuniverse/dae/control/ && \
-	rm -rf "$(BUILD_DIR)"
+	rm -rf "$(BUILD_DIR)" && \
+	touch $@
 
 fmt:
 	go fmt ./...
