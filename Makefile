@@ -49,7 +49,7 @@ fmt:
 dae-wing: deps
 	go build -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/daeuniverse/dae/cmd.Version=$(VERSION)" .
 
-bundle:
+bundle: deps
 	$(call check_defined, WEB_DIST)
 	@if [ $$(realpath "$(WEB_DIST)") != $$(realpath "webrender/web") ]; then \
 		rm -r webrender/web 2>/dev/null; \
