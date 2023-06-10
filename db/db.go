@@ -9,7 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"os"
 	"path/filepath"
