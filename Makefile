@@ -56,7 +56,7 @@ bundle: deps
 	@if [ $$(realpath -m "$(WEB_DIST)") != $$(realpath -m "webrender/web") ]; then \
 		rm -r webrender/web 2>/dev/null; \
 		cp -r $(WEB_DIST) webrender/web; \
-		find webrender/web -type f -size +16k ! -name "*.gz" ! -name "*.woff"  ! -name "*.woff2" -exec $$SHELL -c '\
+		find webrender/web -type f -size +16k ! -name "*.gz" ! -name "*.woff"  ! -name "*.woff2" -exec sh -c '\
 			gzip -9 -k '{}'; \
 			if [ "$$(stat -c %s {})" \< "$$(stat -c %s {}.gz)" ]; then \
 				rm {}.gz; \
