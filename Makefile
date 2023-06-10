@@ -53,7 +53,7 @@ dae-wing: deps
 
 bundle: deps
 	$(call check_defined, WEB_DIST)
-	@if [ $$(realpath "$(WEB_DIST)") != $$(realpath "webrender/web") ]; then \
+	@if [ $$(realpath -m "$(WEB_DIST)") != $$(realpath -m "webrender/web") ]; then \
 		rm -r webrender/web 2>/dev/null; \
 		cp -r $(WEB_DIST) webrender/web; \
 	fi && \
