@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/daeuniverse/dae-wing/cmd/internal"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql"
 	"github.com/daeuniverse/dae-wing/graphql/service/config"
+	"github.com/daeuniverse/dae-wing/webrender"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/rs/cors"
@@ -26,6 +28,18 @@ func init() {
 	runCmd.PersistentFlags().StringVarP(&listen, "listen", "l", "0.0.0.0:2023", "listening address")
 	runCmd.PersistentFlags().BoolVar(&apiOnly, "api-only", false, "run graphql backend without dae")
 	runCmd.PersistentFlags().BoolVarP(&disableTimestamp, "disable-timestamp", "", false, "disable timestamp")
+}
+
+func _errorExit(err error) {
+	// Notify to Close().
+	logrus.Errorf("Exiting: %v", err)
+	dae.ChReloadConfigs <- nil
+	<-dae.GracefullyExit
+}
+
+func errorExit(err error) {
+	_errorExit(err)
+	os.Exit(1)
 }
 
 var (
@@ -75,29 +89,22 @@ var (
 			// ListenAndServe GraphQL.
 			schema, err := graphql.Schema()
 			if err != nil {
-				logrus.Errorf("Exiting: %v", err)
-				dae.ChReloadConfigs <- nil
-				<-dae.GracefullyExit
-				os.Exit(1)
+				errorExit(err)
 			}
-			http.Handle("/graphql", auth(cors.AllowAll().Handler(&relay.Handler{Schema: schema})))
-
+			mux := http.NewServeMux()
+			mux.Handle("/graphql", auth(cors.AllowAll().Handler(&relay.Handler{Schema: schema})))
+			if err = webrender.Handle(mux); err != nil {
+				errorExit(err)
+			}
 			go func() {
-				if err = http.ListenAndServe(listen, nil); err != nil {
-					// Notify to Close().
-					logrus.Errorf("Exiting: %v", err)
-					dae.ChReloadConfigs <- nil
-					<-dae.GracefullyExit
-					os.Exit(1)
+				if err = http.ListenAndServe(listen, mux); err != nil {
+					errorExit(err)
 				}
 			}()
 			sigs := make(chan os.Signal, 1)
 			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGILL)
 			for sig := range sigs {
-				// Notify to Close().
-				logrus.Errorf("Exiting: %v", sig.String())
-				dae.ChReloadConfigs <- nil
-				<-dae.GracefullyExit
+				_errorExit(errors.New(sig.String()))
 				return
 			}
 		},
