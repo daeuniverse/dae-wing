@@ -13,7 +13,6 @@ import (
 	"io/fs"
 	"net/http"
 
-	"github.com/NYTimes/gziphandler"
 	"github.com/vearutop/statigz"
 )
 
@@ -25,6 +24,6 @@ func Handle(mux *http.ServeMux) error {
 	if err != nil {
 		return fmt.Errorf("fs.Sub: %w", err)
 	}
-	mux.Handle("/", gziphandler.GzipHandler(statigz.FileServer(webFS.(fs.ReadDirFS))))
+	mux.Handle("/", statigz.FileServer(webFS.(fs.ReadDirFS)))
 	return nil
 }

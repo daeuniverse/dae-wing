@@ -3,7 +3,6 @@ module github.com/daeuniverse/dae-wing
 go 1.18
 
 require (
-	github.com/NYTimes/gziphandler v1.1.1
 	github.com/daeuniverse/dae v0.0.0-20230609141255-e1d0d8a35a60
 	github.com/glebarez/sqlite v1.8.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
