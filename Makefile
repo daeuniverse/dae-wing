@@ -31,6 +31,7 @@ schema-resolver: vendor
 	unset GOOS && \
 	unset GOARCH && \
 	unset GOARM && \
+	unset CC && \
 	go generate ./...
 
 $(DAE_READY): DAE_VERSION := $(shell grep '\s*github.com/daeuniverse/dae\s*v' go.mod | rev | cut -d' ' -f1 | cut -d- -f1 | rev )
