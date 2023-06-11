@@ -18,7 +18,7 @@ import (
 
 type ReloadMessage struct {
 	Config   *daeConfig.Config
-	Callback chan<- bool
+	Callback chan<- error
 }
 
 var ChReloadConfigs = make(chan *ReloadMessage, 16)
@@ -47,7 +47,7 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 			case nil:
 				break dryLoop
 			default:
-				newConf.Callback <- true
+				newConf.Callback <- nil
 			}
 		}
 		return nil
@@ -75,8 +75,8 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 	}()
 	reloading := false
 	/* dae-wing start */
-	isRollback := false
-	var chCallback chan<- bool
+	var errReload error
+	var chCallback chan<- error
 	/* dae-wing end */
 loop:
 	for newReloadMsg := range ChReloadConfigs {
@@ -99,7 +99,7 @@ loop:
 				<-readyChan
 				log.Warnln("[Reload] Finished")
 				/* dae-wing start */
-				chCallback <- !isRollback
+				chCallback <- errReload
 				/* dae-wing end */
 			} else {
 				// Listening error.
@@ -142,13 +142,13 @@ loop:
 				log.Errorln("[Reload] Last reload failed; rolled back configuration")
 
 				/* dae-wing start */
-				isRollback = true
+				errReload = err
 				/* dae-wing end */
 			} else {
 				log.Warnln("[Reload] Stopped old control plane")
 
 				/* dae-wing start */
-				isRollback = false
+				errReload = nil
 				/* dae-wing end */
 			}
 
