@@ -10,11 +10,13 @@ func Schema() (string, error) {
 type General {
   dae: Dae!
   interfaces(up:Boolean): [Interface!]!
+  schema: String!
 }
 type Dae {
   running: Boolean!
   # modified indicates whether the running config has been modified.
   modified: Boolean!
+  version: String!
 }
 type Interface {
   name: String!
