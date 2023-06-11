@@ -20,7 +20,8 @@ require (
 	golang.org/x/crypto v0.9.0
 	golang.org/x/sys v0.8.0
 	golang.org/x/tools v0.9.3
-	gorm.io/gorm v1.25.1
+	gorm.io/driver/sqlite v1.5.2
+	gorm.io/gorm v1.25.2-0.20230530020048-26663ab9bf55
 )
 
 require (
@@ -48,6 +49,7 @@ require (
 	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-sqlite3 v1.14.17 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
