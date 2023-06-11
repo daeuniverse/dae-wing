@@ -80,6 +80,7 @@ var (
 				); err != nil {
 					logrus.Fatalln("dae.Run:", err)
 				}
+				os.Exit(1)
 			}()
 			// Reload with running state.
 			if err := restoreRunningState(); err != nil {

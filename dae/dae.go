@@ -7,13 +7,14 @@ package dae
 
 import (
 	"fmt"
+	"runtime"
+
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/control"
 	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/daeuniverse/dae/pkg/logger"
 	"github.com/mohae/deepcopy"
 	"github.com/sirupsen/logrus"
-	"runtime"
 )
 
 type ReloadMessage struct {
@@ -82,9 +83,16 @@ loop:
 	for newReloadMsg := range ChReloadConfigs {
 		switch newReloadMsg {
 		case nil:
+			/* dae-wing start */
 			// We will receive nil after control plane being Closed.
 			// We'll judge if we are in a reloading.
+			/* dae-wing end */
+
 			if reloading {
+				if listener == nil {
+					// Failed to listen. Exit.
+					break loop
+				}
 				// Serve.
 				reloading = false
 				log.Warnln("[Reload] Serve")
@@ -126,6 +134,10 @@ loop:
 			log.Warnln("[Reload] Load new control plane")
 			newC, err := newControlPlane(log, obj, dnsCache, newConf, externGeoDataDirs)
 			if err != nil {
+				/* dae-wing start */
+				errReload = err
+				/* dae-wing end */
+
 				log.WithFields(logrus.Fields{
 					"err": err,
 				}).Errorln("[Reload] Failed to reload; try to roll back configuration")
@@ -140,10 +152,6 @@ loop:
 				}
 				newConf = conf
 				log.Errorln("[Reload] Last reload failed; rolled back configuration")
-
-				/* dae-wing start */
-				errReload = err
-				/* dae-wing end */
 			} else {
 				log.Warnln("[Reload] Stopped old control plane")
 

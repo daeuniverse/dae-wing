@@ -9,6 +9,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"sort"
+	"strconv"
+	"strings"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
@@ -18,10 +23,6 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"reflect"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 func Create(ctx context.Context, name string, glob *global.Input) (*Resolver, error) {
@@ -191,14 +192,14 @@ func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err erro
 func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	//// Dry run.
 	if noLoad {
-		ch := make(chan bool)
+		ch := make(chan error)
 		dae.ChReloadConfigs <- &dae.ReloadMessage{
 			Config:   dae.EmptyConfig,
 			Callback: ch,
 		}
-		suc := <-ch
-		if !suc {
-			return 0, fmt.Errorf("failed to dryrun: unexpected failure; see more in log and report bugs")
+		err = <-ch
+		if err != nil {
+			return 0, fmt.Errorf("failed to dryrun: %w; see more in log and report bugs", err)
 		}
 
 		// Running -> false
@@ -364,14 +365,14 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	}
 
 	/// Reload with current config.
-	chReloadCallback := make(chan bool)
+	chReloadCallback := make(chan error)
 	dae.ChReloadConfigs <- &dae.ReloadMessage{
 		Config:   c,
 		Callback: chReloadCallback,
 	}
-	sucReload := <-chReloadCallback
-	if !sucReload {
-		return 0, fmt.Errorf("failed to load new config; see more in log")
+	errReload := <-chReloadCallback
+	if errReload != nil {
+		return 0, fmt.Errorf("failed to load new config: %w; see more in log", errReload)
 	}
 
 	// Save running status
