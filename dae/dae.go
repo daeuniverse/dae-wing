@@ -7,18 +7,19 @@ package dae
 
 import (
 	"fmt"
+	"runtime"
+
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/control"
 	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/daeuniverse/dae/pkg/logger"
 	"github.com/mohae/deepcopy"
 	"github.com/sirupsen/logrus"
-	"runtime"
 )
 
 type ReloadMessage struct {
 	Config   *daeConfig.Config
-	Callback chan<- bool
+	Callback chan<- error
 }
 
 var ChReloadConfigs = make(chan *ReloadMessage, 16)
@@ -47,7 +48,7 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 			case nil:
 				break dryLoop
 			default:
-				newConf.Callback <- true
+				newConf.Callback <- nil
 			}
 		}
 		return nil
@@ -75,16 +76,23 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 	}()
 	reloading := false
 	/* dae-wing start */
-	isRollback := false
-	var chCallback chan<- bool
+	var errReload error
+	var chCallback chan<- error
 	/* dae-wing end */
 loop:
 	for newReloadMsg := range ChReloadConfigs {
 		switch newReloadMsg {
 		case nil:
+			/* dae-wing start */
 			// We will receive nil after control plane being Closed.
 			// We'll judge if we are in a reloading.
+			/* dae-wing end */
+
 			if reloading {
+				if listener == nil {
+					// Failed to listen. Exit.
+					break loop
+				}
 				// Serve.
 				reloading = false
 				log.Warnln("[Reload] Serve")
@@ -99,7 +107,7 @@ loop:
 				<-readyChan
 				log.Warnln("[Reload] Finished")
 				/* dae-wing start */
-				chCallback <- !isRollback
+				chCallback <- errReload
 				/* dae-wing end */
 			} else {
 				// Listening error.
@@ -126,6 +134,10 @@ loop:
 			log.Warnln("[Reload] Load new control plane")
 			newC, err := newControlPlane(log, obj, dnsCache, newConf, externGeoDataDirs)
 			if err != nil {
+				/* dae-wing start */
+				errReload = err
+				/* dae-wing end */
+
 				log.WithFields(logrus.Fields{
 					"err": err,
 				}).Errorln("[Reload] Failed to reload; try to roll back configuration")
@@ -140,15 +152,11 @@ loop:
 				}
 				newConf = conf
 				log.Errorln("[Reload] Last reload failed; rolled back configuration")
-
-				/* dae-wing start */
-				isRollback = true
-				/* dae-wing end */
 			} else {
 				log.Warnln("[Reload] Stopped old control plane")
 
 				/* dae-wing start */
-				isRollback = false
+				errReload = nil
 				/* dae-wing end */
 			}
 
