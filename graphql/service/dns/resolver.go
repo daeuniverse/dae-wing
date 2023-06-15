@@ -6,6 +6,8 @@
 package dns
 
 import (
+	"strings"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
@@ -14,8 +16,6 @@ import (
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/graph-gophers/graphql-go"
-	"reflect"
-	"strings"
 )
 
 type Resolver struct {
@@ -34,6 +34,7 @@ func (r *Resolver) Name() string {
 func (r *Resolver) Dns() *DnsResolver {
 	return &DnsResolver{
 		Dns: r.DaeDns,
+		Raw: r.Model.Dns,
 	}
 }
 
@@ -43,14 +44,11 @@ func (r *Resolver) Selected() bool {
 
 type DnsResolver struct {
 	*daeConfig.Dns
+	Raw string
 }
 
 func (r *DnsResolver) String() (string, error) {
-	marshaller := daeConfig.Marshaller{IndentSpace: 2}
-	if err := marshaller.MarshalSection("dns", reflect.ValueOf(*r.Dns), -1); err != nil {
-		return "", err
-	}
-	section := strings.TrimSpace(string(marshaller.Bytes()))
+	section := r.Raw
 	section = strings.TrimPrefix(section, "dns {")
 	section = strings.TrimSuffix(section, "}")
 	return strings.TrimSpace(section), nil

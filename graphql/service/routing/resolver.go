@@ -6,6 +6,8 @@
 package routing
 
 import (
+	"strings"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
@@ -13,8 +15,6 @@ import (
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/graph-gophers/graphql-go"
-	"reflect"
-	"strings"
 )
 
 type Resolver struct {
@@ -33,6 +33,7 @@ func (r *Resolver) Name() string {
 func (r *Resolver) Routing() *DaeResolver {
 	return &DaeResolver{
 		Routing: r.DaeRouting,
+		Raw:     r.Model.Routing,
 	}
 }
 
@@ -46,14 +47,11 @@ func (r *Resolver) ReferenceGroups() (outbounds []string) {
 
 type DaeResolver struct {
 	*daeConfig.Routing
+	Raw string
 }
 
 func (r *DaeResolver) String() (string, error) {
-	marshaller := daeConfig.Marshaller{IndentSpace: 2}
-	if err := marshaller.MarshalSection("routing", reflect.ValueOf(*r.Routing), -1); err != nil {
-		return "", err
-	}
-	section := strings.TrimSpace(string(marshaller.Bytes()))
+	section := strings.TrimSpace(r.Raw)
 	section = strings.TrimPrefix(section, "routing {")
 	section = strings.TrimSuffix(section, "}")
 	return strings.TrimSpace(section), nil
