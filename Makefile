@@ -3,8 +3,12 @@
 #  Copyright (c) 2023, daeuniverse Organization <team@v2raya.org>
 #
 SHELL := /bin/bash
-OUTPUT ?= dae-wing
+OUTPUT ?= ./dae-wing
+APPNAME ?= dae-wing
+DESCRIPTION ?= $(APPNAME) is a integration solution of dae, API and UI.
+VERSION ?= 0.0.0.unknown
 DAE_READY = vendor/github.com/daeuniverse/dae/control/headers
+LDFLAGS = '-s -w -X github.com/daeuniverse/dae-wing/cmd.Version=$(VERSION) -X github.com/daeuniverse/dae-wing/cmd.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/cmd.Description=$(DESCRIPTION)"'
 
 include functions.mk
 
@@ -37,7 +41,7 @@ schema-resolver: vendor
 $(DAE_READY): DAE_VERSION := $(shell grep '\s*github.com/daeuniverse/dae\s*v' go.mod | rev | cut -d' ' -f1 | cut -d- -f1 | rev )
 $(DAE_READY): BUILD_DIR := ./build-dae-ebpf
 $(DAE_READY): vendor
-	git clone --single-branch -- https://github.com/daeuniverse/dae $(BUILD_DIR) && \
+	git clone -- https://github.com/daeuniverse/dae $(BUILD_DIR) && \
 	pushd "$(BUILD_DIR)" && \
 	git checkout $(DAE_VERSION) && git submodule update --init --recursive && \
 	make ebpf && \
@@ -50,7 +54,7 @@ fmt:
 	go fmt ./...
 
 dae-wing: deps
-	go build -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/daeuniverse/dae/cmd.Version=$(VERSION)" .
+	go build -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
 
 bundle: deps
 	$(call check_defined, WEB_DIST)
@@ -65,4 +69,4 @@ bundle: deps
 				rm {}; \
 			fi' ';' ; \
 	fi && \
-	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags "-s -w -X github.com/daeuniverse/dae/cmd.Version=$(VERSION)" .
+	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
