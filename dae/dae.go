@@ -201,7 +201,7 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*c
 		}
 	}
 	if len(conf.Subscription) > 0 {
-		return nil, fmt.Errorf("daeConfig.subscription is not supported in dae-wing")
+		return nil, fmt.Errorf("daeConfig.subscription is not supported")
 	}
 
 	// New dae control plane.
