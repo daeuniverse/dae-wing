@@ -27,7 +27,7 @@ all: dae-wing
 deps: schema-resolver $(DAE_READY)
 .PHONY: deps
 
-schema-resolver:
+schema-resolver: $(DAE_READY)
 	@unset GOOS && \
 	unset GOARCH && \
 	unset GOARM && \
