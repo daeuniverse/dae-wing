@@ -36,10 +36,11 @@ schema-resolver:
 .PHONY: schema-resolver
 
 DAE_READY = dae-core/control/headers
-$(DAE_READY):
+$(DAE_READY): .gitmodules
 	@git submodule update --init --recursive && \
 	cd dae-core && \
 	make ebpf && \
+	cd ../ && \
 	touch $@
 
 dae-wing: deps
