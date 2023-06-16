@@ -27,6 +27,8 @@ all: dae-wing
 deps: schema-resolver $(DAE_READY)
 .PHONY: deps
 
+DAE_READY = dae-core/control/headers
+
 schema-resolver: $(DAE_READY)
 	@unset GOOS && \
 	unset GOARCH && \
@@ -35,7 +37,6 @@ schema-resolver: $(DAE_READY)
 	go generate ./...
 .PHONY: schema-resolver
 
-DAE_READY = dae-core/control/headers
 $(DAE_READY): .gitmodules
 	@git submodule update --init --recursive dae-core && \
 	cd dae-core && \
