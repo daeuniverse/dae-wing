@@ -28,7 +28,7 @@ deps: schema-resolver $(DAE_READY)
 .PHONY: deps
 
 schema-resolver:
-	unset GOOS && \
+	@unset GOOS && \
 	unset GOARCH && \
 	unset GOARM && \
 	unset CC && \
@@ -37,7 +37,7 @@ schema-resolver:
 
 DAE_READY = dae-core/control/headers
 $(DAE_READY): .gitmodules
-	@git submodule update --init --recursive && \
+	@git submodule update --init --recursive dae-core && \
 	cd dae-core && \
 	make ebpf && \
 	cd ../ && \
