@@ -9,6 +9,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"sort"
+	"strconv"
+	"strings"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
@@ -18,10 +23,6 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"reflect"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 func Create(ctx context.Context, name string, glob *global.Input) (*Resolver, error) {
@@ -132,6 +133,62 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	return int32(q.RowsAffected), nil
 }
 
+type node struct {
+	dbNode     *db.Node
+	groups     []*db.Group
+	uniqueName string
+}
+
+func deduplicateNodes(nodes []*node) []*node {
+	set := make(map[string]*node)
+	for _, node := range nodes {
+		if oldNode, ok := set[node.dbNode.Link]; ok {
+			oldNode.groups = append(oldNode.groups, node.groups...)
+		} else {
+			set[node.dbNode.Link] = node
+		}
+	}
+	ret := make([]*node, 0, len(set))
+	for _, node := range set {
+		ret = append(ret, node)
+	}
+	return ret
+}
+
+func uniquefyNodesName(nodes []*node) {
+	// Uniquefy names of nodes.
+	// Sort nodes by "has node.Tag" because node.Tag is unique but names of others may be the same with them.
+	sort.SliceStable(nodes, func(i, j int) bool {
+		return nodes[i].dbNode.Tag != nil && nodes[j].dbNode.Tag == nil
+	})
+	nameToNodes := make(map[string]*node)
+	for i := range nodes {
+		node := nodes[i]
+		if node.dbNode.Tag != nil {
+			nameToNodes[*node.dbNode.Tag] = node
+		} else {
+			baseName := node.dbNode.Name
+			if node.dbNode.SubscriptionID != nil {
+				baseName = fmt.Sprintf("%v.%v", *node.dbNode.SubscriptionID, baseName)
+			}
+			// SubID.Name
+			wantedName := baseName
+			for j := 0; ; j++ {
+				_, exist := nameToNodes[wantedName]
+				if !exist {
+					nameToNodes[wantedName] = node
+					break
+				}
+				// SubID.Name.1
+				wantedName = fmt.Sprintf("%v.%v", baseName, j)
+			}
+		}
+	}
+	for name, node := range nameToNodes {
+		node.uniqueName = name
+	}
+}
+
 func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	id, err := common.DecodeCursor(_id)
 	if err != nil {
@@ -191,14 +248,14 @@ func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err erro
 func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	//// Dry run.
 	if noLoad {
-		ch := make(chan bool)
+		ch := make(chan error)
 		dae.ChReloadConfigs <- &dae.ReloadMessage{
 			Config:   dae.EmptyConfig,
 			Callback: ch,
 		}
-		suc := <-ch
-		if !suc {
-			return 0, fmt.Errorf("failed to dryrun: unexpected failure; see more in log and report bugs")
+		err = <-ch
+		if err != nil {
+			return 0, fmt.Errorf("failed to dryrun: %w; see more in log and report bugs", err)
 		}
 
 		// Running -> false
@@ -280,51 +337,43 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		}
 	}
 	// Find nodes in groups.
-	var nodes []db.Node
-	var subIds []uint
+	var nodes []*node
 	for _, g := range groups {
-		for _, s := range g.Subscription {
-			nodes = append(nodes, s.Node...)
-			subIds = append(subIds, s.ID)
+		g := g
+		for _, gsub := range g.Subscription {
+			for _, n := range gsub.Node {
+				n := n
+				nodes = append(nodes, &node{
+					dbNode: &n,
+					groups: []*db.Group{&g},
+				})
+			}
+		}
+		var solitaryNodes []db.Node
+		if err = d.Model(g).
+			Association("Node").
+			Find(&solitaryNodes, "subscription_id is null"); err != nil {
+			return 0, err
+		}
+		for _, n := range solitaryNodes {
+			n := n
+			nodes = append(nodes, &node{
+				dbNode: &n,
+				groups: []*db.Group{&g},
+			})
 		}
 	}
-	var separateNodes []db.Node
-	if err = d.Model(groups).
-		Association("Node").
-		Find(&separateNodes, "subscription_id is null"); err != nil {
-		return 0, err
-	}
-	nodes = append(nodes, separateNodes...)
-	// Uniquely name nodes.
-	// Sort nodes by "has node.Tag" because node.Tag is unique but names of others may be the same with them.
-	sort.SliceStable(nodes, func(i, j int) bool {
-		return nodes[i].Tag != nil && nodes[j].Tag == nil
-	})
-	nameToNodes := make(map[string]*db.Node)
-	for i := range nodes {
-		node := &nodes[i]
-		if node.Tag != nil {
-			nameToNodes[*node.Tag] = node
-		} else {
-			baseName := node.Name
-			if node.SubscriptionID != nil {
-				baseName = fmt.Sprintf("%v.%v", *node.SubscriptionID, baseName)
-			}
-			// SubID.Name
-			wantedName := baseName
-			for j := 0; ; j++ {
-				_, exist := nameToNodes[wantedName]
-				if !exist {
-					nameToNodes[wantedName] = node
-					break
-				}
-				// SubID.Name.1
-				wantedName = fmt.Sprintf("%v.%v", baseName, j)
-			}
+	nodes = deduplicateNodes(nodes)
+	uniquefyNodesName(nodes)
+	// Group -> nodes
+	mGroupNode := make(map[*db.Group][]*node)
+	for _, node := range nodes {
+		for _, group := range node.groups {
+			mGroupNode[group] = append(mGroupNode[group], node)
 		}
 	}
 	// Fill in group section.
-	for _, g := range groups {
+	for g, nodes := range mGroupNode {
 		// Parse policy.
 		var policy daeConfig.FunctionListOrString
 		if len(g.PolicyParams) == 0 {
@@ -343,9 +392,9 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		}
 		// Node names to filter.
 		var names []*config_parser.Param
-		for name := range nameToNodes {
+		for _, node := range nodes {
 			names = append(names, &config_parser.Param{
-				Val: name,
+				Val: node.uniqueName,
 			})
 		}
 		c.Group = append(c.Group, daeConfig.Group{
@@ -359,19 +408,19 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		})
 	}
 	// Fill in node section.
-	for name, node := range nameToNodes {
-		c.Node = append(c.Node, daeConfig.KeyableString(fmt.Sprintf("%v:%v", name, node.Link)))
+	for _, node := range nodes {
+		c.Node = append(c.Node, daeConfig.KeyableString(fmt.Sprintf("%v:%v", node.uniqueName, node.dbNode.Link)))
 	}
 
 	/// Reload with current config.
-	chReloadCallback := make(chan bool)
+	chReloadCallback := make(chan error)
 	dae.ChReloadConfigs <- &dae.ReloadMessage{
 		Config:   c,
 		Callback: chReloadCallback,
 	}
-	sucReload := <-chReloadCallback
-	if !sucReload {
-		return 0, fmt.Errorf("failed to load new config; see more in log")
+	errReload := <-chReloadCallback
+	if errReload != nil {
+		return 0, fmt.Errorf("failed to load new config: %w; see more in log", errReload)
 	}
 
 	// Save running status

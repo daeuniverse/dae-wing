@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -26,7 +27,7 @@ import (
 )
 
 func init() {
-	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", "/etc/dae/", "config directory")
+	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", filepath.Join("/etc", AppName), "config directory")
 	runCmd.PersistentFlags().StringVarP(&listen, "listen", "l", "0.0.0.0:2023", "listening address")
 	runCmd.PersistentFlags().BoolVar(&apiOnly, "api-only", false, "run graphql backend without dae")
 	runCmd.PersistentFlags().BoolVarP(&disableTimestamp, "disable-timestamp", "", false, "disable timestamp")
@@ -52,7 +53,7 @@ var (
 
 	runCmd = &cobra.Command{
 		Use:   "run",
-		Short: "Run dae in the foreground",
+		Short: "Run " + AppName + " in the foreground",
 		Run: func(cmd *cobra.Command, args []string) {
 			if cfgDir == "" {
 				logrus.Fatalln("Argument \"--config\" or \"-c\" is required but not provided.")
@@ -82,6 +83,7 @@ var (
 				); err != nil {
 					logrus.Fatalln("dae.Run:", err)
 				}
+				os.Exit(1)
 			}()
 			// Reload with running state.
 			if err := restoreRunningState(); err != nil {

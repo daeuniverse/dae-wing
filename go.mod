@@ -3,7 +3,7 @@ module github.com/daeuniverse/dae-wing
 go 1.18
 
 require (
-	github.com/daeuniverse/dae v0.0.0-20230609141255-e1d0d8a35a60
+	github.com/daeuniverse/dae v0.1.10
 	github.com/glebarez/sqlite v1.8.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230228210639-f05ace9f4a41
@@ -20,7 +20,8 @@ require (
 	golang.org/x/crypto v0.9.0
 	golang.org/x/sys v0.8.0
 	golang.org/x/tools v0.9.3
-	gorm.io/gorm v1.25.1
+	gorm.io/driver/sqlite v1.5.2
+	gorm.io/gorm v1.25.2-0.20230530020048-26663ab9bf55
 )
 
 require (
@@ -48,6 +49,7 @@ require (
 	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-sqlite3 v1.14.17 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -79,4 +81,4 @@ require (
 	modernc.org/sqlite v1.23.0 // indirect
 )
 
-//replace github.com/daeuniverse/dae => /home/mzz/ebpfProjects/ragdoll/foo
+replace github.com/daeuniverse/dae => ./dae-core

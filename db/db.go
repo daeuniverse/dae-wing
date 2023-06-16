@@ -9,10 +9,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/glebarez/sqlite"
-	"gorm.io/gorm"
 	"os"
 	"path/filepath"
+
+	"github.com/daeuniverse/dae-wing/pkg/sqlite"
+	"gorm.io/gorm"
 )
 
 const (

@@ -8,6 +8,8 @@ package dns
 import (
 	"context"
 	"fmt"
+	"reflect"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
@@ -16,7 +18,6 @@ import (
 	"github.com/graph-gophers/graphql-go"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"reflect"
 )
 
 func Create(ctx context.Context, name string, dns string) (*Resolver, error) {
@@ -59,20 +60,19 @@ func Update(ctx context.Context, _id graphql.ID, dns string) (*Resolver, error) 
 		return nil, err
 	}
 	// Prepare to partially update.
-	// Convert dns string in database to daeConfig.Dns.
+	m.Dns = "dns {\n" + dns + "\n}"
+	// Marshal back to string to check the grammar.
 	c, err := dae.ParseConfig(nil, &m.Dns, nil)
 	if err != nil {
 		return nil, fmt.Errorf("bad current dns: %w", err)
 	}
-	m.Dns = "dns {\n" + dns + "\n}"
-	// Marshal back to string.
 	marshaller := daeConfig.Marshaller{IndentSpace: 2}
 	if err = marshaller.MarshalSection("dns", reflect.ValueOf(c.Dns), 0); err != nil {
 		return nil, err
 	}
 	// Update.
 	if err = tx.Model(&db.Dns{ID: id}).Updates(map[string]interface{}{
-		"dns":     string(marshaller.Bytes()),
+		"dns":     m.Dns,
 		"version": gorm.Expr("version + 1"),
 	}).Error; err != nil {
 		return nil, err
