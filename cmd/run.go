@@ -17,6 +17,7 @@ import (
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql"
 	"github.com/daeuniverse/dae-wing/graphql/service/config"
+	"github.com/daeuniverse/dae-wing/graphql/service/general"
 	"github.com/daeuniverse/dae-wing/webrender"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go/relay"
@@ -88,6 +89,9 @@ var (
 			if err := restoreRunningState(); err != nil {
 				logrus.Warnln("Failed to restore last running state:", err)
 			}
+
+			// Set Version to graphql.
+			general.Version = Version
 
 			// ListenAndServe GraphQL.
 			schema, err := graphql.Schema()

@@ -7,11 +7,13 @@ package general
 
 import (
 	"context"
+
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 )
 
 type Resolver struct {
+	GraphqlSchema string
 }
 
 func (r *Resolver) Dae() *DaeResolver {
@@ -35,4 +37,8 @@ func (r *Resolver) Interfaces(args *struct {
 		rs = append(rs, &InterfaceResolver{Link: link})
 	}
 	return rs, nil
+}
+
+func (r *Resolver) Schema() string {
+	return r.GraphqlSchema
 }
