@@ -7,7 +7,6 @@ OUTPUT ?= ./dae-wing
 APPNAME ?= dae-wing
 DESCRIPTION ?= $(APPNAME) is a integration solution of dae, API and UI.
 VERSION ?= 0.0.0.unknown
-DAE_READY = vendor/github.com/daeuniverse/dae/control/headers
 LDFLAGS = '-s -w -X github.com/daeuniverse/dae-wing/cmd.Version=$(VERSION) -X github.com/daeuniverse/dae-wing/cmd.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/cmd.Description=$(DESCRIPTION)"'
 
 include functions.mk
@@ -22,39 +21,30 @@ else
 	VERSION ?= unstable-$(date).r$(count).$(commit)
 endif
 
-.PHONY: schema-resolver deps dae-wing bundle
-
 all: dae-wing
+.PHONY: all
 
 deps: schema-resolver $(DAE_READY)
+.PHONY: deps
 
-vendor: go.mod go.sum
-	go mod vendor && touch vendor
-
-schema-resolver: vendor
+schema-resolver:
 	unset GOOS && \
 	unset GOARCH && \
 	unset GOARM && \
 	unset CC && \
 	go generate ./...
+.PHONY: schema-resolver
 
-$(DAE_READY): DAE_VERSION := $(shell grep '\s*github.com/daeuniverse/dae\s*v' go.mod | rev | cut -d' ' -f1 | cut -d- -f1 | rev )
-$(DAE_READY): BUILD_DIR := ./build-dae-ebpf
-$(DAE_READY): vendor
-	git clone -- https://github.com/daeuniverse/dae $(BUILD_DIR) && \
-	pushd "$(BUILD_DIR)" && \
-	git checkout $(DAE_VERSION) && git submodule update --init --recursive && \
+DAE_READY = dae-core/control/headers
+$(DAE_READY):
+	@git submodule update --init --recursive && \
+	cd dae-core && \
 	make ebpf && \
-	popd && \
-	cp "$(BUILD_DIR)"/control/bpf_bpf*.{go,o} vendor/github.com/daeuniverse/dae/control/ && \
-	rm -rf "$(BUILD_DIR)" && \
 	touch $@
-
-fmt:
-	go fmt ./...
 
 dae-wing: deps
 	go build -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
+.PHONY: dae-wing
 
 bundle: deps
 	$(call check_defined, WEB_DIST)
@@ -70,3 +60,8 @@ bundle: deps
 			fi' ';' ; \
 	fi && \
 	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
+.PHONY: bundle
+
+fmt:
+	go fmt ./...
+.PHONY: fmt
