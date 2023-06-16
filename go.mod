@@ -3,7 +3,7 @@ module github.com/daeuniverse/dae-wing
 go 1.18
 
 require (
-	github.com/daeuniverse/dae v0.0.0-20230615153957-b36b56ce6d5b
+	github.com/daeuniverse/dae v0.1.10
 	github.com/glebarez/sqlite v1.8.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230228210639-f05ace9f4a41
@@ -81,4 +81,4 @@ require (
 	modernc.org/sqlite v1.23.0 // indirect
 )
 
-//replace github.com/daeuniverse/dae => /home/mzz/ebpfProjects/ragdoll/foo
+replace github.com/daeuniverse/dae => ./dae-core
