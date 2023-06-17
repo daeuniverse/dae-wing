@@ -7,6 +7,7 @@ generated_*.go
 schema.graphql
 outline.json
 dae-wing
+go-mod
 
 # Database files
 *.db

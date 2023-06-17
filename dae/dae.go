@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"runtime"
 
+	daeCommon "github.com/daeuniverse/dae/common"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/control"
 	"github.com/daeuniverse/dae/pkg/config_parser"
@@ -182,6 +183,24 @@ loop:
 	return nil
 }
 
+func preprocessWanInterfaceAuto(params *daeConfig.Config) error {
+	// preprocess "auto".
+	ifs := make([]string, 0, len(params.Global.WanInterface)+2)
+	for _, ifname := range params.Global.WanInterface {
+		if ifname == "auto" {
+			defaultIfs, err := daeCommon.GetDefaultIfnames()
+			if err != nil {
+				return fmt.Errorf("failed to convert 'auto': %w", err)
+			}
+			ifs = append(ifs, defaultIfs...)
+		} else {
+			ifs = append(ifs, ifname)
+		}
+	}
+	params.Global.WanInterface = daeCommon.Deduplicate(ifs)
+	return nil
+}
+
 func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*control.DnsCache, conf *daeConfig.Config, externGeoDataDirs []string) (c *control.ControlPlane, err error) {
 
 	// Print configuration.
@@ -202,6 +221,10 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*c
 	}
 	if len(conf.Subscription) > 0 {
 		return nil, fmt.Errorf("daeConfig.subscription is not supported")
+	}
+
+	if err = preprocessWanInterfaceAuto(conf); err != nil {
+		return nil, err
 	}
 
 	// New dae control plane.
