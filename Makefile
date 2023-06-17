@@ -27,10 +27,10 @@ endif
 all: dae-wing
 .PHONY: all
 
-deps: schema-resolver $(DAE_READY)
+deps: schema-resolver
 .PHONY: deps
 
-DAE_READY = dae-core/control/headers
+DAE_READY = dae-core/control/kern/bpf_bpfeb.o
 
 schema-resolver: $(DAE_READY)
 	@unset GOOS && \
@@ -40,12 +40,12 @@ schema-resolver: $(DAE_READY)
 	go generate ./...
 .PHONY: schema-resolver
 
-$(DAE_READY): .gitmodules
-	@git submodule update --init --recursive dae-core && \
+dae-core: .gitmodules
+	@git submodule update --init --recursive dae-core
+
+$(DAE_READY): dae-core
 	cd dae-core && \
-	make ebpf && \
-	cd ../ && \
-	touch $@
+	make ebpf
 
 dae-wing: deps
 	go build -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
