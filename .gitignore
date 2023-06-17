@@ -13,6 +13,7 @@ dae-wing
 
 # vendor
 vendor/
+go-mod/
 
 # build
 build-dae-ebpf/

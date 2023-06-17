@@ -21,6 +21,9 @@ else
 	VERSION ?= unstable-$(date).r$(count).$(commit)
 endif
 
+# Do NOT remove the line below. This line is for CI.
+#export GOMODCACHE=$(PWD)/go-mod
+
 all: dae-wing
 .PHONY: all
 
