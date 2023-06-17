@@ -7,6 +7,7 @@ generated_*.go
 schema.graphql
 outline.json
 dae-wing
+daed
 
 # Database files
 *.db
@@ -14,6 +15,3 @@ dae-wing
 # vendor
 vendor/
 go-mod/
-
-# build
-build-dae-ebpf/
