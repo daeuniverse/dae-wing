@@ -10,6 +10,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"time"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
@@ -28,8 +31,6 @@ import (
 	"github.com/tidwall/gjson"
 	"golang.org/x/crypto/sha3"
 	"gorm.io/gorm"
-	"io"
-	"time"
 )
 
 type queryResolver struct{}
@@ -137,8 +138,14 @@ func (r *queryResolver) User(ctx context.Context) (*user.Resolver, error) {
 	return &user.Resolver{User: u}, nil
 }
 
-func (r *queryResolver) General() *general.Resolver {
-	return &general.Resolver{}
+func (r *queryResolver) General() (*general.Resolver, error) {
+	schema, err := SchemaString()
+	if err != nil {
+		return nil, err
+	}
+	return &general.Resolver{
+		GraphqlSchema: schema,
+	}, nil
 }
 func (r *queryResolver) Configs(args *struct {
 	ID       *graphql.ID

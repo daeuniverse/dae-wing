@@ -7,10 +7,15 @@ package general
 
 import (
 	"context"
-	"github.com/daeuniverse/dae-wing/db"
-	"gorm.io/gorm/clause"
 	"strconv"
 	"strings"
+
+	"github.com/daeuniverse/dae-wing/db"
+	"gorm.io/gorm/clause"
+)
+
+var (
+	Version string
 )
 
 type DaeResolver struct {
@@ -52,4 +57,8 @@ func (r *DaeResolver) Modified() (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func (r *DaeResolver) Version() string {
+	return Version
 }
