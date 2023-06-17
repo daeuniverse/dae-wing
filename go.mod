@@ -54,7 +54,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mzz2017/disk-bloom v1.0.1 // indirect
-	github.com/mzz2017/softwind v0.0.0-20230604132739-86b8bb994aff // indirect
+	github.com/mzz2017/softwind v0.0.0-20230617041556-c341d431c575 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/refraction-networking/utls v1.3.2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
