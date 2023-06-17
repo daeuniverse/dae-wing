@@ -8,10 +8,15 @@
 package webrender
 
 import (
+	"compress/gzip"
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
+	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/vearutop/statigz"
 )
@@ -24,6 +29,49 @@ func Handle(mux *http.ServeMux) error {
 	if err != nil {
 		return fmt.Errorf("fs.Sub: %w", err)
 	}
-	mux.Handle("/", statigz.FileServer(webFS.(fs.ReadDirFS)))
+	mux.Handle("/", statigz.FileServer(webFS.(fs.ReadDirFS), statigz.OnNotFound(func(rw http.ResponseWriter, req *http.Request) {
+		// Fallback to index.html.
+		indexHtml, err := webFS.Open("index.html")
+		indexHtmlGziped := false
+		var r io.Reader
+		if err != nil {
+			if os.IsNotExist(err) {
+				indexHtml, err = webFS.Open("index.html.gz")
+				if err != nil {
+					goto errNoIndexHtml
+				}
+				indexHtmlGziped = true
+			} else {
+				goto errNoIndexHtml
+			}
+		}
+		defer indexHtml.Close()
+		r = indexHtml
+		if indexHtmlGziped {
+			acceptGzip := false
+			for _, e := range strings.Split(req.Header.Get("Accept-Encoding"), ",") {
+				if strings.TrimSpace(e) == "gzip" {
+					acceptGzip = true
+					break
+				}
+			}
+			if acceptGzip {
+				rw.Header().Set("Content-Encoding", "gzip")
+			} else {
+				var err error
+				r, err = gzip.NewReader(indexHtml)
+				if err != nil {
+					rw.WriteHeader(400)
+					return
+				}
+			}
+		}
+		_, _ = io.Copy(rw, r)
+		return
+	errNoIndexHtml:
+		rw.WriteHeader(404)
+		return
+
+	})))
 	return nil
 }
