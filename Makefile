@@ -24,34 +24,47 @@ endif
 # Do NOT remove the line below. This line is for CI.
 #export GOMODCACHE=$(PWD)/go-mod
 
+SCHEMA_INPUT = graphql/service/config/global/generated_input.go
+SCHEMA_RESOLVER = graphql/service/config/global/generated_resolver.go
+SCHEMA_READY = $(SCHEMA_INPUT) $(SCHEMA_RESOLVER)
+DAE_BPFEB = dae-core/control/bpf_bpfeb.o
+DAE_BPFEL = dae-core/control/bpf_bpfel.o
+DAE_READY = $(DAE_BPFEB) $(DAE_BPFEL)
+DEPS = $(SCHEMA_READY) $(DAE_READY)
+
 all: dae-wing
 .PHONY: all
 
-deps: schema-resolver
+clean:
+	rm -f $(DEPS)
+
+deps: $(DEPS)
 .PHONY: deps
 
-DAE_READY = dae-core/control/kern/bpf_bpfeb.o
-
-schema-resolver: $(DAE_READY)
+$(SCHEMA_INPUT): $(SCHEMA_RESOLVER)
+$(SCHEMA_RESOLVER):
 	@unset GOOS && \
 	unset GOARCH && \
 	unset GOARM && \
 	unset CC && \
 	go generate ./...
+
+schema-resolver: $(SCHEMA_RESOLVER)
 .PHONY: schema-resolver
 
 dae-core: .gitmodules
 	@git submodule update --init --recursive dae-core
 
-$(DAE_READY): dae-core
+$(DAE_BPFEL): $(DAE_BPFEB)
+$(DAE_BPFEB): dae-core
 	cd dae-core && \
-	make ebpf
+	$(MAKE) ebpf
 
-dae-wing: deps
+dae-wing: $(DEPS)
 	go build -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
 .PHONY: dae-wing
 
-bundle: deps
+bundle: $(DEPS)
 	$(call check_defined, WEB_DIST)
 	@if [ $$(realpath -m "$(WEB_DIST)") != $$(realpath -m "webrender/web") ]; then \
 		rm -r webrender/web 2>/dev/null; \
