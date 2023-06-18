@@ -30,7 +30,8 @@ all: dae-wing
 deps: schema-resolver $(DAE_READY)
 .PHONY: deps
 
-DAE_READY = dae-core/control/kern/headers
+DAE_READY = dae-core/control/bpf_bpfeb.o
+DAE_EBPF_SRC = dae-core/control/kern/tproxy.c
 
 schema-resolver: $(DAE_READY)
 	@unset GOOS && \
@@ -40,7 +41,7 @@ schema-resolver: $(DAE_READY)
 	go generate ./...
 .PHONY: schema-resolver
 
-$(DAE_READY): .gitmodules
+$(DAE_READY): .gitmodules $(DAE_EBPF_SRC)
 	@git submodule update --init --recursive dae-core && \
 	cd dae-core && \
 	make ebpf && \

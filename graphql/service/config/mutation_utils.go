@@ -117,20 +117,6 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if q.Error != nil {
 		return 0, q.Error
 	}
-	// Check if the config to delete is selected.
-	if q.RowsAffected > 0 && m.Selected {
-		// Check if dae is running.
-		var sys db.System
-		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-			return 0, err
-		}
-		if sys.Running {
-			// Stop running with dry-run.
-			if _, err = Run(tx, true); err != nil {
-				return 0, err
-			}
-		}
-	}
 	return int32(q.RowsAffected), nil
 }
 
@@ -208,7 +194,6 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if err = q.Error; err != nil {
 		return 0, err
 	}
-	isReplace := q.RowsAffected > 0
 	// Set selected.
 	q = tx.Model(&db.Config{ID: id}).Update("selected", true)
 	if err = q.Error; err != nil {
@@ -216,19 +201,6 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	}
 	if q.RowsAffected == 0 {
 		return 0, fmt.Errorf("no such config")
-	}
-	if isReplace {
-		// Check if dae is running.
-		var sys db.System
-		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-			return 0, err
-		}
-		if sys.Running {
-			// Run with new config.
-			if _, err = Run(tx, false); err != nil {
-				return 0, err
-			}
-		}
 	}
 	return 1, nil
 }
@@ -345,19 +317,18 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	}
 	// Find nodes in groups.
 	var nodes []*node
-	for _, g := range groups {
-		g := g
-		for _, gsub := range g.Subscription {
+	for i := range groups {
+		for _, gsub := range groups[i].Subscription {
 			for _, n := range gsub.Node {
 				n := n
 				nodes = append(nodes, &node{
 					dbNode: &n,
-					groups: []*db.Group{&g},
+					groups: []*db.Group{&groups[i]},
 				})
 			}
 		}
 		var solitaryNodes []db.Node
-		if err = d.Model(g).
+		if err = d.Model(groups[i]).
 			Association("Node").
 			Find(&solitaryNodes); err != nil {
 			return 0, err
@@ -366,7 +337,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 			n := n
 			nodes = append(nodes, &node{
 				dbNode: &n,
-				groups: []*db.Group{&g},
+				groups: []*db.Group{&groups[i]},
 			})
 		}
 	}
@@ -377,6 +348,11 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	for _, node := range nodes {
 		for _, group := range node.groups {
 			mGroupNode[group] = append(mGroupNode[group], node)
+		}
+	}
+	for i := range groups {
+		if _, ok := mGroupNode[&groups[i]]; !ok {
+			mGroupNode[&groups[i]] = nil
 		}
 	}
 	// Fill in group section.
