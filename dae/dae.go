@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"runtime"
 
-	daeCommon "github.com/daeuniverse/dae/common"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/control"
 	"github.com/daeuniverse/dae/pkg/config_parser"
@@ -180,24 +179,6 @@ loop:
 	if e := c.Close(); e != nil {
 		return fmt.Errorf("close control plane: %w", e)
 	}
-	return nil
-}
-
-func preprocessWanInterfaceAuto(params *daeConfig.Config) error {
-	// preprocess "auto".
-	ifs := make([]string, 0, len(params.Global.WanInterface)+2)
-	for _, ifname := range params.Global.WanInterface {
-		if ifname == "auto" {
-			defaultIfs, err := daeCommon.GetDefaultIfnames()
-			if err != nil {
-				return fmt.Errorf("failed to convert 'auto': %w", err)
-			}
-			ifs = append(ifs, defaultIfs...)
-		} else {
-			ifs = append(ifs, ifname)
-		}
-	}
-	params.Global.WanInterface = daeCommon.Deduplicate(ifs)
 	return nil
 }
 
