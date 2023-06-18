@@ -352,7 +352,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		var solitaryNodes []db.Node
 		if err = d.Model(g).
 			Association("Node").
-			Find(&solitaryNodes, "subscription_id is null"); err != nil {
+			Find(&solitaryNodes); err != nil {
 			return 0, err
 		}
 		for _, n := range solitaryNodes {
