@@ -1,8 +1,8 @@
 package db
 
 var (
-	AppVersion     = ""
-	AppName        = ""
+	AppVersion     = "0.0.0.unknown"
+	AppName        = "dae-wing"
 	AppDescription = ""
 )
 
