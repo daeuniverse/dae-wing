@@ -13,7 +13,6 @@ import (
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
-	"github.com/daeuniverse/dae-wing/graphql/service/config"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/graph-gophers/graphql-go"
 	"gorm.io/gorm"
@@ -103,20 +102,6 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if q.Error != nil {
 		return 0, q.Error
 	}
-	// Check if the config to delete is selected.
-	if q.RowsAffected > 0 && m.Selected {
-		// Check if dae is running.
-		var sys db.System
-		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-			return 0, err
-		}
-		if sys.Running {
-			// Stop running with dry-run.
-			if _, err = config.Run(tx, true); err != nil {
-				return 0, err
-			}
-		}
-	}
 	return int32(q.RowsAffected), nil
 }
 
@@ -138,7 +123,6 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if err = q.Error; err != nil {
 		return 0, err
 	}
-	isReplace := q.RowsAffected > 0
 	// Set selected.
 	q = tx.Model(&db.Routing{ID: id}).Update("selected", true)
 	if err = q.Error; err != nil {
@@ -146,19 +130,6 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	}
 	if q.RowsAffected == 0 {
 		return 0, fmt.Errorf("no such config")
-	}
-	if isReplace {
-		// Check if dae is running.
-		var sys db.System
-		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-			return 0, err
-		}
-		if sys.Running {
-			// Run with new config.
-			if _, err = config.Run(tx, false); err != nil {
-				return 0, err
-			}
-		}
 	}
 	return 1, nil
 }
