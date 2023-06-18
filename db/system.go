@@ -19,6 +19,6 @@ type System struct {
 	RunningDnsID     *uint
 	RunningDns       *Dns
 	RunningRoutingID *uint
-	RunningRouting   *Config
+	RunningRouting   *Routing
 	RunningGroups    []Group
 }

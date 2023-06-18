@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
@@ -245,7 +246,13 @@ func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err erro
 	return int32(q.RowsAffected), nil
 }
 
+var runLock sync.Mutex
+
 func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
+	if ok := runLock.TryLock(); !ok {
+		return 0, fmt.Errorf("the last request didn't complete; make a cup of tea and take a break")
+	}
+	defer runLock.Unlock()
 	//// Dry run.
 	if noLoad {
 		ch := make(chan error)
@@ -352,7 +359,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		var solitaryNodes []db.Node
 		if err = d.Model(g).
 			Association("Node").
-			Find(&solitaryNodes, "subscription_id is null"); err != nil {
+			Find(&solitaryNodes); err != nil {
 			return 0, err
 		}
 		for _, n := range solitaryNodes {
