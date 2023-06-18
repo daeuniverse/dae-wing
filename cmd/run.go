@@ -17,7 +17,6 @@ import (
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql"
 	"github.com/daeuniverse/dae-wing/graphql/service/config"
-	"github.com/daeuniverse/dae-wing/graphql/service/general"
 	"github.com/daeuniverse/dae-wing/webrender"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go/relay"
@@ -27,7 +26,7 @@ import (
 )
 
 func init() {
-	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", filepath.Join("/etc", AppName), "config directory")
+	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", filepath.Join("/etc", db.AppName), "config directory")
 	runCmd.PersistentFlags().StringVarP(&listen, "listen", "l", "0.0.0.0:2023", "listening address")
 	runCmd.PersistentFlags().BoolVar(&apiOnly, "api-only", false, "run graphql backend without dae")
 	runCmd.PersistentFlags().BoolVarP(&disableTimestamp, "disable-timestamp", "", false, "disable timestamp")
@@ -53,7 +52,7 @@ var (
 
 	runCmd = &cobra.Command{
 		Use:   "run",
-		Short: "Run " + AppName + " in the foreground",
+		Short: "Run " + db.AppName + " in the foreground",
 		Run: func(cmd *cobra.Command, args []string) {
 			if cfgDir == "" {
 				logrus.Fatalln("Argument \"--config\" or \"-c\" is required but not provided.")
@@ -89,9 +88,6 @@ var (
 			if err := restoreRunningState(); err != nil {
 				logrus.Warnln("Failed to restore last running state:", err)
 			}
-
-			// Set Version to graphql.
-			general.Version = Version
 
 			// ListenAndServe GraphQL.
 			schema, err := graphql.Schema()

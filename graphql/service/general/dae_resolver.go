@@ -13,10 +13,6 @@ import (
 	"github.com/daeuniverse/dae-wing/db"
 )
 
-var (
-	Version string
-)
-
 type DaeResolver struct {
 	Ctx context.Context
 }
@@ -75,5 +71,5 @@ func (r *DaeResolver) Modified() (bool, error) {
 }
 
 func (r *DaeResolver) Version() string {
-	return Version
+	return db.AppVersion
 }

@@ -7,6 +7,11 @@ package subscription
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
@@ -16,9 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"io"
-	"net/http"
-	"time"
 )
 
 type ImportResult struct {
@@ -34,7 +36,15 @@ func fetchLinks(subscriptionLink string) (links []string, err error) {
 		b    []byte
 		resp *http.Response
 	)
-	resp, err = http.Get(subscriptionLink)
+	c := http.Client{
+		Timeout: 10 * time.Second,
+	}
+	req, err := http.NewRequest("GET", subscriptionLink, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("%v/%v (like v2rayA/1.0 WebRequestHelper) (like v2rayN/1.0 WebRequestHelper)", db.AppName, db.AppVersion))
+	resp, err = c.Do(req)
 	if err != nil {
 		return nil, err
 	}
