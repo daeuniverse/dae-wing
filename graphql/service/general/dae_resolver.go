@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/daeuniverse/dae-wing/db"
-	"gorm.io/gorm/clause"
 )
 
 var (
@@ -36,7 +35,7 @@ func (r *DaeResolver) Modified() (bool, error) {
 	tx := db.BeginReadOnlyTx(r.Ctx)
 	defer tx.Commit()
 	q := tx.Model(&m).
-		Preload(clause.Associations).
+		Preload("RunningGroups").
 		FirstOrCreate(&m)
 	if q.Error != nil {
 		return false, q.Error
@@ -44,9 +43,25 @@ func (r *DaeResolver) Modified() (bool, error) {
 	if !m.Running {
 		return false, nil
 	}
-	if m.RunningConfig == nil || m.RunningConfig.Version != m.RunningConfigVersion ||
-		m.RunningDns == nil || m.RunningDns.Version != m.RunningDnsVersion ||
-		m.RunningRouting == nil || m.RunningRouting.Version != m.RunningRoutingVersion ||
+	var selectedConfig db.Config
+	if q = tx.Model(&db.Config{}).Where("selected = ?", true).First(&selectedConfig); q.Error != nil || q.RowsAffected == 0 {
+		// No selected config. Maybe the running config was deleted.
+		return true, q.Error
+	}
+	var selectedDns db.Dns
+	if q = tx.Model(&db.Dns{}).Where("selected = ?", true).First(&selectedDns); q.Error != nil || q.RowsAffected == 0 {
+		// No selected dns. Maybe the running dns was deleted.
+		return true, q.Error
+	}
+	var selectedRouting db.Routing
+	if q = tx.Model(&db.Routing{}).Where("selected = ?", true).First(&selectedRouting); q.Error != nil || q.RowsAffected == 0 {
+		// No selected routing. Maybe the running routing was deleted.
+		return true, q.Error
+	}
+
+	if selectedConfig.ID != *m.RunningConfigID || selectedConfig.Version != m.RunningConfigVersion ||
+		selectedDns.ID != *m.RunningDnsID || selectedDns.Version != m.RunningDnsVersion ||
+		selectedRouting.ID != *m.RunningRoutingID || selectedRouting.Version != m.RunningRoutingVersion ||
 		len(m.RunningGroups) == 0 {
 		return true, nil
 	}
