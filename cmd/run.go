@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/daeuniverse/dae-wing/cmd/internal"
+	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql"
@@ -100,6 +102,19 @@ var (
 				errorExit(err)
 			}
 			go func() {
+				host, port, _ := net.SplitHostPort(listen)
+				if host == "0.0.0.0" || host == "::" {
+					addrs, err := common.GetIfAddrs()
+					if err == nil {
+						for _, addr := range addrs {
+							addr = net.JoinHostPort(addr, port)
+							logrus.Printf("Listen on http://%v", addr)
+						}
+						goto listenAndServe
+					}
+				}
+				logrus.Printf("Listen on %v", listen)
+			listenAndServe:
 				if err = http.ListenAndServe(listen, mux); err != nil {
 					errorExit(err)
 				}

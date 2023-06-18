@@ -10,9 +10,13 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/graph-gophers/graphql-go"
 	"strconv"
 	"strings"
+
+	daeCommon "github.com/daeuniverse/dae/common"
+	"github.com/graph-gophers/graphql-go"
+	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
 )
 
 func PasswordToHash32(entropy []byte, password string) string {
@@ -59,4 +63,34 @@ func DecodeCursorBatch(_ids []graphql.ID) (ids []uint, err error) {
 		ids = append(ids, id)
 	}
 	return ids, nil
+}
+
+func GetIfAddrs() (globalIfAddrs []string, err error) {
+	linkList, err := netlink.LinkList()
+	if err != nil {
+		return nil, err
+	}
+	for _, family := range []int{unix.AF_INET, unix.AF_INET6} {
+		for _, link := range linkList {
+			if link.Attrs().Flags&unix.RTF_UP != unix.RTF_UP {
+				// Interface is down.
+				continue
+			}
+			addrs, err := netlink.AddrList(link, family)
+			if err != nil {
+				continue
+			}
+			for _, addr := range addrs {
+				if addr.IP == nil ||
+					addr.IP.IsUnspecified() ||
+					addr.IP.IsInterfaceLocalMulticast() ||
+					addr.IP.IsMulticast() ||
+					addr.IP.IsLinkLocalMulticast() {
+					continue
+				}
+				globalIfAddrs = append(globalIfAddrs, addr.IP.String())
+			}
+		}
+	}
+	return daeCommon.Deduplicate(globalIfAddrs), nil
 }
