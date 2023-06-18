@@ -1,19 +1,17 @@
 package cmd
 
 import (
-	"github.com/daeuniverse/dae/common/consts"
+	"github.com/daeuniverse/dae-wing/db"
+	daeConsts "github.com/daeuniverse/dae/common/consts"
 	"github.com/spf13/cobra"
 )
 
 var (
-	Version     = "unknown"
-	AppName     = "dae-wing"
-	Description = ""
-	rootCmd     = &cobra.Command{
-		Use:     AppName + " [flags] [command [argument ...]]",
-		Short:   Description,
-		Long:    Description,
-		Version: Version,
+	rootCmd = &cobra.Command{
+		Use:     db.AppName + " [flags] [command [argument ...]]",
+		Short:   db.AppDescription,
+		Long:    db.AppDescription,
+		Version: db.AppVersion,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
 		},
@@ -26,10 +24,7 @@ func Execute() error {
 }
 
 func init() {
-	consts.AppName = AppName
-	if Description == "" {
-		Description = AppName + " is a integration solution of dae, API and UI."
-	}
+	daeConsts.AppName = db.AppName
 
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(exportCmd)

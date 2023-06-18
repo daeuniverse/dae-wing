@@ -7,12 +7,14 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/daeuniverse/dae-wing/dae"
+	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql"
 	daeConfig "github.com/daeuniverse/dae/config"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var (
@@ -37,14 +39,14 @@ var (
 	exportOutlineCmd = &cobra.Command{
 		Use: "outline",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(daeConfig.ExportOutlineJson(Version))
+			fmt.Println(daeConfig.ExportOutlineJson(db.AppVersion))
 		},
 	}
 	exportFlatDescCmd = &cobra.Command{
 		Use: "flatdesc",
 		Run: func(cmd *cobra.Command, args []string) {
 			b, _ := jsoniter.MarshalIndent(map[string]interface{}{
-				"Version": Version,
+				"Version": db.AppVersion,
 				"Desc":    dae.ExportFlatDesc(),
 			}, "", "  ")
 			fmt.Println(string(b))
