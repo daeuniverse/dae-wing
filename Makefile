@@ -30,7 +30,7 @@ all: dae-wing
 deps: schema-resolver $(DAE_READY)
 .PHONY: deps
 
-DAE_READY = dae-core/control/headers
+DAE_READY = dae-core/control/kern/headers
 
 schema-resolver: $(DAE_READY)
 	@unset GOOS && \
