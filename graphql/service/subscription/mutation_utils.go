@@ -105,7 +105,14 @@ func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (
 	if err != nil {
 		return nil, err
 	}
-	if len(result) == 0 {
+	hasAnyCandidate := false
+	for _, r := range result {
+		if r.Error == nil {
+			hasAnyCandidate = true
+			break
+		}
+	}
+	if !hasAnyCandidate {
 		return nil, fmt.Errorf("no any valid node can be imported")
 	}
 	return &ImportResult{
@@ -182,8 +189,15 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(result) == 0 {
-		return nil, fmt.Errorf("interrupt to update subscription: no any valid node can be imported: %v", m.Link)
+	hasAnyCandidate := false
+	for _, r := range result {
+		if r.Error == nil {
+			hasAnyCandidate = true
+			break
+		}
+	}
+	if !hasAnyCandidate {
+		return nil, fmt.Errorf("interrupt to update subscription: no any valid node can be imported")
 	}
 	// Update updated_at and return the latest version.
 	if err = tx.Model(&m).
