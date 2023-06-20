@@ -48,6 +48,9 @@ func fetchLinks(subscriptionLink string) (links []string, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to fetch link: %v", resp.Status)
+	}
 	defer resp.Body.Close()
 	b, err = io.ReadAll(resp.Body)
 	if err != nil {
@@ -60,6 +63,9 @@ func fetchLinks(subscriptionLink string) (links []string, err error) {
 	links, err = subscription.ResolveSubscriptionAsSIP008(noLogger, b)
 	if err != nil {
 		links = subscription.ResolveSubscriptionAsBase64(noLogger, b)
+	}
+	if len(links) == 0 {
+		return nil, fmt.Errorf("fetched but no any node was found")
 	}
 	return links, nil
 }
@@ -152,7 +158,7 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 			tx.Rollback()
 		}
 	}()
-	// Remove those subscription_id of which satisfied and are not independently in any groups.
+	// Remove those subscription_id of which satisfied and are independent from any groups.
 	subQuery := tx.Raw(`select nodes.id as id
                 from nodes
                 inner join group_nodes on group_nodes.node_id = nodes.id
