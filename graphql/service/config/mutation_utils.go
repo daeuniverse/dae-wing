@@ -80,7 +80,12 @@ func Update(ctx context.Context, _id graphql.ID, inputGlobal global.Input) (*Res
 	// Assign input items to daeConfig.Global.
 	inputGlobal.Assign(&c.Global)
 	// Marshal back to string.
-	marshaller := daeConfig.Marshaller{IndentSpace: 2}
+	marshaller := daeConfig.Marshaller{
+		IndentSpace: 2,
+		// We do not ignore any zero value because all values are valid.
+		// That is to say, `ParseConfig` filled in all the values.
+		IgnoreZero: false,
+	}
 	if err = marshaller.MarshalSection("global", reflect.ValueOf(c.Global), 0); err != nil {
 		return nil, err
 	}

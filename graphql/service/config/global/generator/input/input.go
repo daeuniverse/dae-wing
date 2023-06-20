@@ -7,13 +7,14 @@ package main
 
 import (
 	"fmt"
-	daeConfig "github.com/daeuniverse/dae/config"
-	"github.com/sirupsen/logrus"
-	"github.com/stoewer/go-strcase"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/sirupsen/logrus"
+	"github.com/stoewer/go-strcase"
 )
 
 type builder struct {
@@ -104,7 +105,9 @@ func (b *builder) Build() (string, error) {
 func (i *Input) Marshal() (string, error) {
 			var g daeConfig.Global
 			i.Assign(&g)
-			marshaller := daeConfig.Marshaller{}
+			marshaller := daeConfig.Marshaller{
+				IgnoreZero: true,
+			}
 			if err := marshaller.MarshalSection("global", reflect.ValueOf(g), 0); err != nil {
 				return "", err
 			}
