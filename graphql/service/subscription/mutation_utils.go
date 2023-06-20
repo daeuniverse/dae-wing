@@ -105,6 +105,9 @@ func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (
 	if err != nil {
 		return nil, err
 	}
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no any valid node can be imported")
+	}
 	return &ImportResult{
 		Link:             argument.Link,
 		NodeImportResult: result,
@@ -158,7 +161,7 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 			tx.Rollback()
 		}
 	}()
-	// Remove those subscription_id of which satisfied and are independent from any groups.
+	// Remove those nodes whose subscription are independent from any groups.
 	subQuery := tx.Raw(`select nodes.id as id
                 from nodes
                 inner join group_nodes on group_nodes.node_id = nodes.id
@@ -175,8 +178,12 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	for _, link := range links {
 		args = append(args, &internal.ImportArgument{Link: link})
 	}
-	if _, err = node.Import(tx, false, &subId, args); err != nil {
+	result, err := node.Import(tx, false, &subId, args)
+	if err != nil {
 		return nil, err
+	}
+	if len(result) == 0 {
+		return nil, fmt.Errorf("interrupt to update subscription: no any valid node can be imported: %v", m.Link)
 	}
 	// Update updated_at and return the latest version.
 	if err = tx.Model(&m).
