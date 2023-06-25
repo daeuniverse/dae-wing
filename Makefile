@@ -41,8 +41,10 @@ schema-resolver: $(DAE_READY)
 	go generate ./...
 .PHONY: schema-resolver
 
+$(DAE_EBPF_SRC):
+	@git submodule update --init --recursive dae-core
+
 $(DAE_READY): .gitmodules $(DAE_EBPF_SRC)
-	@git submodule update --init --recursive dae-core && \
 	cd dae-core && \
 	make ebpf && \
 	cd ../ && \
