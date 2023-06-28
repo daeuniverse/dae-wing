@@ -124,7 +124,7 @@ func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (
 	}, nil
 }
 
-func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
+func AutoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 	var sys db.System
 	if err = d.Model(&db.System{}).
 		FirstOrCreate(&sys).Error; err != nil {
@@ -209,7 +209,7 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	}
 
 	// Update modified if subscription is referenced by running config.
-	if err = autoUpdateVersionByIds(tx, []uint{subId}); err != nil {
+	if err = AutoUpdateVersionByIds(tx, []uint{subId}); err != nil {
 		return nil, err
 	}
 	return &Resolver{Subscription: &m}, nil
@@ -228,19 +228,34 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 			tx.Rollback()
 		}
 	}()
+	var nodes []db.Node
+	if err = tx.Where("subscription_id in ?", ids).
+		Find(&nodes).Error; err != nil {
+		return 0, err
+	}
+	var nodeIds []uint
+	for _, n := range nodes {
+		nodeIds = append(nodeIds, n.ID)
+	}
+
+	// Update modified if any subscriptions are referenced by running config.
+	if err = node.AutoUpdateVersionByIds(tx, nodeIds); err != nil {
+		return 0, err
+	}
+	if err = AutoUpdateVersionByIds(tx, ids); err != nil {
+		return 0, err
+	}
+
+	// Remove.
+	if err = tx.Where("subscription_id in ?", ids).
+		Delete(&db.Node{}).Error; err != nil {
+		return 0, err
+	}
 	q := tx.Where("id in ?", ids).
 		Select(clause.Associations).
 		Delete(&db.Subscription{})
 	if q.Error != nil {
 		return 0, q.Error
-	}
-	if err = tx.Where("subscription_id in ?", ids).Delete(&db.Node{}).Error; err != nil {
-		return 0, err
-	}
-
-	// Update modified if any subscriptions are referenced by running config.
-	if err = autoUpdateVersionByIds(tx, ids); err != nil {
-		return 0, err
 	}
 
 	return int32(q.RowsAffected), nil

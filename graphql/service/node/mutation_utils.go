@@ -76,7 +76,7 @@ func Import(d *gorm.DB, abortError bool, subscriptionId *uint, argument []*inter
 	return rs, nil
 }
 
-func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
+func AutoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 	var sys db.System
 	if err = d.Model(&db.System{}).
 		FirstOrCreate(&sys).Error; err != nil {
@@ -111,16 +111,18 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 			tx.Rollback()
 		}
 	}()
+
+	// Update modified if any nodes are referenced by running config.
+	if err = AutoUpdateVersionByIds(tx, ids); err != nil {
+		return 0, err
+	}
+
+	// Remove.
 	q := tx.Where("id in ?", ids).
 		Select(clause.Associations).
 		Delete(&db.Node{})
 	if q.Error != nil {
 		return 0, q.Error
-	}
-
-	// Update modified if any nodes are referenced by running config.
-	if err = autoUpdateVersionByIds(tx, ids); err != nil {
-		return 0, err
 	}
 
 	return int32(q.RowsAffected), nil
