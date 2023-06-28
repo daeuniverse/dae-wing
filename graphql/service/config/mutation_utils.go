@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"unicode"
 
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
@@ -153,12 +152,12 @@ func normNodeName(_name string) string {
 	name := []rune(_name)
 	ret := make([]rune, 0, len(name))
 	for _, r := range name {
-		if unicode.IsSpace(r) || r == ':' {
+		if r == ':' || r == '\'' {
 			r = '_'
 		}
 		ret = append(ret, r)
 	}
-	return string(name)
+	return string(ret)
 }
 
 func uniquefyNodesName(nodes []*node) {
