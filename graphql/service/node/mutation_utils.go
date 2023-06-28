@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
@@ -85,11 +86,12 @@ func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 		return nil
 	}
 
-	if err = d.Raw(`update groups
-                set groups.version = groups.version + 1
-                from groups
+	if err = d.Exec(`update groups
+                set version = groups.version + 1
+                from groups g
                     inner join group_nodes
-                    on groups.system_id = ? and groups.id = group_nodes.group_id and group_nodes.node_id in ?`, sys.ID, ids).Error; err != nil {
+                    on g.system_id = ? and g.id = group_nodes.group_id and group_nodes.node_id in ?
+				where g.id = groups.id`, sys.ID, ids).Error; err != nil {
 		return err
 	}
 

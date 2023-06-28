@@ -134,11 +134,12 @@ func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 		return nil
 	}
 
-	if err = d.Raw(`update groups
-                set groups.version = groups.version + 1
-                from groups
+	if err = d.Exec(`update groups
+                set version = groups.version + 1
+                from groups g
                     inner join group_subscriptions
-                    on groups.system_id = ? and groups.id = group_subscriptions.group_id and group_subscriptions.subscription_id in ?`, sys.ID, ids).Error; err != nil {
+                    on g.system_id = ? and g.id = group_subscriptions.group_id and group_subscriptions.subscription_id in ?
+				where g.id = groups.id`, sys.ID, ids).Error; err != nil {
 		return err
 	}
 
