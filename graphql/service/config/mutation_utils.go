@@ -154,7 +154,7 @@ func normNodeName(_name string) string {
 	ret := make([]rune, 0, len(name))
 	for _, r := range name {
 		if unicode.IsSpace(r) || r == ':' {
-			continue
+			r = '_'
 		}
 		ret = append(ret, r)
 	}
