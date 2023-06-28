@@ -147,6 +147,19 @@ func deduplicateNodes(nodes []*node) []*node {
 	return ret
 }
 
+// normNodeName normalize the name to satify the "key" format in dae config.
+func normNodeName(_name string) string {
+	name := []rune(_name)
+	ret := make([]rune, 0, len(name))
+	for _, r := range name {
+		if r == ':' || r == '\'' {
+			r = '_'
+		}
+		ret = append(ret, r)
+	}
+	return string(ret)
+}
+
 func uniquefyNodesName(nodes []*node) {
 	// Uniquefy names of nodes.
 	// Sort nodes by "has node.Tag" because node.Tag is unique but names of others may be the same with them.
@@ -159,7 +172,7 @@ func uniquefyNodesName(nodes []*node) {
 		if node.dbNode.Tag != nil {
 			nameToNodes[*node.dbNode.Tag] = node
 		} else {
-			baseName := node.dbNode.Name
+			baseName := normNodeName(node.dbNode.Name)
 			if node.dbNode.SubscriptionID != nil {
 				baseName = fmt.Sprintf("%v.%v", *node.dbNode.SubscriptionID, baseName)
 			}
@@ -349,19 +362,20 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	nodes = deduplicateNodes(nodes)
 	uniquefyNodesName(nodes)
 	// Group -> nodes
-	mGroupNode := make(map[*db.Group][]*node)
-	for _, node := range nodes {
-		for _, group := range node.groups {
-			mGroupNode[group] = append(mGroupNode[group], node)
-		}
-	}
+	mGroupNode := make(map[*db.Group]map[*node]struct{})
 	for i := range groups {
-		if _, ok := mGroupNode[&groups[i]]; !ok {
-			mGroupNode[&groups[i]] = nil
+		mGroupNode[&groups[i]] = make(map[*node]struct{})
+	}
+	for _, n := range nodes {
+		for _, group := range n.groups {
+			mGroupNode[group][n] = struct{}{}
 		}
 	}
 	// Fill in group section.
-	for g, nodes := range mGroupNode {
+	for g, sNodes := range mGroupNode {
+		if len(sNodes) == 0 {
+			return 0, fmt.Errorf("please add at least one node into group '%v' (referenced by current routing '%v')", g.Name, mRouting.Name)
+		}
 		// Parse policy.
 		var policy daeConfig.FunctionListOrString
 		if len(g.PolicyParams) == 0 {
@@ -380,7 +394,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		}
 		// Node names to filter.
 		var names []*config_parser.Param
-		for _, node := range nodes {
+		for node := range sNodes {
 			names = append(names, &config_parser.Param{
 				Val: node.uniqueName,
 			})
