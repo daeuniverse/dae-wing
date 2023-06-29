@@ -6,10 +6,11 @@
 package dae
 
 import (
+	"strings"
+
 	daeCommon "github.com/daeuniverse/dae/common"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/pkg/config_parser"
-	"strings"
 )
 
 var (
@@ -25,7 +26,11 @@ func NecessaryOutbounds(routing *daeConfig.Routing) (outbounds []string) {
 	f := daeConfig.FunctionOrStringToFunction(routing.Fallback)
 	outbounds = append(outbounds, f.Name)
 	for _, r := range routing.Rules {
-		outbounds = append(outbounds, r.Outbound.Name)
+		outbound := r.Outbound.Name
+		if outbound != "must_rules" {
+			outbound = strings.TrimPrefix(outbound, "must_")
+		}
+		outbounds = append(outbounds, outbound)
 	}
 	return daeCommon.Deduplicate(outbounds)
 }

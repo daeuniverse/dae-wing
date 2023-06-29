@@ -311,7 +311,8 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	if q.Error != nil {
 		return 0, q.Error
 	}
-	if q.RowsAffected != int64(len(outbounds)) {
+
+	{
 		// Find not found.
 		nameSet := map[string]struct{}{}
 		for _, name := range outbounds {
@@ -323,7 +324,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		var notFound []string
 		for name := range nameSet {
 			switch name {
-			case "direct", "block", "must_direct":
+			case "direct", "block", "must_rules":
 				// Preset groups.
 			default:
 				notFound = append(notFound, name)
