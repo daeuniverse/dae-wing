@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
@@ -75,7 +76,7 @@ func Import(d *gorm.DB, abortError bool, subscriptionId *uint, argument []*inter
 	return rs, nil
 }
 
-func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
+func AutoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 	var sys db.System
 	if err = d.Model(&db.System{}).
 		FirstOrCreate(&sys).Error; err != nil {
@@ -85,11 +86,12 @@ func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 		return nil
 	}
 
-	if err = d.Raw(`update groups
-                set groups.version = groups.version + 1
-                from groups
+	if err = d.Exec(`update groups
+                set version = groups.version + 1
+                from groups g
                     inner join group_nodes
-                    on groups.system_id = ? and groups.id = group_nodes.group_id and group_nodes.node_id in ?`, sys.ID, ids).Error; err != nil {
+                    on g.system_id = ? and g.id = group_nodes.group_id and group_nodes.node_id in ?
+				where g.id = groups.id`, sys.ID, ids).Error; err != nil {
 		return err
 	}
 
@@ -109,16 +111,18 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 			tx.Rollback()
 		}
 	}()
+
+	// Update modified if any nodes are referenced by running config.
+	if err = AutoUpdateVersionByIds(tx, ids); err != nil {
+		return 0, err
+	}
+
+	// Remove.
 	q := tx.Where("id in ?", ids).
 		Select(clause.Associations).
 		Delete(&db.Node{})
 	if q.Error != nil {
 		return 0, q.Error
-	}
-
-	// Update modified if any nodes are referenced by running config.
-	if err = autoUpdateVersionByIds(tx, ids); err != nil {
-		return 0, err
 	}
 
 	return int32(q.RowsAffected), nil
