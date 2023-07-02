@@ -82,3 +82,5 @@ require (
 )
 
 replace github.com/daeuniverse/dae => ./dae-core
+
+// replace github.com/daeuniverse/dae => ../dae
