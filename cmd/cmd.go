@@ -33,4 +33,5 @@ func init() {
 
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(exportCmd)
+	rootCmd.AddCommand(resetpassCmd)
 }
