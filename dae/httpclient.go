@@ -31,7 +31,11 @@ var HttpTransport = &http.Transport{
 		if err != nil {
 			return nil, err
 		}
-		conn, err := ControlPlane.RouteDialTcp(&control.RouteDialParam{Outbound: consts.OutboundControlPlaneRouting, Domain: host, Mac: [6]uint8{}, ProcessName: [16]uint8{}, Src: netip.MustParseAddrPort("0.0.0.0:0"), Dest: netip.AddrPortFrom(addrs[0], uint16(port)), Mark: 0})
+		ctl, err := ControlPlane()
+		if err != nil {
+			return nil, err
+		}
+		conn, err := ctl.RouteDialTcp(&control.RouteDialParam{Outbound: consts.OutboundControlPlaneRouting, Domain: host, Mac: [6]uint8{}, ProcessName: [16]uint8{}, Src: netip.MustParseAddrPort("0.0.0.0:0"), Dest: netip.AddrPortFrom(addrs[0], uint16(port)), Mark: 0})
 		if err != nil {
 			return nil, err
 		}

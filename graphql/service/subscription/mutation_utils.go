@@ -7,6 +7,7 @@ package subscription
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -36,7 +37,15 @@ func fetchLinks(subscriptionLink string) (links []string, err error) {
 	links, err = _fetchLinks(subscriptionLink, http.DefaultTransport, timeout/2)
 	if err != nil {
 		// Retry with dae routing.
-		return _fetchLinks(subscriptionLink, dae.HttpTransport, timeout/2)
+		links, err2 := _fetchLinks(subscriptionLink, dae.HttpTransport, timeout/2)
+		if err2 != nil {
+			if errors.Is(err2, dae.ErrControlPlaneNotInit) {
+				return nil, err
+			} else {
+				return nil, fmt.Errorf("%v (direct); %w (route)", err, err2)
+			}
+		}
+		return links, nil
 	}
 	return links, nil
 }

@@ -17,6 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var ErrControlPlaneNotInit = fmt.Errorf("control plane doesn't init yet")
+
 type ReloadMessage struct {
 	Config   *daeConfig.Config
 	Callback chan<- error
@@ -25,7 +27,7 @@ type ReloadMessage struct {
 var ChReloadConfigs = make(chan *ReloadMessage, 16)
 var GracefullyExit = make(chan struct{})
 var EmptyConfig *daeConfig.Config
-var ControlPlane *control.ControlPlane
+var c *control.ControlPlane
 
 func init() {
 	sections, err := config_parser.Parse(`global{} routing{}`)
@@ -36,6 +38,13 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ControlPlane() (*control.ControlPlane, error) {
+	if c == nil {
+		return nil, ErrControlPlaneNotInit
+	}
+	return c, nil
 }
 
 func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string, disableTimestamp bool, dry bool) (err error) {
@@ -55,8 +64,8 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 		return nil
 	}
 
-	// New ControlPlane.
-	ControlPlane, err = newControlPlane(log, nil, nil, conf, externGeoDataDirs)
+	// New c.
+	c, err = newControlPlane(log, nil, nil, conf, externGeoDataDirs)
 	if err != nil {
 		return err
 	}
@@ -69,7 +78,7 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 			<-readyChan
 			log.Infoln("Ready")
 		}()
-		if listener, err = ControlPlane.ListenAndServe(readyChan, conf.Global.TproxyPort); err != nil {
+		if listener, err = c.ListenAndServe(readyChan, conf.Global.TproxyPort); err != nil {
 			log.Errorln("ListenAndServe:", err)
 		}
 		// Exit
@@ -99,7 +108,7 @@ loop:
 				log.Warnln("[Reload] Serve")
 				readyChan := make(chan bool, 1)
 				go func() {
-					if err := ControlPlane.Serve(readyChan, listener); err != nil {
+					if err := c.Serve(readyChan, listener); err != nil {
 						log.Errorln("ListenAndServe:", err)
 					}
 					// Exit
@@ -126,11 +135,11 @@ loop:
 			logrus.SetLevel(log.Level)
 
 			// New control plane.
-			obj := ControlPlane.EjectBpf()
+			obj := c.EjectBpf()
 			var dnsCache map[string]*control.DnsCache
 			if conf.Dns.IpVersionPrefer == newConf.Dns.IpVersionPrefer {
 				// Only keep dns cache when ip version preference not change.
-				dnsCache = ControlPlane.CloneDnsCache()
+				dnsCache = c.CloneDnsCache()
 			}
 			log.Warnln("[Reload] Load new control plane")
 			newC, err := newControlPlane(log, obj, dnsCache, newConf, externGeoDataDirs)
@@ -146,7 +155,7 @@ loop:
 				newC, err = newControlPlane(log, obj, dnsCache, conf, externGeoDataDirs)
 				if err != nil {
 					obj.Close()
-					ControlPlane.Close()
+					c.Close()
 					log.WithFields(logrus.Fields{
 						"err": err,
 					}).Fatalln("[Reload] Failed to roll back configuration")
@@ -165,8 +174,8 @@ loop:
 			newC.InjectBpf(obj)
 
 			// Prepare new context.
-			oldC := ControlPlane
-			ControlPlane = newC
+			oldC := c
+			c = newC
 			conf = newConf
 			reloading = true
 			/* dae-wing start */
@@ -177,7 +186,7 @@ loop:
 			oldC.Close()
 		}
 	}
-	if e := ControlPlane.Close(); e != nil {
+	if e := c.Close(); e != nil {
 		return fmt.Errorf("close control plane: %w", e)
 	}
 	return nil
