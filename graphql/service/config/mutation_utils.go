@@ -80,7 +80,12 @@ func Update(ctx context.Context, _id graphql.ID, inputGlobal global.Input) (*Res
 	// Assign input items to daeConfig.Global.
 	inputGlobal.Assign(&c.Global)
 	// Marshal back to string.
-	marshaller := daeConfig.Marshaller{IndentSpace: 2}
+	marshaller := daeConfig.Marshaller{
+		IndentSpace: 2,
+		// We do not ignore any zero value because all values are valid.
+		// That is to say, `ParseConfig` filled in all the values.
+		IgnoreZero: false,
+	}
 	if err = marshaller.MarshalSection("global", reflect.ValueOf(c.Global), 0); err != nil {
 		return nil, err
 	}
@@ -117,20 +122,6 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if q.Error != nil {
 		return 0, q.Error
 	}
-	// Check if the config to delete is selected.
-	if q.RowsAffected > 0 && m.Selected {
-		// Check if dae is running.
-		var sys db.System
-		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-			return 0, err
-		}
-		if sys.Running {
-			// Stop running with dry-run.
-			if _, err = Run(tx, true); err != nil {
-				return 0, err
-			}
-		}
-	}
 	return int32(q.RowsAffected), nil
 }
 
@@ -156,6 +147,19 @@ func deduplicateNodes(nodes []*node) []*node {
 	return ret
 }
 
+// normNodeName normalize the name to satify the "key" format in dae config.
+func normNodeName(_name string) string {
+	name := []rune(_name)
+	ret := make([]rune, 0, len(name))
+	for _, r := range name {
+		if r == ':' || r == '\'' {
+			r = '_'
+		}
+		ret = append(ret, r)
+	}
+	return string(ret)
+}
+
 func uniquefyNodesName(nodes []*node) {
 	// Uniquefy names of nodes.
 	// Sort nodes by "has node.Tag" because node.Tag is unique but names of others may be the same with them.
@@ -168,7 +172,7 @@ func uniquefyNodesName(nodes []*node) {
 		if node.dbNode.Tag != nil {
 			nameToNodes[*node.dbNode.Tag] = node
 		} else {
-			baseName := node.dbNode.Name
+			baseName := normNodeName(node.dbNode.Name)
 			if node.dbNode.SubscriptionID != nil {
 				baseName = fmt.Sprintf("%v.%v", *node.dbNode.SubscriptionID, baseName)
 			}
@@ -208,7 +212,6 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if err = q.Error; err != nil {
 		return 0, err
 	}
-	isReplace := q.RowsAffected > 0
 	// Set selected.
 	q = tx.Model(&db.Config{ID: id}).Update("selected", true)
 	if err = q.Error; err != nil {
@@ -216,19 +219,6 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	}
 	if q.RowsAffected == 0 {
 		return 0, fmt.Errorf("no such config")
-	}
-	if isReplace {
-		// Check if dae is running.
-		var sys db.System
-		if err = tx.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
-			return 0, err
-		}
-		if sys.Running {
-			// Run with new config.
-			if _, err = Run(tx, false); err != nil {
-				return 0, err
-			}
-		}
 	}
 	return 1, nil
 }
@@ -321,7 +311,8 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	if q.Error != nil {
 		return 0, q.Error
 	}
-	if q.RowsAffected != int64(len(outbounds)) {
+
+	{
 		// Find not found.
 		nameSet := map[string]struct{}{}
 		for _, name := range outbounds {
@@ -333,7 +324,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		var notFound []string
 		for name := range nameSet {
 			switch name {
-			case "direct", "block", "must_direct":
+			case "direct", "block", "must_rules":
 				// Preset groups.
 			default:
 				notFound = append(notFound, name)
@@ -345,19 +336,18 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	}
 	// Find nodes in groups.
 	var nodes []*node
-	for _, g := range groups {
-		g := g
-		for _, gsub := range g.Subscription {
+	for i := range groups {
+		for _, gsub := range groups[i].Subscription {
 			for _, n := range gsub.Node {
 				n := n
 				nodes = append(nodes, &node{
 					dbNode: &n,
-					groups: []*db.Group{&g},
+					groups: []*db.Group{&groups[i]},
 				})
 			}
 		}
 		var solitaryNodes []db.Node
-		if err = d.Model(g).
+		if err = d.Model(groups[i]).
 			Association("Node").
 			Find(&solitaryNodes); err != nil {
 			return 0, err
@@ -366,21 +356,27 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 			n := n
 			nodes = append(nodes, &node{
 				dbNode: &n,
-				groups: []*db.Group{&g},
+				groups: []*db.Group{&groups[i]},
 			})
 		}
 	}
 	nodes = deduplicateNodes(nodes)
 	uniquefyNodesName(nodes)
 	// Group -> nodes
-	mGroupNode := make(map[*db.Group][]*node)
-	for _, node := range nodes {
-		for _, group := range node.groups {
-			mGroupNode[group] = append(mGroupNode[group], node)
+	mGroupNode := make(map[*db.Group]map[*node]struct{})
+	for i := range groups {
+		mGroupNode[&groups[i]] = make(map[*node]struct{})
+	}
+	for _, n := range nodes {
+		for _, group := range n.groups {
+			mGroupNode[group][n] = struct{}{}
 		}
 	}
 	// Fill in group section.
-	for g, nodes := range mGroupNode {
+	for g, sNodes := range mGroupNode {
+		if len(sNodes) == 0 {
+			return 0, fmt.Errorf("please add at least one node into group '%v' (referenced by current routing '%v')", g.Name, mRouting.Name)
+		}
 		// Parse policy.
 		var policy daeConfig.FunctionListOrString
 		if len(g.PolicyParams) == 0 {
@@ -399,7 +395,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		}
 		// Node names to filter.
 		var names []*config_parser.Param
-		for _, node := range nodes {
+		for node := range sNodes {
 			names = append(names, &config_parser.Param{
 				Val: node.uniqueName,
 			})

@@ -7,6 +7,11 @@ package subscription
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
@@ -16,9 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"io"
-	"net/http"
-	"time"
 )
 
 type ImportResult struct {
@@ -34,9 +36,20 @@ func fetchLinks(subscriptionLink string) (links []string, err error) {
 		b    []byte
 		resp *http.Response
 	)
-	resp, err = http.Get(subscriptionLink)
+	c := http.Client{
+		Timeout: 10 * time.Second,
+	}
+	req, err := http.NewRequest("GET", subscriptionLink, nil)
 	if err != nil {
 		return nil, err
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("%v/%v (like v2rayA/1.0 WebRequestHelper) (like v2rayN/1.0 WebRequestHelper)", db.AppName, db.AppVersion))
+	resp, err = c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to fetch link: %v", resp.Status)
 	}
 	defer resp.Body.Close()
 	b, err = io.ReadAll(resp.Body)
@@ -50,6 +63,9 @@ func fetchLinks(subscriptionLink string) (links []string, err error) {
 	links, err = subscription.ResolveSubscriptionAsSIP008(noLogger, b)
 	if err != nil {
 		links = subscription.ResolveSubscriptionAsBase64(noLogger, b)
+	}
+	if len(links) == 0 {
+		return nil, fmt.Errorf("fetched but no any node was found")
 	}
 	return links, nil
 }
@@ -89,6 +105,16 @@ func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (
 	if err != nil {
 		return nil, err
 	}
+	hasAnyCandidate := false
+	for _, r := range result {
+		if r.Error == nil {
+			hasAnyCandidate = true
+			break
+		}
+	}
+	if !hasAnyCandidate {
+		return nil, fmt.Errorf("no any valid node can be imported")
+	}
 	return &ImportResult{
 		Link:             argument.Link,
 		NodeImportResult: result,
@@ -98,7 +124,7 @@ func Import(c *gorm.DB, rollbackError bool, argument *internal.ImportArgument) (
 	}, nil
 }
 
-func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
+func AutoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 	var sys db.System
 	if err = d.Model(&db.System{}).
 		FirstOrCreate(&sys).Error; err != nil {
@@ -108,11 +134,12 @@ func autoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 		return nil
 	}
 
-	if err = d.Raw(`update groups
-                set groups.version = groups.version + 1
-                from groups
+	if err = d.Exec(`update groups
+                set version = groups.version + 1
+                from groups g
                     inner join group_subscriptions
-                    on groups.system_id = ? and groups.id = group_subscriptions.group_id and group_subscriptions.subscription_id in ?`, sys.ID, ids).Error; err != nil {
+                    on g.system_id = ? and g.id = group_subscriptions.group_id and group_subscriptions.subscription_id in ?
+				where g.id = groups.id`, sys.ID, ids).Error; err != nil {
 		return err
 	}
 
@@ -142,7 +169,7 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 			tx.Rollback()
 		}
 	}()
-	// Remove those subscription_id of which satisfied and are not independently in any groups.
+	// Remove those nodes whose subscription are independent from any groups.
 	subQuery := tx.Raw(`select nodes.id as id
                 from nodes
                 inner join group_nodes on group_nodes.node_id = nodes.id
@@ -159,8 +186,19 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	for _, link := range links {
 		args = append(args, &internal.ImportArgument{Link: link})
 	}
-	if _, err = node.Import(tx, false, &subId, args); err != nil {
+	result, err := node.Import(tx, false, &subId, args)
+	if err != nil {
 		return nil, err
+	}
+	hasAnyCandidate := false
+	for _, r := range result {
+		if r.Error == nil {
+			hasAnyCandidate = true
+			break
+		}
+	}
+	if !hasAnyCandidate {
+		return nil, fmt.Errorf("interrupt to update subscription: no any valid node can be imported")
 	}
 	// Update updated_at and return the latest version.
 	if err = tx.Model(&m).
@@ -171,7 +209,7 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	}
 
 	// Update modified if subscription is referenced by running config.
-	if err = autoUpdateVersionByIds(tx, []uint{subId}); err != nil {
+	if err = AutoUpdateVersionByIds(tx, []uint{subId}); err != nil {
 		return nil, err
 	}
 	return &Resolver{Subscription: &m}, nil
@@ -190,19 +228,34 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 			tx.Rollback()
 		}
 	}()
+	var nodes []db.Node
+	if err = tx.Where("subscription_id in ?", ids).
+		Find(&nodes).Error; err != nil {
+		return 0, err
+	}
+	var nodeIds []uint
+	for _, n := range nodes {
+		nodeIds = append(nodeIds, n.ID)
+	}
+
+	// Update modified if any subscriptions are referenced by running config.
+	if err = node.AutoUpdateVersionByIds(tx, nodeIds); err != nil {
+		return 0, err
+	}
+	if err = AutoUpdateVersionByIds(tx, ids); err != nil {
+		return 0, err
+	}
+
+	// Remove.
+	if err = tx.Where("subscription_id in ?", ids).
+		Delete(&db.Node{}).Error; err != nil {
+		return 0, err
+	}
 	q := tx.Where("id in ?", ids).
 		Select(clause.Associations).
 		Delete(&db.Subscription{})
 	if q.Error != nil {
 		return 0, q.Error
-	}
-	if err = tx.Where("subscription_id in ?", ids).Delete(&db.Node{}).Error; err != nil {
-		return 0, err
-	}
-
-	// Update modified if any subscriptions are referenced by running config.
-	if err = autoUpdateVersionByIds(tx, ids); err != nil {
-		return 0, err
 	}
 
 	return int32(q.RowsAffected), nil

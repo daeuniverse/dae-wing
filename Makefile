@@ -7,7 +7,7 @@ OUTPUT ?= ./dae-wing
 APPNAME ?= dae-wing
 DESCRIPTION ?= $(APPNAME) is a integration solution of dae, API and UI.
 VERSION ?= 0.0.0.unknown
-LDFLAGS = '-s -w -X github.com/daeuniverse/dae-wing/cmd.Version=$(VERSION) -X github.com/daeuniverse/dae-wing/cmd.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/cmd.Description=$(DESCRIPTION)"'
+LDFLAGS = '-s -w -X github.com/daeuniverse/dae-wing/db.AppVersion=$(VERSION) -X github.com/daeuniverse/dae-wing/db.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/db.AppDescription=$(DESCRIPTION)"'
 
 include functions.mk
 
@@ -30,7 +30,8 @@ all: dae-wing
 deps: schema-resolver $(DAE_READY)
 .PHONY: deps
 
-DAE_READY = dae-core/control/headers
+DAE_READY = dae-core/control/bpf_bpfeb.o
+DAE_EBPF_SRC = dae-core/control/kern/tproxy.c
 
 schema-resolver: $(DAE_READY)
 	@unset GOOS && \
@@ -40,8 +41,10 @@ schema-resolver: $(DAE_READY)
 	go generate ./...
 .PHONY: schema-resolver
 
-$(DAE_READY): .gitmodules
-	@git submodule update --init --recursive dae-core && \
+$(DAE_EBPF_SRC):
+	@git submodule update --init --recursive dae-core
+
+$(DAE_READY): .gitmodules $(DAE_EBPF_SRC)
 	cd dae-core && \
 	make ebpf && \
 	cd ../ && \

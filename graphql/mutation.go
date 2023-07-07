@@ -10,6 +10,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"strings"
+	"unicode"
+
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
 	"github.com/daeuniverse/dae-wing/graphql/service/config"
@@ -22,9 +26,6 @@ import (
 	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/tidwall/sjson"
-	"io"
-	"strings"
-	"unicode"
 )
 
 type MutationResolver struct{}
@@ -158,35 +159,40 @@ func (r *MutationResolver) UpdateUsername(ctx context.Context, args *struct {
 	}
 	return int32(q.RowsAffected), nil
 }
-func (r *MutationResolver) UpdatePassword(ctx context.Context, args *struct {
+
+func UpdatePassword(ctx context.Context, args *struct {
 	CurrentPassword string
 	NewPassword     string
-}) (string, error) {
-	u, err := userFromContext(ctx)
-	if err != nil {
-		return "", err
-	}
-
+}, u *db.User, skipVerify bool) (token string, err error) {
 	// Check password.
-	hashedPassword, err := hashPassword([]byte(u.JwtSecret), args.CurrentPassword)
-	if err != nil {
-		return "", err
-	}
-	if hashedPassword != u.PasswordHash {
-		return "", fmt.Errorf("incorrect password")
+	if !skipVerify {
+		hashedPassword, err := hashPassword([]byte(u.JwtSecret), args.CurrentPassword)
+		if err != nil {
+			return "", err
+		}
+		if hashedPassword != u.PasswordHash {
+			return "", fmt.Errorf("incorrect password")
+		}
 	}
 
 	// Generate new jwt secret (to log out others) and password hash.
-	hashedPassword, err = hashPassword([]byte(u.JwtSecret), args.NewPassword)
-	if err != nil {
-		return "", err
-	}
 	var sec [32]byte
 	if _, err = io.ReadFull(rand.Reader, sec[:]); err != nil {
 		return "", err
 	}
 	secret := hex.EncodeToString(sec[:])
+	hashedPassword, err := hashPassword([]byte(secret), args.NewPassword)
+	if err != nil {
+		return "", err
+	}
 	tx := db.BeginTx(ctx)
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
 	q := tx.Model(u).Updates(db.User{
 		PasswordHash: hashedPassword,
 		JwtSecret:    secret,
@@ -197,6 +203,17 @@ func (r *MutationResolver) UpdatePassword(ctx context.Context, args *struct {
 
 	// Return token.
 	return getToken(tx, u.Username, args.NewPassword)
+}
+
+func (r *MutationResolver) UpdatePassword(ctx context.Context, args *struct {
+	CurrentPassword string
+	NewPassword     string
+}) (string, error) {
+	u, err := userFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+	return UpdatePassword(ctx, args, u, false)
 }
 func (r *MutationResolver) CreateConfig(args *struct {
 	Name   *string
