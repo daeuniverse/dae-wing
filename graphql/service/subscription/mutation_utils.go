@@ -7,12 +7,14 @@ package subscription
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/daeuniverse/dae-wing/common"
+	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae-wing/graphql/internal"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
@@ -30,6 +32,25 @@ type ImportResult struct {
 }
 
 func fetchLinks(subscriptionLink string) (links []string, err error) {
+	timeout := 10 * time.Second
+	// Try with direct by default.
+	links, err = _fetchLinks(subscriptionLink, http.DefaultTransport, timeout/2)
+	if err != nil {
+		// Retry with dae routing.
+		links, err2 := _fetchLinks(subscriptionLink, dae.HttpTransport, timeout/2)
+		if err2 != nil {
+			if errors.Is(err2, dae.ErrControlPlaneNotInit) {
+				return nil, err
+			} else {
+				return nil, fmt.Errorf("%v (direct); %w (route)", err, err2)
+			}
+		}
+		return links, nil
+	}
+	return links, nil
+}
+
+func _fetchLinks(subscriptionLink string, transport http.RoundTripper, timeout time.Duration) (links []string, err error) {
 	/// Resolve subscription to node links.
 	// Fetch subscription link.
 	var (
@@ -37,7 +58,8 @@ func fetchLinks(subscriptionLink string) (links []string, err error) {
 		resp *http.Response
 	)
 	c := http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:   timeout,
+		Transport: transport,
 	}
 	req, err := http.NewRequest("GET", subscriptionLink, nil)
 	if err != nil {

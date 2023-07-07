@@ -17,6 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var ErrControlPlaneNotInit = fmt.Errorf("control plane doesn't init yet")
+
 type ReloadMessage struct {
 	Config   *daeConfig.Config
 	Callback chan<- error
@@ -25,6 +27,7 @@ type ReloadMessage struct {
 var ChReloadConfigs = make(chan *ReloadMessage, 16)
 var GracefullyExit = make(chan struct{})
 var EmptyConfig *daeConfig.Config
+var c *control.ControlPlane
 
 func init() {
 	sections, err := config_parser.Parse(`global{} routing{}`)
@@ -35,6 +38,13 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ControlPlane() (*control.ControlPlane, error) {
+	if c == nil {
+		return nil, ErrControlPlaneNotInit
+	}
+	return c, nil
 }
 
 func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string, disableTimestamp bool, dry bool) (err error) {
@@ -54,8 +64,8 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 		return nil
 	}
 
-	// New ControlPlane.
-	c, err := newControlPlane(log, nil, nil, conf, externGeoDataDirs)
+	// New c.
+	c, err = newControlPlane(log, nil, nil, conf, externGeoDataDirs)
 	if err != nil {
 		return err
 	}
