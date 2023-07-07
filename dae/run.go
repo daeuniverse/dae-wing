@@ -214,6 +214,10 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*c
 		return nil, fmt.Errorf("daeConfig.subscription is not supported")
 	}
 
+	if err = preprocessWanInterfaceAuto(conf); err != nil {
+		return nil, err
+	}
+
 	// New dae control plane.
 	c, err = control.NewControlPlane(
 		log,

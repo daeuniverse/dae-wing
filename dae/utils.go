@@ -6,6 +6,7 @@
 package dae
 
 import (
+	"fmt"
 	"strings"
 
 	daeCommon "github.com/daeuniverse/dae/common"
@@ -64,4 +65,22 @@ func ParseConfig(globalSection *string, dnsSection *string, routingSection *stri
 		return nil, err
 	}
 	return c, err
+}
+
+func preprocessWanInterfaceAuto(params *daeConfig.Config) error {
+	// preprocess "auto".
+	ifs := make([]string, 0, len(params.Global.WanInterface)+2)
+	for _, ifname := range params.Global.WanInterface {
+		if ifname == "auto" {
+			defaultIfs, err := daeCommon.GetDefaultIfnames()
+			if err != nil {
+				return fmt.Errorf("failed to convert 'auto': %w", err)
+			}
+			ifs = append(ifs, defaultIfs...)
+		} else {
+			ifs = append(ifs, ifname)
+		}
+	}
+	params.Global.WanInterface = daeCommon.Deduplicate(ifs)
+	return nil
 }
