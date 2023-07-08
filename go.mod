@@ -1,6 +1,6 @@
 module github.com/daeuniverse/dae-wing
 
-go 1.18
+go 1.19
 
 require (
 	github.com/daeuniverse/dae v0.2.0
@@ -10,7 +10,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
-	github.com/mzz2017/softwind v0.0.0-20230707153001-712a876a495e
+	github.com/mzz2017/softwind v0.0.0-20230708095412-0f8418b53c2e
 	github.com/rs/cors v1.9.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
