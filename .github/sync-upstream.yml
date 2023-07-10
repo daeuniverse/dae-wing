@@ -1,0 +1,42 @@
+name: Synchronize Upstream
+
+on:
+  workflow_dispatch:
+    inputs:
+      dae-core-head:
+        type: string
+        required: true
+        default: main
+      dae-core-sync-message:
+        type: string
+        required: true
+        default: 'chore(sync): upgrade dae-core'
+      pr-branch:
+        type: string
+        required: true
+        default: sync-upstream
+
+jobs:
+  sync-dae-core:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.dae-core-head }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          ref: main
+
+      - name: Sync dae-core upstream
+        run: |
+          git checkout origin/${{ inputs.dae-core-head }}
+        working-directory: dae-core
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "daebot"
+          git config user.email "daebot@v2raya.org"
+          git checkout -b ${{ inputs.pr-branch }}
+          git add .
+          git commit -m "${{ inputs.dae-core-sync-message }}" --no-verify
+          git push -u origin ${{ inputs.pr-branch }}
