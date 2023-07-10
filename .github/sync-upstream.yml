@@ -1,0 +1,22 @@
+#      _                          _
+#   __| | __ _  ___     __      _(_)_ __   __ _
+#  / _` |/ _` |/ _ \____\ \ /\ / / | '_ \ / _` |
+# | (_| | (_| |  __/_____\ V  V /| | | | | (_| |
+#  \__,_|\__,_|\___|      \_/\_/ |_|_| |_|\__, |
+#                                         |___/
+#
+# Copyright (C) 2023 @daeuniverse <https://github.com/daeuniverse>
+#
+# This is a open-source software, liscensed under the AGPL-3.0 License.
+# See /License for more information.
+
+name: Synchronize Upstream
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-dae-core:
+    uses: daeuniverse/ci-seed-jobs/.github/workflows/sync-upstream.yml@sync_seed_workflow
+    with:
+      submodule-name: dae-core
