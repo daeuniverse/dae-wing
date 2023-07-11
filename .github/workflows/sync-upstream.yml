@@ -20,3 +20,4 @@ jobs:
     uses: daeuniverse/ci-seed-jobs/.github/workflows/sync-upstream.yml@sync_seed_workflow
     with:
       submodule-name: dae-core
+    secrets: inherit
