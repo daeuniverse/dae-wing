@@ -24,7 +24,7 @@ type ReloadMessage struct {
 	Callback chan<- error
 }
 
-var ChReloadConfigs = make(chan *ReloadMessage, 16)
+var ChReloadConfigs = make(chan *ReloadMessage)
 var GracefullyExit = make(chan struct{})
 var EmptyConfig *daeConfig.Config
 var c *control.ControlPlane
