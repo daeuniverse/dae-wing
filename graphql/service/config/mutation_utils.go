@@ -402,11 +402,11 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 		}
 		c.Group = append(c.Group, daeConfig.Group{
 			Name: g.Name,
-			Filter: []*config_parser.Function{{
+			Filter: [][]*config_parser.Function{{{
 				Name:   "name",
 				Not:    false,
 				Params: names,
-			}},
+			}}},
 			Policy: policy,
 		})
 	}
