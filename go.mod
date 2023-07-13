@@ -10,7 +10,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
-	github.com/mzz2017/softwind v0.0.0-20230710142544-73a557cea4a4
+	github.com/mzz2017/softwind v0.0.0-20230710175107-0107af8a1d26
 	github.com/rs/cors v1.9.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
