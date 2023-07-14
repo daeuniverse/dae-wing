@@ -400,7 +400,7 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 				Val: node.uniqueName,
 			})
 		}
-		c.Group = append(c.Group, daeConfig.Group{
+		grp := daeConfig.Group{
 			Name: g.Name,
 			Filter: [][]*config_parser.Function{{{
 				Name:   "name",
@@ -408,7 +408,12 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 				Params: names,
 			}}},
 			Policy: policy,
-		})
+		}
+		for range grp.Filter {
+			// Keep the same length as filter's.
+			grp.FilterAnnotation = append(grp.FilterAnnotation, []*config_parser.Param{})
+		}
+		c.Group = append(c.Group, grp)
 	}
 	// Fill in node section.
 	for _, node := range nodes {
