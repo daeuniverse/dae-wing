@@ -9,11 +9,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/daeuniverse/dae-wing/pkg/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 const (
@@ -27,7 +31,7 @@ var (
 func InitDatabase(configDir string) (err error) {
 	path := filepath.Join(configDir, filename)
 	db, err = gorm.Open(sqlite.Open(path), &gorm.Config{
-		//Logger: logger.Default.LogMode(logger.Info),
+		// Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		return fmt.Errorf("%w: %v", err, path)
@@ -59,6 +63,14 @@ func InitDatabase(configDir string) (err error) {
 
 func DB(ctx context.Context) *gorm.DB {
 	return db.WithContext(ctx)
+}
+func SetOutput(writer io.Writer) {
+	db.Logger = logger.New(log.New(writer, "\r\n", log.LstdFlags), logger.Config{
+		SlowThreshold:             200 * time.Millisecond,
+		LogLevel:                  logger.Warn,
+		IgnoreRecordNotFoundError: false,
+		Colorful:                  false,
+	})
 }
 func BeginTx(ctx context.Context) *gorm.DB {
 	return DB(ctx).Begin(&sql.TxOptions{

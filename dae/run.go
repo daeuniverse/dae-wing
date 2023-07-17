@@ -131,8 +131,9 @@ loop:
 			newConf := newReloadMsg.Config
 			/* dae-wing end */
 			// New logger.
-			log = logger.NewLogger(newConf.Global.LogLevel, disableTimestamp)
+			log = logger.NewLogger(newConf.Global.LogLevel, disableTimestamp, nil)
 			logrus.SetLevel(log.Level)
+			log.SetOutput(logrus.StandardLogger().Out)
 
 			// New control plane.
 			obj := c.EjectBpf()

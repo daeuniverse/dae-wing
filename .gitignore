@@ -16,3 +16,6 @@ daed
 # vendor
 vendor/
 go-mod/
+
+# log
+*.log
