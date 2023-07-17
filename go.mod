@@ -22,6 +22,7 @@ require (
 	golang.org/x/crypto v0.11.0
 	golang.org/x/sys v0.10.0
 	golang.org/x/tools v0.11.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/sqlite v1.5.2
 	gorm.io/gorm v1.25.2
 )
@@ -84,7 +85,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230706204954-ccb25ca9f130 // indirect
 	google.golang.org/grpc v1.56.2 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	modernc.org/libc v1.24.1 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.6.0 // indirect
