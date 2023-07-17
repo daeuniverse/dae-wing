@@ -25,12 +25,16 @@ import (
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func init() {
 	runCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", filepath.Join("/etc", db.AppName), "config directory")
 	runCmd.PersistentFlags().StringVarP(&listen, "listen", "l", "0.0.0.0:2023", "listening address")
 	runCmd.PersistentFlags().BoolVar(&apiOnly, "api-only", false, "run graphql backend without dae")
+	runCmd.PersistentFlags().StringVar(&logFile, "logfile", "", "Log file to write. Empty means writing to stdout and stderr.")
+	runCmd.PersistentFlags().IntVar(&logFileMaxSize, "logfile-maxsize", 30, "Unit: MB. The maximum size in megabytes of the log file before it gets rotated.")
+	runCmd.PersistentFlags().IntVar(&logFileMaxBackups, "logfile-maxbackups", 3, "The maximum number of old log files to retain.")
 	runCmd.PersistentFlags().BoolVarP(&disableTimestamp, "disable-timestamp", "", false, "disable timestamp")
 }
 
@@ -47,10 +51,13 @@ func errorExit(err error) {
 }
 
 var (
-	cfgDir           string
-	disableTimestamp bool
-	listen           string
-	apiOnly          bool
+	cfgDir            string
+	logFile           string
+	logFileMaxSize    int
+	logFileMaxBackups int
+	disableTimestamp  bool
+	listen            string
+	apiOnly           bool
 
 	runCmd = &cobra.Command{
 		Use:   "run",
@@ -74,6 +81,19 @@ var (
 			}
 
 			// Run dae.
+			var logOpts *lumberjack.Logger
+			if logFile != "" {
+				logOpts = &lumberjack.Logger{
+					Filename:   logFile,
+					MaxSize:    logFileMaxSize,
+					MaxAge:     0,
+					MaxBackups: logFileMaxBackups,
+					LocalTime:  true,
+					Compress:   true,
+				}
+				logrus.SetOutput(logOpts)
+				db.SetOutput(logOpts)
+			}
 			go func() {
 				if err := dae.Run(
 					logrus.StandardLogger(),
