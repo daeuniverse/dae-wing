@@ -7,7 +7,8 @@ package general
 
 import (
 	"context"
-	"strconv"
+	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/daeuniverse/dae-wing/db"
@@ -61,11 +62,17 @@ func (r *DaeResolver) Modified() (bool, error) {
 		len(m.RunningGroups) == 0 {
 		return true, nil
 	}
-	groupVersions := strings.Split(m.RunningGroupVersions, ",")
-	for i, g := range m.RunningGroups {
-		if strconv.FormatUint(uint64(g.Version), 10) != groupVersions[i] {
-			return true, nil
-		}
+	var gvs uint
+	var gids []string
+	for _, g := range m.RunningGroups {
+		gvs += g.Version
+		gids = append(gids, fmt.Sprintf("%x", g.ID))
+	}
+	sort.Slice(gids, func(i, j int) bool {
+		return gids[i] < gids[j]
+	})
+	if gvs != m.RunningGroupVersionSum || strings.Join(gids, ",") != m.RunningGroupIds {
+		return true, nil
 	}
 	return false, nil
 }

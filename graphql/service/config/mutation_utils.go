@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -436,19 +435,25 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	if err = d.Model(&db.System{}).FirstOrCreate(&sys).Error; err != nil {
 		return 0, err
 	}
-	var groupVersions []string
+	var gvs uint
+	var gids []string
 	for _, g := range groups {
-		groupVersions = append(groupVersions, strconv.FormatUint(uint64(g.Version), 10))
+		gvs += g.Version
+		gids = append(gids, fmt.Sprintf("%x", g.ID))
 	}
+	sort.Slice(gids, func(i, j int) bool {
+		return gids[i] < gids[j]
+	})
 	if err = d.Model(&sys).Updates(map[string]interface{}{
-		"running":                 true,
-		"running_config_id":       mConfig.ID,
-		"running_config_version":  mConfig.Version,
-		"running_dns_id":          mDns.ID,
-		"running_dns_version":     mDns.Version,
-		"running_routing_id":      mRouting.ID,
-		"running_routing_version": mRouting.Version,
-		"running_group_versions":  strings.Join(groupVersions, ","),
+		"running":                   true,
+		"running_config_id":         mConfig.ID,
+		"running_config_version":    mConfig.Version,
+		"running_dns_id":            mDns.ID,
+		"running_dns_version":       mDns.Version,
+		"running_routing_id":        mRouting.ID,
+		"running_routing_version":   mRouting.Version,
+		"running_group_version_sum": gvs,
+		"running_group_ids":         strings.Join(gids, ","),
 	}).Error; err != nil {
 		return 0, err
 	}
