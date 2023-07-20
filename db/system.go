@@ -6,12 +6,13 @@
 package db
 
 type System struct {
-	ID                    uint   `gorm:"primaryKey;autoIncrement"`
-	Running               bool   `gorm:"not null;default:false"`
-	RunningConfigVersion  uint   `gorm:"not null;default:0"`
-	RunningDnsVersion     uint   `gorm:"not null;default:0"`
-	RunningRoutingVersion uint   `gorm:"not null;default:0"`
-	RunningGroupVersions  string `gorm:"not null;default:0"`
+	ID                     uint   `gorm:"primaryKey;autoIncrement"`
+	Running                bool   `gorm:"not null;default:false"`
+	RunningConfigVersion   uint   `gorm:"not null;default:0"`
+	RunningDnsVersion      uint   `gorm:"not null;default:0"`
+	RunningRoutingVersion  uint   `gorm:"not null;default:0"`
+	RunningGroupVersionSum uint   `gorm:"not null;default:0"`
+	RunningGroupIds        string `gorm:"not null;default:''"`
 
 	// Foreign keys.
 	RunningConfigID  *uint
