@@ -64,6 +64,11 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 		return nil
 	}
 
+	if !conf.Global.DisableWaitingNetwork && len(conf.Global.WanInterface) > 0 {
+		// Wait for network for WAN ready.
+		WaitForNetwork(log)
+	}
+
 	// New c.
 	c, err = newControlPlane(log, nil, nil, conf, externGeoDataDirs)
 	if err != nil {
