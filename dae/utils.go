@@ -6,12 +6,21 @@
 package dae
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net"
+	"net/http"
 	"strings"
+	"time"
 
+	"github.com/daeuniverse/dae/cmd"
 	daeCommon "github.com/daeuniverse/dae/common"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/pkg/config_parser"
+	"github.com/mzz2017/softwind/netproxy"
+	"github.com/mzz2017/softwind/protocol/direct"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -83,4 +92,46 @@ func preprocessWanInterfaceAuto(params *daeConfig.Config) error {
 	}
 	params.Global.WanInterface = daeCommon.Deduplicate(ifs)
 	return nil
+}
+
+func WaitForNetwork(log *logrus.Logger) {
+	epo := 5 * time.Second
+	client := http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (c net.Conn, err error) {
+				cd := netproxy.ContextDialer{Dialer: direct.SymmetricDirect}
+				conn, err := cd.DialContext(ctx, "tcp", addr)
+				if err != nil {
+					return nil, err
+				}
+				return &netproxy.FakeNetConn{
+					Conn:  conn,
+					LAddr: nil,
+					RAddr: nil,
+				}, nil
+			},
+		},
+		Timeout: epo,
+	}
+	log.Infoln("Waiting for network...")
+	for i := 0; ; i++ {
+		resp, err := client.Get(cmd.CheckNetworkLinks[i%len(cmd.CheckNetworkLinks)])
+		if err != nil {
+			log.Debugln("CheckNetwork:", err)
+			var neterr net.Error
+			if errors.As(err, &neterr) && neterr.Timeout() {
+				// Do not sleep.
+				continue
+			}
+			time.Sleep(epo)
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode >= 200 && resp.StatusCode < 500 {
+			break
+		}
+		log.Infof("Bad status: %v (%v)", resp.Status, resp.StatusCode)
+		time.Sleep(epo)
+	}
+	log.Infoln("Network online.")
 }
