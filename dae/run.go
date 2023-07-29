@@ -8,6 +8,7 @@ package dae
 import (
 	"fmt"
 	"runtime"
+	"sync"
 
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/control"
@@ -28,6 +29,7 @@ var ChReloadConfigs = make(chan *ReloadMessage)
 var GracefullyExit = make(chan struct{})
 var EmptyConfig *daeConfig.Config
 var c *control.ControlPlane
+var onceWaitingNetwork sync.Once
 
 func init() {
 	sections, err := config_parser.Parse(`global{} routing{}`)
@@ -62,11 +64,6 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 			}
 		}
 		return nil
-	}
-
-	if !conf.Global.DisableWaitingNetwork && len(conf.Global.WanInterface) > 0 {
-		// Wait for network for WAN ready.
-		WaitForNetwork(log)
 	}
 
 	// New c.
@@ -208,6 +205,13 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*c
 
 	// Deep copy to prevent modification.
 	conf = deepcopy.Copy(conf).(*daeConfig.Config)
+
+	if !conf.Global.DisableWaitingNetwork && len(conf.Global.WanInterface) > 0 {
+		// Wait for network for WAN ready.
+		onceWaitingNetwork.Do(func() {
+			WaitForNetwork(log)
+		})
+	}
 
 	/// Get subscription -> nodeList mapping.
 	subscriptionToNodeList := map[string][]string{}

@@ -63,6 +63,7 @@ require (
 	github.com/mzz2017/disk-bloom v1.0.1 // indirect
 	github.com/mzz2017/quic-go v0.0.0-20230706143320-cc858d4932b7 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
+	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd // indirect
 	github.com/onsi/ginkgo/v2 v2.11.0 // indirect
 	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
 	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
