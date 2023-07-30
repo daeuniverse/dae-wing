@@ -60,11 +60,12 @@ bundle: deps
 		rm -r webrender/web 2>/dev/null; \
 		cp -r $(WEB_DIST) webrender/web; \
 		find webrender/web -type f -size +4k ! -name "*.gz" ! -name "*.woff"  ! -name "*.woff2" -exec sh -c '\
-			gzip -9 -k '{}'; \
-			if [ "$$(stat -c %s {})" \< "$$(stat -c %s {}.gz)" ]; then \
-				rm {}.gz; \
+			echo "{}"; \
+			gzip -9 -k "{}"; \
+			if [ $$(stat -c %s "{}") \< $$(stat -c %s "{}".gz) ]; then \
+				rm "{}".gz; \
 			else \
-				rm {}; \
+				rm "{}"; \
 			fi' ';' ; \
 	fi && \
 	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
