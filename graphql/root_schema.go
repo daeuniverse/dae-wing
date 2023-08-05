@@ -8,8 +8,9 @@ package graphql
 import (
 	"context"
 	"fmt"
-	"github.com/graph-gophers/graphql-go"
 	"strings"
+
+	"github.com/graph-gophers/graphql-go"
 )
 
 var rootSchema = `
@@ -97,6 +98,9 @@ type Mutation {
 
 	# importNodes is to import nodes with no subscription ID. rollbackError means abort the import on error.
 	importNodes(rollbackError: Boolean!, args: [ImportArgument!]!): [NodeImportResult!]! @hasRole(role: ADMIN)
+
+	# updateNode is to update a node with no subscription ID.
+	updateNode(id: ID!, newLink: String!): Node! @hasRole(role: ADMIN)
 
 	# removeNodes is to remove nodes that have no subscription ID.
 	removeNodes(ids: [ID!]!): Int! @hasRole(role: ADMIN)

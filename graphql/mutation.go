@@ -359,6 +359,20 @@ func (r *MutationResolver) ImportNodes(args *struct {
 	return result, nil
 }
 
+func (r *MutationResolver) UpdateNode(args *struct {
+	ID      graphql.ID
+	NewLink string
+}) (*node.Resolver, error) {
+	tx := db.BeginTx(context.TODO())
+	result, err := node.Update(tx, args.ID, args.NewLink)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	tx.Commit()
+	return result, nil
+}
+
 func (r *MutationResolver) RemoveNodes(args *struct {
 	IDs []graphql.ID
 }) (int32, error) {
