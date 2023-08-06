@@ -16,12 +16,15 @@ import (
 var rootSchema = `
 scalar Duration
 scalar Time
+scalar Int64
+scalar Uint64
 
 directive @hasRole(role: Role!) on FIELD_DEFINITION
 
 schema {
 	query: Query
 	mutation: Mutation
+	subscription: SubscriptionWs
 }
 type Query {
 	healthCheck: Int!
@@ -144,6 +147,9 @@ type Mutation {
 	# removeGroup is to remove a group.
 	removeGroup(id: ID!): Int! @hasRole(role: ADMIN)
 }
+type SubscriptionWs {
+	daeMsg(): DaeMsg!
+}
 enum Role {
 	admin
 }
@@ -203,6 +209,10 @@ func (*resolver) Query() *queryResolver {
 
 func (*resolver) Mutation() *MutationResolver {
 	return &MutationResolver{}
+}
+
+func (*resolver) Subscription() *SubscriptionWsResolver {
+	return newSubscriptionWsResolver()
 }
 
 func SchemaString() (string, error) {

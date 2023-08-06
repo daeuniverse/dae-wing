@@ -22,6 +22,7 @@ import (
 	"github.com/daeuniverse/dae-wing/webrender"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go/relay"
+	"github.com/graph-gophers/graphql-transport-ws/graphqlws"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -117,7 +118,7 @@ var (
 				errorExit(err)
 			}
 			mux := http.NewServeMux()
-			mux.Handle("/graphql", auth(cors.AllowAll().Handler(&relay.Handler{Schema: schema})))
+			mux.Handle("/graphql", auth(cors.AllowAll().Handler(graphqlws.NewHandlerFunc(schema, &relay.Handler{Schema: schema}))))
 			if err = webrender.Handle(mux); err != nil {
 				errorExit(err)
 			}

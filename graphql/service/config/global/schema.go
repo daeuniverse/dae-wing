@@ -7,12 +7,12 @@ package global
 
 import (
 	"fmt"
-	daeConfig "github.com/daeuniverse/dae/config"
-	"github.com/sirupsen/logrus"
-	"github.com/stoewer/go-strcase"
 	"reflect"
 	"strings"
 	"time"
+
+	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/stoewer/go-strcase"
 )
 
 type builder struct {
@@ -42,18 +42,10 @@ func (b *builder) Build() (string, error) {
 		// To lower camel case.
 		name = strcase.LowerCamelCase(name)
 		switch field := field.Interface().(type) {
-		case uint, uint8, uint16, uint32, uint64,
-			int, int8, int16, int32, int64:
-			// Int.
-			switch field.(type) {
-			case uint, uint32, uint64, int64:
-				logrus.WithFields(logrus.Fields{
-					"name": structField.Name,
-					"type": structField.Type.String(),
-				}).Warnln("dangerous converting: may exceeds graphQL int32 range")
-			}
-
-			b.WriteLine(1, name+": Int"+b.NotNullString)
+		case uint, uint8, uint16, uint32, uint64:
+			b.WriteLine(1, name+": Uint64"+b.NotNullString)
+		case int, int8, int16, int32, int64:
+			b.WriteLine(1, name+": Int64"+b.NotNullString)
 		case string:
 			b.WriteLine(1, name+": String"+b.NotNullString)
 		case time.Duration:
