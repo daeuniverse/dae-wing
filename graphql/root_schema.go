@@ -148,7 +148,7 @@ type Mutation {
 	removeGroup(id: ID!): Int! @hasRole(role: ADMIN)
 }
 type SubscriptionWs {
-	daeMsg(): DaeMsg!
+	daeMsg(): DaeMsg! @hasRole(role: ADMIN)
 }
 enum Role {
 	admin

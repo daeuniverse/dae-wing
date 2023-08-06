@@ -8,12 +8,9 @@ package daemsg
 func Schema() (string, error) {
 	return `
 type DaeMsg {
-	type: MsgType!
+	type: String!
 	timestamp: Time!
 	checkResult: CheckResult
-}
-enum MsgType {
-	connectivityCheckDone
 }
 type CheckResult {
 	dialerProperty: Property!

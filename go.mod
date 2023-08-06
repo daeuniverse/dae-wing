@@ -1,12 +1,15 @@
 module github.com/daeuniverse/dae-wing
 
-go 1.19
+go 1.21.0
+
+toolchain go1.21.3
 
 require (
 	github.com/daeuniverse/dae v0.2.0
 	github.com/glebarez/sqlite v1.8.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230228210639-f05ace9f4a41
+	github.com/graph-gophers/graphql-transport-ws v0.0.2
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
@@ -35,7 +38,6 @@ require (
 	github.com/bits-and-blooms/bloom/v3 v3.5.0 // indirect
 	github.com/cilium/ebpf v0.11.0 // indirect
 	github.com/daeuniverse/dae-config-dist/go/dae_config v0.0.0-20230604120805-1c27619b592d // indirect
-	github.com/daeuniverse/outbound v0.0.0-20240101085641-7932e7df927d // indirect
 	github.com/daeuniverse/softwind v0.0.0-20231230065827-eed67f20d2c1 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-idea v0.0.0-20170306091226-d2fb45a411fb // indirect
@@ -50,7 +52,6 @@ require (
 	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/graph-gophers/graphql-transport-ws v0.0.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -77,6 +78,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/v2rayA/ahocorasick-domain v0.0.0-20231231085011-99ceb8ef3208 // indirect
+	github.com/vektah/gqlparser/v2 v2.5.1 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	gitlab.com/yawning/chacha20.git v0.0.0-20230427033715-7877545b1b37 // indirect
@@ -96,5 +98,7 @@ require (
 )
 
 replace github.com/daeuniverse/dae => ./dae-core
+
+replace github.com/graph-gophers/graphql-transport-ws => github.com/mikhailv/graphql-transport-ws v0.0.0-20230405003623-3bf02386d7ce
 
 // replace github.com/daeuniverse/dae => ../dae

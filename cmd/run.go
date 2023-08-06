@@ -118,7 +118,7 @@ var (
 				errorExit(err)
 			}
 			mux := http.NewServeMux()
-			mux.Handle("/graphql", auth(cors.AllowAll().Handler(graphqlws.NewHandlerFunc(schema, &relay.Handler{Schema: schema}))))
+			mux.Handle("/graphql", auth(cors.AllowAll().Handler(graphqlws.NewHandlerFunc(schema, &relay.Handler{Schema: schema}, graphqlws.))))
 			if err = webrender.Handle(mux); err != nil {
 				errorExit(err)
 			}

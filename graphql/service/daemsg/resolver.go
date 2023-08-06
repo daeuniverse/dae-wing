@@ -23,6 +23,9 @@ func (r *Resolver) Timestamp() graphql.Time {
 
 func (r *Resolver) CheckResult() *CheckResultResolver {
 	if cr, ok := r.Msg.Body.(*dialer.CheckResult); ok {
+		if cr == nil {
+			return nil
+		}
 		return &CheckResultResolver{
 			CheckResult: cr,
 		}
