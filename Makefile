@@ -7,7 +7,7 @@ OUTPUT ?= ./dae-wing
 APPNAME ?= dae-wing
 DESCRIPTION ?= $(APPNAME) is a integration solution of dae, API and UI.
 VERSION ?= 0.0.0.unknown
-LDFLAGS = '-buildmode=pie -s -w -X github.com/daeuniverse/dae-wing/db.AppVersion=$(VERSION) -X github.com/daeuniverse/dae-wing/db.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/db.AppDescription=$(DESCRIPTION)"'
+LDFLAGS = '-s -w -X github.com/daeuniverse/dae-wing/db.AppVersion=$(VERSION) -X github.com/daeuniverse/dae-wing/db.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/db.AppDescription=$(DESCRIPTION)"'
 
 include functions.mk
 
@@ -51,7 +51,7 @@ $(DAE_READY): .gitmodules $(DAE_EBPF_SRC)
 	touch $@
 
 dae-wing: deps
-	go build -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
+	go build -o $(OUTPUT) -trimpath -buildmode=pie -ldflags $(LDFLAGS) .
 .PHONY: dae-wing
 
 bundle: deps
@@ -68,7 +68,7 @@ bundle: deps
 				rm "{}"; \
 			fi' ';' ; \
 	fi && \
-	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
+	go build -tags=embedallowed -o $(OUTPUT) -trimpath -buildmode=pie -ldflags $(LDFLAGS) .
 .PHONY: bundle
 
 fmt:
