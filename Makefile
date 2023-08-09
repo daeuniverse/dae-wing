@@ -51,7 +51,7 @@ $(DAE_READY): .gitmodules $(DAE_EBPF_SRC)
 	touch $@
 
 dae-wing: deps
-	go build -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
+	go build -o $(OUTPUT) -trimpath -buildmode=pie -ldflags $(LDFLAGS) .
 .PHONY: dae-wing
 
 bundle: deps
@@ -68,7 +68,7 @@ bundle: deps
 				rm "{}"; \
 			fi' ';' ; \
 	fi && \
-	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags $(LDFLAGS) .
+	go build -tags=embedallowed -o $(OUTPUT) -trimpath -buildmode=pie -ldflags $(LDFLAGS) .
 .PHONY: bundle
 
 fmt:
