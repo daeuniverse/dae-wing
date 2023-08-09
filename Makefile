@@ -7,7 +7,7 @@ OUTPUT ?= ./dae-wing
 APPNAME ?= dae-wing
 DESCRIPTION ?= $(APPNAME) is a integration solution of dae, API and UI.
 VERSION ?= 0.0.0.unknown
-LDFLAGS = '-s -w -X github.com/daeuniverse/dae-wing/db.AppVersion=$(VERSION) -X github.com/daeuniverse/dae-wing/db.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/db.AppDescription=$(DESCRIPTION)"'
+LDFLAGS = '-s -w -X github.com/daeuniverse/dae-wing/db.AppVersion=$(VERSION) -X github.com/daeuniverse/dae-wing/db.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/db.AppDescription=$(DESCRIPTION)"' $(LDFLAGS)
 
 include functions.mk
 
@@ -20,6 +20,8 @@ ifeq ($(wildcard .git/.),)
 else
 	VERSION ?= unstable-$(date).r$(count).$(commit)
 endif
+
+BUILD_ARGS = -trimpath -ldflags $(LDFLAGS) $(BUILD_ARGS)
 
 # Do NOT remove the line below. This line is for CI.
 #export GOMODCACHE=$(PWD)/go-mod
@@ -51,7 +53,7 @@ $(DAE_READY): .gitmodules $(DAE_EBPF_SRC)
 	touch $@
 
 dae-wing: deps
-	go build -o $(OUTPUT) -trimpath -buildmode=pie -ldflags $(LDFLAGS) .
+	go build -o $(OUTPUT) $(BUILD_ARGS) .
 .PHONY: dae-wing
 
 bundle: deps
