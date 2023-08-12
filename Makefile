@@ -29,7 +29,7 @@ else
 	BUILD_MODE ?= default
 endif
 
-BUILD_ARGS := -trimpath -ldflags $(GO_LDFLAGS) -buildmode=$(BUILD_MODE) $(BUILD_ARGS)
+BUILD_ARGS := -trimpath -ldflags=$(GO_LDFLAGS) -buildmode=$(BUILD_MODE) $(BUILD_ARGS)
 
 # Do NOT remove the line below. This line is for CI.
 #export GOMODCACHE=$(PWD)/go-mod
@@ -78,7 +78,7 @@ bundle: deps
 				rm "{}"; \
 			fi' ';' ; \
 	fi && \
-	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags $(GO_LDFLAGS) $(BUILD_MODE) .
+	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags=$(GO_LDFLAGS) -buildmode=$(BUILD_MODE) .
 .PHONY: bundle
 
 fmt:
