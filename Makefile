@@ -24,10 +24,12 @@ endif
 
 # amd64 and arm64 use PIE build mode by default
 ifeq ($(GOARCH),$(filter $(GOARCH),amd64 arm64))
-    BUILD_MODE ?= -buildmode=pie
+	BUILD_MODE ?= pie
+else
+	BUILD_MODE ?= default
 endif
 
-BUILD_ARGS := -trimpath -ldflags $(GO_LDFLAGS) $(BUILD_MODE) $(BUILD_ARGS)
+BUILD_ARGS := -trimpath -ldflags $(GO_LDFLAGS) -buildmode=$(BUILD_MODE) $(BUILD_ARGS)
 
 # Do NOT remove the line below. This line is for CI.
 #export GOMODCACHE=$(PWD)/go-mod
