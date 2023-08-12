@@ -76,6 +76,27 @@ func Import(d *gorm.DB, abortError bool, subscriptionId *uint, argument []*inter
 	return rs, nil
 }
 
+func Update(d *gorm.DB, _id graphql.ID, link string) (r *Resolver, err error) {
+	id, err := common.DecodeCursor(_id)
+	if err != nil {
+		return nil, err
+	}
+	newModel, err := db.NewNodeModel(link, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	q := d.Model(&db.Node{ID: id}).Updates(newModel)
+	if err = q.Error; err != nil {
+		return nil, err
+	}
+	if q.RowsAffected == 0 {
+		return nil, fmt.Errorf("no such node")
+	}
+	return &Resolver{
+		Node: newModel,
+	}, nil
+}
+
 func AutoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 	var sys db.System
 	if err = d.Model(&db.System{}).
