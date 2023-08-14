@@ -8,7 +8,6 @@ APPNAME ?= dae-wing
 DESCRIPTION ?= $(APPNAME) is a integration solution of dae, API and UI.
 VERSION ?= 0.0.0.unknown
 GO_LDFLAGS := '-s -w -X github.com/daeuniverse/dae-wing/db.AppVersion=$(VERSION) -X github.com/daeuniverse/dae-wing/db.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/db.AppDescription=$(DESCRIPTION)" $(GO_LDFLAGS)'
-GOARCH ?= $(shell go env GOARCH)
 
 include functions.mk
 
@@ -22,14 +21,7 @@ else
 	VERSION ?= unstable-$(date).r$(count).$(commit)
 endif
 
-# amd64 and arm64 use PIE build mode by default
-ifeq ($(GOARCH),$(filter $(GOARCH),amd64 arm64))
-	BUILD_MODE ?= pie
-else
-	BUILD_MODE ?= default
-endif
-
-BUILD_ARGS := -trimpath -ldflags=$(GO_LDFLAGS) -buildmode=$(BUILD_MODE) $(BUILD_ARGS)
+BUILD_ARGS := -trimpath -ldflags=$(GO_LDFLAGS) $(BUILD_ARGS)
 
 # Do NOT remove the line below. This line is for CI.
 #export GOMODCACHE=$(PWD)/go-mod
@@ -78,7 +70,7 @@ bundle: deps
 				rm "{}"; \
 			fi' ';' ; \
 	fi && \
-	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags=$(GO_LDFLAGS) -buildmode=$(BUILD_MODE) .
+	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags=$(GO_LDFLAGS) .
 .PHONY: bundle
 
 fmt:
