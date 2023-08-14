@@ -70,7 +70,7 @@ bundle: deps
 				rm "{}"; \
 			fi' ';' ; \
 	fi && \
-	go build -tags=embedallowed -o $(OUTPUT) -trimpath -buildmode=pie -ldflags=$(GO_LDFLAGS) .
+	go build -tags=embedallowed -o $(OUTPUT) -trimpath -ldflags=$(GO_LDFLAGS) .
 .PHONY: bundle
 
 fmt:
