@@ -35,7 +35,7 @@ require (
 	github.com/bits-and-blooms/bloom/v3 v3.5.0 // indirect
 	github.com/cilium/ebpf v0.11.0 // indirect
 	github.com/daeuniverse/dae-config-dist/go/dae_config v0.0.0-20230604120805-1c27619b592d // indirect
-	github.com/daeuniverse/softwind v0.0.0-20230809141237-cbe650b0e27c // indirect
+	github.com/daeuniverse/softwind v0.0.0-20230820153831-295ddb4d7a68 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-idea v0.0.0-20170306091226-d2fb45a411fb // indirect
 	github.com/dgryski/go-metro v0.0.0-20211217172704-adc40b04c140 // indirect
@@ -62,7 +62,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mzz2017/disk-bloom v1.0.1 // indirect
-	github.com/mzz2017/quic-go v0.0.0-20230809140948-2ea096492e36 // indirect
+	github.com/mzz2017/quic-go v0.0.0-20230820052354-b1f9b30e2593 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd // indirect
 	github.com/onsi/ginkgo/v2 v2.11.0 // indirect
@@ -84,7 +84,7 @@ require (
 	golang.org/x/term v0.10.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230706204954-ccb25ca9f130 // indirect
-	google.golang.org/grpc v1.56.2 // indirect
+	google.golang.org/grpc v1.57.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	modernc.org/libc v1.24.1 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
