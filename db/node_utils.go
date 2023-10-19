@@ -6,21 +6,24 @@
 package db
 
 import (
+	"strings"
+
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae/component/outbound/dialer"
-	"strings"
 )
 
 func NewNodeModel(link string, tag *string, subscriptionId *uint) (*Node, error) {
 	if !strings.Contains(link, "://") {
 		return nil, BadLinkFormatError
 	}
+	var _tag string
 	if tag != nil {
 		if err := common.ValidateTag(*tag); err != nil {
 			return nil, err
 		}
+		_tag = *tag
 	}
-	d, err := dialer.NewFromLink(&dialer.GlobalOption{}, dialer.InstanceOption{CheckEnabled: false}, link)
+	d, err := dialer.NewFromLink(&dialer.GlobalOption{}, dialer.InstanceOption{CheckEnabled: false}, link, _tag)
 	if err != nil {
 		return nil, err
 	}
