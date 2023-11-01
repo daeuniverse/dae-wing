@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  dae-wing:
+    privileged: true
+    network_mode: host
+    pid: host
+    build: .
+    container_name: dae-wing
+    volumes:
+      - /sys:/sys
+      - /etc/dae-wing:/etc/dae-wing
