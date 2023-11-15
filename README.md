@@ -7,7 +7,23 @@
     <img src="https://custom-icon-badges.herokuapp.com/github/last-commit/daeuniverse/dae-wing?logo=history&logoColor=white" alt="lastcommit"/>
 </p>
 
-## Run
+## Prerequisites
+
+[Git](https://git-scm.com), [Docker](https://www.docker.com), [Golang](https://go.dev), [GNU GCC](https://gcc.gnu.org)
+
+## Fetch the source code
+
+> Clone the repository with git submodules (dae-core) using git
+
+```shell
+git clone https://github.com/daeuniverse/dae-wing
+cd dae-wing
+
+# Initialize git submodules
+git submodule update --init --recursive
+```
+
+## Run Locally
 
 To run the api only:
 
@@ -23,6 +39,34 @@ To run with dae:
 make deps
 go run -exec sudo . run
 # go build -o dae-wing && sudo ./dae-wing run -c ./ --api-only
+```
+
+## Run with Docker
+
+> This feature is implemented for container orchestration with the dashboards that call this API, which also facilitates testing and development.
+
+Prebuilt image is available at `ghcr.io`. To pull this prebuilt image, you can replace image name into `ghcr.io/daeuniverse/dae-wing`.
+
+To build container from source:
+
+```bash
+# use docker compose
+sudo docker compose up -d
+
+# Or you can build then run with CLI
+# build image
+sudo docker build -t dae-wing .
+
+# run container
+sudo docker run -d \
+    --privileged \
+    --network=host \
+    --pid=host \
+    --restart=always \
+    -v /sys:/sys \
+    -v /etc/dae-wing:/etc/dae-wing \
+    --name=dae-wing \
+    dae-wing
 ```
 
 ## API
