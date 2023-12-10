@@ -9,8 +9,8 @@ require (
 	github.com/glebarez/sqlite v1.8.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230228210639-f05ace9f4a41
-	github.com/graph-gophers/graphql-transport-ws v0.0.2
 	github.com/json-iterator/go v1.1.12
+	github.com/lesismal/nbio v1.3.20
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/mzz2017/softwind v0.0.0-20230803152605-5f1f6bc06934
@@ -56,6 +56,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/lesismal/llib v1.1.12 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-sqlite3 v1.14.17 // indirect
@@ -77,8 +78,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
-	github.com/v2rayA/ahocorasick-domain v0.0.0-20231231085011-99ceb8ef3208 // indirect
-	github.com/vektah/gqlparser/v2 v2.5.1 // indirect
+	github.com/v2rayA/ahocorasick-domain v0.0.0-20230218160829-122a074c48c8 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2 // indirect
 	gitlab.com/yawning/chacha20.git v0.0.0-20230427033715-7877545b1b37 // indirect

@@ -9,7 +9,6 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/service"
 	"github.com/daeuniverse/dae-wing/graphql/service/config"
 	"github.com/daeuniverse/dae-wing/graphql/service/config/global"
-	"github.com/daeuniverse/dae-wing/graphql/service/daemsg"
 	"github.com/daeuniverse/dae-wing/graphql/service/dns"
 	"github.com/daeuniverse/dae-wing/graphql/service/general"
 	"github.com/daeuniverse/dae-wing/graphql/service/group"
@@ -32,5 +31,4 @@ var schemaChains = []SchemaChain{
 	node.Schema,
 	subscription.Schema,
 	user.Schema,
-	daemsg.Schema,
 }
