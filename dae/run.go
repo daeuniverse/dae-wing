@@ -31,7 +31,7 @@ var EmptyConfig *daeConfig.Config
 var c *control.ControlPlane
 var onceWaitingNetwork sync.Once
 var ChMsg chan *control.Msg
-var ResetChMsg chan struct{}
+var MsgProducer *DaeMsgProducer
 
 func init() {
 	sections, err := config_parser.Parse(`global{} routing{}`)
@@ -70,8 +70,9 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 	}
 
 	// New c.
-	ResetChMsg = make(chan struct{}, 1)
 	ChMsg = make(chan *control.Msg, 10)
+	MsgProducer = NewDaeMsgProducer(ChMsg)
+	go MsgProducer.Run()
 	c, err = newControlPlane(log, nil, nil, conf, externGeoDataDirs, ChMsg)
 	if err != nil {
 		return err
@@ -189,7 +190,7 @@ loop:
 			c = newC
 			conf = newConf
 			ChMsg = newChMsg
-			ResetChMsg <- struct{}{}
+			MsgProducer.ReassignChMsg(newChMsg)
 			reloading = true
 			/* dae-wing start */
 			chCallback = newReloadMsg.Callback

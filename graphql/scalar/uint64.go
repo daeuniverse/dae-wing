@@ -35,8 +35,13 @@ func (t *Uint64) UnmarshalGraphQL(input interface{}) (err error) {
 		if err != nil {
 			return err
 		}
+	case float64:
+		if uint64(input*10)%10 != 0 {
+			return fmt.Errorf("wrong type for Uint64: %v (%T)", input, input)
+		}
+		t.Uint64 = uint64(input)
 	default:
-		return fmt.Errorf("wrong type for Time: %T", input)
+		return fmt.Errorf("wrong type for Uint64: %v (%T)", input, input)
 	}
 	return nil
 }

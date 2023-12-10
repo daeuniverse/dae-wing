@@ -20,9 +20,9 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql"
 	"github.com/daeuniverse/dae-wing/graphql/service/config"
 	"github.com/daeuniverse/dae-wing/webrender"
+	"github.com/daeuniverse/dae-wing/ws"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go/relay"
-	"github.com/lesismal/nbio/nbhttp/websocket"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -119,7 +119,7 @@ var (
 			}
 			mux := http.NewServeMux()
 			mux.Handle("/graphql", auth(cors.AllowAll().Handler(&relay.Handler{Schema: schema})))
-			mux.Handle("/ws", auth(cors.AllowAll().Handler(&wsHandler{})))
+			mux.Handle("/ws", auth(cors.AllowAll().Handler(&ws.Handler{})))
 			if err = webrender.Handle(mux); err != nil {
 				errorExit(err)
 			}
@@ -150,37 +150,6 @@ var (
 		},
 	}
 )
-
-var upgrader = newUpgrader()
-
-func newUpgrader() *websocket.Upgrader {
-	u := websocket.NewUpgrader()
-	u.OnOpen(func(c *websocket.Conn) {
-		// echo
-		fmt.Println("OnOpen:", c.RemoteAddr().String())
-	})
-	u.OnMessage(func(c *websocket.Conn, messageType websocket.MessageType, data []byte) {
-		// echo
-		fmt.Println("OnMessage:", messageType, string(data))
-		c.WriteMessage(messageType, data)
-	})
-	u.OnClose(func(c *websocket.Conn, err error) {
-		fmt.Println("OnClose:", c.RemoteAddr().String(), err)
-	})
-	return u
-}
-
-type wsHandler struct{}
-
-var _ http.Handler = &wsHandler{}
-
-func (*wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Upgraded:", conn.RemoteAddr().String())
-}
 
 func restoreRunningState() (err error) {
 	reload, err := shouldReload()
@@ -242,7 +211,11 @@ func shouldReload() (ok bool, err error) {
 
 func auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authorization := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		authorization := r.Header.Get("Authorization")
+		if authorization == "" {
+			authorization = r.URL.Query().Get("authorization")
+		}
+		authorization = strings.TrimPrefix(authorization, "Bearer ")
 		var user db.User
 		token, err := jwt.Parse(authorization, func(token *jwt.Token) (interface{}, error) {
 			// Don't forget to validate the alg is what you expect:
@@ -271,6 +244,9 @@ func auth(next http.Handler) http.Handler {
 					ctx = context.WithValue(ctx, "user", &user)
 				}
 			}
+			w.Header().Set("x-auth-result", "1")
+		} else {
+			w.Header().Set("x-auth-result", "0")
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

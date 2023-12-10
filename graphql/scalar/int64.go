@@ -36,7 +36,7 @@ func (t *Int64) UnmarshalGraphQL(input interface{}) (err error) {
 			return err
 		}
 	default:
-		return fmt.Errorf("wrong type for Time: %T", input)
+		return fmt.Errorf("wrong type for Int64: %v (%T)", input, input)
 	}
 	return nil
 }
