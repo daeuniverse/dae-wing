@@ -36,7 +36,7 @@ func (t *Duration) UnmarshalGraphQL(input interface{}) (err error) {
 			return err
 		}
 	default:
-		return fmt.Errorf("wrong type for time.Duration: %v (%T)", input, input)
+		return fmt.Errorf("wrong type for Time: %T", input)
 	}
 	return nil
 }

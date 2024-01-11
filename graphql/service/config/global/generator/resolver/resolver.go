@@ -7,13 +7,13 @@ package main
 
 import (
 	"fmt"
+	daeConfig "github.com/daeuniverse/dae/config"
+	"github.com/sirupsen/logrus"
+	"github.com/stoewer/go-strcase"
 	"os"
 	"reflect"
 	"strings"
 	"time"
-
-	daeConfig "github.com/daeuniverse/dae/config"
-	"github.com/stoewer/go-strcase"
 )
 
 type builder struct {
@@ -63,10 +63,18 @@ func (b *builder) Build() (string, error) {
 			return "", fmt.Errorf("field %v has no required mapstructure", structField.Name)
 		}
 		switch field := field.Interface().(type) {
-		case uint, uint8, uint16, uint32, uint64:
-			b.WriteMarshalFunc(structField.Name, name, "scalar.Uint64")
-		case int, int8, int16, int32, int64:
-			b.WriteMarshalFunc(structField.Name, name, "scalar.Int64")
+		case uint, uint8, uint16, uint32, uint64,
+			int, int8, int16, int32, int64:
+			// Int.
+			switch field.(type) {
+			case uint, uint32, uint64, int64:
+				logrus.WithFields(logrus.Fields{
+					"name": structField.Name,
+					"type": structField.Type.String(),
+				}).Warnln("dangerous converting: may exceeds graphQL int32 range")
+			}
+
+			b.WriteFunc(structField.Name, name, "int32", true)
 		case string, bool, []string:
 			b.WriteFunc(structField.Name, name, structField.Type.String(), false)
 		case time.Duration:
