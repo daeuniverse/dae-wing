@@ -20,6 +20,7 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql"
 	"github.com/daeuniverse/dae-wing/graphql/service/config"
 	"github.com/daeuniverse/dae-wing/webrender"
+	"github.com/daeuniverse/dae-wing/ws"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/rs/cors"
@@ -118,6 +119,7 @@ var (
 			}
 			mux := http.NewServeMux()
 			mux.Handle("/graphql", auth(cors.AllowAll().Handler(&relay.Handler{Schema: schema})))
+			mux.Handle("/ws", auth(cors.AllowAll().Handler(&ws.Handler{})))
 			if err = webrender.Handle(mux); err != nil {
 				errorExit(err)
 			}
@@ -209,7 +211,11 @@ func shouldReload() (ok bool, err error) {
 
 func auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authorization := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		authorization := r.Header.Get("Authorization")
+		if authorization == "" {
+			authorization = r.URL.Query().Get("authorization")
+		}
+		authorization = strings.TrimPrefix(authorization, "Bearer ")
 		var user db.User
 		token, err := jwt.Parse(authorization, func(token *jwt.Token) (interface{}, error) {
 			// Don't forget to validate the alg is what you expect:
@@ -238,6 +244,9 @@ func auth(next http.Handler) http.Handler {
 					ctx = context.WithValue(ctx, "user", &user)
 				}
 			}
+			w.Header().Set("x-auth-result", "1")
+		} else {
+			w.Header().Set("x-auth-result", "0")
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

@@ -16,6 +16,8 @@ import (
 var rootSchema = `
 scalar Duration
 scalar Time
+scalar Int64
+scalar Uint64
 
 directive @hasRole(role: Role!) on FIELD_DEFINITION
 
@@ -144,6 +146,7 @@ type Mutation {
 	# removeGroup is to remove a group.
 	removeGroup(id: ID!): Int! @hasRole(role: ADMIN)
 }
+
 enum Role {
 	admin
 }
