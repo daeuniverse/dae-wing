@@ -30,8 +30,6 @@ var GracefullyExit = make(chan struct{})
 var EmptyConfig *daeConfig.Config
 var c *control.ControlPlane
 var onceWaitingNetwork sync.Once
-var ChMsg chan *control.Msg
-var MsgProducer *DaeMsgProducer
 
 func init() {
 	sections, err := config_parser.Parse(`global{} routing{}`)
@@ -45,11 +43,10 @@ func init() {
 }
 
 func ControlPlane() (*control.ControlPlane, error) {
-	ctl := c
-	if ctl == nil {
+	if c == nil {
 		return nil, ErrControlPlaneNotInit
 	}
-	return ctl, nil
+	return c, nil
 }
 
 func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string, disableTimestamp bool, dry bool) (err error) {
@@ -70,10 +67,7 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 	}
 
 	// New c.
-	ChMsg = make(chan *control.Msg, 10)
-	MsgProducer = NewDaeMsgProducer(ChMsg)
-	go MsgProducer.Run()
-	c, err = newControlPlane(log, nil, nil, conf, externGeoDataDirs, ChMsg)
+	c, err = newControlPlane(log, nil, nil, conf, externGeoDataDirs)
 	if err != nil {
 		return err
 	}
@@ -150,10 +144,8 @@ loop:
 				// Only keep dns cache when ip version preference not change.
 				dnsCache = c.CloneDnsCache()
 			}
-			// New ChMsg.
-			newChMsg := make(chan *control.Msg, 10)
 			log.Warnln("[Reload] Load new control plane")
-			newC, err := newControlPlane(log, obj, dnsCache, newConf, externGeoDataDirs, newChMsg)
+			newC, err := newControlPlane(log, obj, dnsCache, newConf, externGeoDataDirs)
 			if err != nil {
 				/* dae-wing start */
 				errReload = err
@@ -163,7 +155,7 @@ loop:
 					"err": err,
 				}).Errorln("[Reload] Failed to reload; try to roll back configuration")
 				// Load last config back.
-				newC, err = newControlPlane(log, obj, dnsCache, conf, externGeoDataDirs, ChMsg)
+				newC, err = newControlPlane(log, obj, dnsCache, conf, externGeoDataDirs)
 				if err != nil {
 					obj.Close()
 					c.Close()
@@ -172,7 +164,6 @@ loop:
 					}).Fatalln("[Reload] Failed to roll back configuration")
 				}
 				newConf = conf
-				newChMsg = ChMsg
 				log.Errorln("[Reload] Last reload failed; rolled back configuration")
 			} else {
 				log.Warnln("[Reload] Stopped old control plane")
@@ -189,8 +180,6 @@ loop:
 			oldC := c
 			c = newC
 			conf = newConf
-			ChMsg = newChMsg
-			MsgProducer.ReassignChMsg(newChMsg)
 			reloading = true
 			/* dae-wing start */
 			chCallback = newReloadMsg.Callback
@@ -206,7 +195,7 @@ loop:
 	return nil
 }
 
-func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*control.DnsCache, conf *daeConfig.Config, externGeoDataDirs []string, chMsg chan<- *control.Msg) (c *control.ControlPlane, err error) {
+func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*control.DnsCache, conf *daeConfig.Config, externGeoDataDirs []string) (c *control.ControlPlane, err error) {
 
 	// Print configuration.
 	if log.IsLevelEnabled(logrus.DebugLevel) {
@@ -240,18 +229,17 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*c
 	}
 
 	// New dae control plane.
-	c, err = control.NewControlPlane(&control.Options{
-		Log:               log,
-		Bpf:               bpf,
-		DnsCache:          dnsCache,
-		TagToNodeList:     subscriptionToNodeList,
-		Groups:            conf.Group,
-		RoutingA:          &conf.Routing,
-		Global:            &conf.Global,
-		DnsConfig:         &conf.Dns,
-		ExternGeoDataDirs: externGeoDataDirs,
-		ChMsg:             chMsg,
-	})
+	c, err = control.NewControlPlane(
+		log,
+		bpf,
+		dnsCache,
+		subscriptionToNodeList,
+		conf.Group,
+		&conf.Routing,
+		&conf.Global,
+		&conf.Dns,
+		externGeoDataDirs,
+	)
 	if err != nil {
 		return nil, err
 	}
