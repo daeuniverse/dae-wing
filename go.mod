@@ -1,6 +1,8 @@
 module github.com/daeuniverse/dae-wing
 
-go 1.19
+go 1.21.0
+
+toolchain go1.21.3
 
 require (
 	github.com/daeuniverse/dae v0.2.0
