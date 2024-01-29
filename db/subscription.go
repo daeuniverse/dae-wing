@@ -19,7 +19,7 @@ type Subscription struct {
 	UpdatedAt time.Time `gorm:"not null"`
 	Link      string    `gorm:"not null"`
 	CronExp   string    `gorm:"default:10 */6 * * *"`
-	CronEnable bool	 `gorm:"default:true"`
+	CronEnable bool	    `gorm:"default:true"`
 	Status    string    `gorm:"not null"` // Latency, error info, etc.
 	Info      string    `gorm:"not null"` // Maybe include some info from provider
 
