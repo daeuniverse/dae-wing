@@ -7,6 +7,7 @@ toolchain go1.21.3
 require (
 	github.com/daeuniverse/dae v0.2.0
 	github.com/glebarez/sqlite v1.8.0
+	github.com/go-co-op/gocron v1.37.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230228210639-f05ace9f4a41
 	github.com/json-iterator/go v1.1.12
@@ -45,9 +46,9 @@ require (
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eknkc/basex v1.0.1 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gaukas/godicttls v0.0.4 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
-	github.com/go-co-op/gocron v1.37.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/pprof v0.0.0-20230705174524-200ffdc848b8 // indirect
