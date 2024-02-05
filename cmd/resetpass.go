@@ -41,26 +41,51 @@ var (
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			var users []db.User
-			if err := db.DB(ctx).Find(&users).Error; err != nil {
-				logrus.Fatalln(err)
+			if userName != "" {
+				// search for user
+				if err := db.DB(ctx).Where("username = ?", userName).Find(&users).Error; err != nil {
+					logrus.Warnf("query username:[%v] with error: [%v] change to reset all users\n", userName, err)
+				}
+			}
+			if len(users) == 0 {
+				if err := db.DB(ctx).Find(&users).Error; err != nil {
+					logrus.Fatalln(err)
+				}
+			}
+			// double check if no user get
+			if len(users) == 0 {
+				logrus.Fatalln("unexpected error: No user found")
 			}
 			for _, u := range users {
-				password := gonanoid.Must(8)
-				if _, err := graphql.UpdatePassword(ctx, &struct {
-					CurrentPassword string
-					NewPassword     string
-				}{
-					NewPassword: password,
-				}, &u, true); err != nil {
-					logrus.Fatalf("Username: %v: %v", u.Username, err)
+				if newUserPassword == "" {
+					password := gonanoid.Must(8)
+					if _, err := graphql.UpdatePassword(ctx, &struct {
+						CurrentPassword string
+						NewPassword     string
+					}{
+						NewPassword: password,
+					}, &u, true); err != nil {
+						logrus.Fatalf("Username: %v: %v", u.Username, err)
+					}
+					fmt.Printf("Username: %v, Password: %v\n", u.Username, password)
+				} else {
+					if _, err := graphql.UpdatePassword(ctx, &struct {
+						CurrentPassword string
+						NewPassword     string
+					}{
+						NewPassword: newUserPassword,
+					}, &u, true); err != nil {
+						logrus.Fatalf("Username: %v: %v", u.Username, err)
+					}
+					fmt.Printf("Username: %v, Password: %v\n", u.Username, newUserPassword)
 				}
-				fmt.Printf("Username: %v, Password: %v\n", u.Username, password)
 			}
-
 		},
 	}
 )
 
 func init() {
 	resetpassCmd.PersistentFlags().StringVarP(&cfgDir, "config", "c", filepath.Join("/etc", db.AppName), "config directory")
+	resetpassCmd.PersistentFlags().StringVarP(&userName, "username", "u", "", "user name")
+	resetpassCmd.PersistentFlags().StringVarP(&newUserPassword, "password", "p", "", "user new password")
 }
