@@ -22,7 +22,7 @@ require (
 	github.com/vearutop/statigz v1.3.0
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/crypto v0.12.0
-	golang.org/x/sys v0.11.0
+	golang.org/x/sys v0.14.1-0.20231108175955-e4099bfacb8c
 	golang.org/x/tools v0.11.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/sqlite v1.5.2
@@ -35,7 +35,7 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect
 	github.com/bits-and-blooms/bitset v1.8.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.5.0 // indirect
-	github.com/cilium/ebpf v0.11.0 // indirect
+	github.com/cilium/ebpf v0.12.3 // indirect
 	github.com/daeuniverse/dae-config-dist/go/dae_config v0.0.0-20230604120805-1c27619b592d // indirect
 	github.com/daeuniverse/outbound v0.0.0-20240101085641-7932e7df927d // indirect
 	github.com/daeuniverse/softwind v0.0.0-20231230065827-eed67f20d2c1 // indirect
@@ -45,6 +45,7 @@ require (
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eknkc/basex v1.0.1 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gaukas/godicttls v0.0.4 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
