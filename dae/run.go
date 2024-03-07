@@ -80,9 +80,12 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 			<-readyChan
 			log.Infoln("Ready")
 		}()
-		if listener, err = c.ListenAndServe(readyChan, conf.Global.TproxyPort); err != nil {
-			log.Errorln("ListenAndServe:", err)
-		}
+		control.GetDaeNetns().With(func() error {
+			if listener, err = c.ListenAndServe(readyChan, conf.Global.TproxyPort); err != nil {
+				log.Errorln("ListenAndServe:", err)
+			}
+			return err
+		})
 		// Exit
 		ChReloadConfigs <- nil
 	}()
