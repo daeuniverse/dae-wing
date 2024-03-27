@@ -397,6 +397,7 @@ func (r *MutationResolver) ImportSubscription(args *struct {
 		return nil, err
 	}
 	tx.Commit()
+	subscription.UpdateAll(context.Background())
 	return result, nil
 }
 
