@@ -58,6 +58,8 @@ var (
 	disableTimestamp  bool
 	listen            string
 	apiOnly           bool
+	newUserPassword   string
+	userName          string
 
 	runCmd = &cobra.Command{
 		Use:   "run",
