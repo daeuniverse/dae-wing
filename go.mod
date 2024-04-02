@@ -37,12 +37,13 @@ require (
 	github.com/bits-and-blooms/bloom/v3 v3.5.0 // indirect
 	github.com/cilium/ebpf v0.12.3 // indirect
 	github.com/daeuniverse/dae-config-dist/go/dae_config v0.0.0-20230604120805-1c27619b592d // indirect
-	github.com/daeuniverse/outbound v0.0.0-20240101085641-7932e7df927d // indirect
-	github.com/daeuniverse/softwind v0.0.0-20231230065827-eed67f20d2c1 // indirect
+	github.com/daeuniverse/outbound v0.0.0-20240126121235-33bc68e5f93e // indirect
+	github.com/daeuniverse/softwind v0.0.0-20240125045015-94186ddaef35 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-idea v0.0.0-20170306091226-d2fb45a411fb // indirect
 	github.com/dgryski/go-metro v0.0.0-20211217172704-adc40b04c140 // indirect
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152 // indirect
+	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eknkc/basex v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
