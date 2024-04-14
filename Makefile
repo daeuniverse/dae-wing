@@ -32,7 +32,7 @@ all: dae-wing
 deps: schema-resolver $(DAE_READY)
 .PHONY: deps
 
-DAE_READY = dae-core/control/bpf_bpfeb.o
+DAE_READY = dae-core/control/bpf_bpfel.go
 DAE_EBPF_SRC = dae-core/control/kern/tproxy.c
 
 schema-resolver: $(DAE_READY)
