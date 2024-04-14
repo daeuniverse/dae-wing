@@ -2,6 +2,7 @@ package ws
 
 import (
 	"context"
+	"net/http"
 	"sync"
 	"time"
 
@@ -27,6 +28,11 @@ func subscribe(ctx context.Context, mp *dae.DaeMsgProducer, c *websocket.Conn) {
 
 func newUpgrader() *websocket.Upgrader {
 	u := websocket.NewUpgrader()
+	u.CheckOrigin = func(r *http.Request) bool {
+		// Ignore the same origin check and always return true.
+		return true
+	}
+	u.KeepaliveTime = 15 * time.Second
 	type Subscripber struct {
 		cancel context.CancelFunc
 	}
