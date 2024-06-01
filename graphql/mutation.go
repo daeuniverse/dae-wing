@@ -398,7 +398,7 @@ func (r *MutationResolver) ImportSubscription(args *struct {
 		return nil, err
 	}
 	tx.Commit()
-	ctx, caceel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, caceel := context.WithTimeout(context.Background(), 10*time.Second)
 	subscription.UpdateAll(ctx)
 	defer caceel()
 	return result, nil
