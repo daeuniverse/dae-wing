@@ -392,6 +392,10 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 				Params: params,
 			}
 		}
+		// fiexed group cannot have more than one node.
+		if g.Policy == "fixed" && len(sNodes) > 1 {
+			return 0, fmt.Errorf("group '%v' with policy 'fixed' cannot have more than one node", g.Name)
+		}
 		// Node names to filter.
 		var names []*config_parser.Param
 		for node := range sNodes {
