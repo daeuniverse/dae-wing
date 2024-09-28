@@ -10,6 +10,7 @@ import (
 
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae/component/outbound/dialer"
+	"github.com/sirupsen/logrus"
 )
 
 func NewNodeModel(link string, tag *string, subscriptionId *uint) (*Node, error) {
@@ -23,7 +24,9 @@ func NewNodeModel(link string, tag *string, subscriptionId *uint) (*Node, error)
 		}
 		_tag = *tag
 	}
-	d, err := dialer.NewFromLink(&dialer.GlobalOption{}, dialer.InstanceOption{DisableCheck: false}, link, _tag)
+	d, err := dialer.NewFromLink(&dialer.GlobalOption{
+		Log: logrus.StandardLogger(),
+	}, dialer.InstanceOption{DisableCheck: false}, link, _tag)
 	if err != nil {
 		return nil, err
 	}
