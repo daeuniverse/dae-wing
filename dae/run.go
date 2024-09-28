@@ -136,9 +136,12 @@ loop:
 			newConf := newReloadMsg.Config
 			/* dae-wing end */
 			// New logger.
-			log = logger.NewLogger(newConf.Global.LogLevel, disableTimestamp, nil)
-			logrus.SetLevel(log.Level)
-			log.SetOutput(logrus.StandardLogger().Out)
+			oldLogOutput := log.Out
+			log = logrus.New()
+			logger.SetLogger(log, newConf.Global.LogLevel, disableTimestamp, nil)
+			logger.SetLogger(logrus.StandardLogger(), newConf.Global.LogLevel, disableTimestamp, nil)
+			log.SetOutput(oldLogOutput) // FIXME: THIS IS A HACK.
+			logrus.SetOutput(oldLogOutput)
 
 			// New control plane.
 			obj := c.EjectBpf()

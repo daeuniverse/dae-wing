@@ -25,7 +25,9 @@ func NewNodeModel(link string, tag *string, subscriptionId *uint) (*Node, error)
 		}
 		_tag = *tag
 	}
-	d, err := dialer.NewFromLink(&dialer.GlobalOption{Log: logrus.StandardLogger()}, dialer.InstanceOption{DisableCheck: false}, link, _tag)
+	d, err := dialer.NewFromLink(&dialer.GlobalOption{
+		Log: logrus.StandardLogger(),
+	}, dialer.InstanceOption{DisableCheck: false}, link, _tag)
 	if err != nil {
 		return nil, err
 	}

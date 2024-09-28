@@ -21,9 +21,9 @@ require (
 	github.com/tidwall/sjson v1.2.5
 	github.com/vearutop/statigz v1.3.0
 	github.com/vishvananda/netlink v1.1.0
-	golang.org/x/crypto v0.18.0
+	golang.org/x/crypto v0.21.0
 	golang.org/x/sys v0.20.0
-	golang.org/x/tools v0.11.0
+	golang.org/x/tools v0.18.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/sqlite v1.5.2
 	gorm.io/gorm v1.25.2
@@ -41,7 +41,7 @@ require (
 	github.com/cilium/ebpf v0.12.3 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/daeuniverse/dae-config-dist/go/dae_config v0.0.0-20230604120805-1c27619b592d // indirect
-	github.com/daeuniverse/outbound v0.0.0-20240628165628-7c0c217530ea // indirect
+	github.com/daeuniverse/outbound v0.0.0-20240928042419-b1e258193113 // indirect
 	github.com/daeuniverse/quic-go v0.0.0-20240413031024-943f218e0810 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-idea v0.0.0-20170306091226-d2fb45a411fb // indirect
@@ -70,7 +70,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mholt/archiver/v3 v3.5.1 // indirect
-	github.com/miekg/dns v1.1.55 // indirect
+	github.com/miekg/dns v1.1.58 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mzz2017/disk-bloom v1.0.1 // indirect
@@ -78,6 +78,7 @@ require (
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/okzk/sdnotify v0.0.0-20180710141335-d9becc38acbd // indirect
 	github.com/onsi/ginkgo/v2 v2.11.0 // indirect
+	github.com/panjf2000/ants v1.3.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
@@ -97,14 +98,14 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	gitlab.com/yawning/chacha20.git v0.0.0-20230427033715-7877545b1b37 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/exp v0.0.0-20230728194245-b0cb94b80691 // indirect
-	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/term v0.16.0 // indirect
+	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
+	golang.org/x/mod v0.15.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230807174057-1744710a1577 // indirect
 	google.golang.org/grpc v1.57.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	modernc.org/libc v1.24.1 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.6.0 // indirect
