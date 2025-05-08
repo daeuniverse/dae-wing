@@ -41,7 +41,7 @@ require (
 	github.com/cilium/ebpf v0.15.0 // indirect
 	github.com/cloudflare/circl v1.3.9 // indirect
 	github.com/daeuniverse/dae-config-dist/go/dae_config v0.0.0-20230604120805-1c27619b592d // indirect
-	github.com/daeuniverse/outbound v0.0.0-20250219135309-c607702d1c85 // indirect
+	github.com/daeuniverse/outbound v0.0.0-20250501130119-88bbdbc0a58d // indirect
 	github.com/daeuniverse/quic-go v0.0.0-20250210145620-2083199a7851 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-idea v0.0.0-20170306091226-d2fb45a411fb // indirect
