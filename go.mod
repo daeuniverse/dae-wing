@@ -6,7 +6,7 @@ toolchain go1.23.6
 
 require (
 	github.com/daeuniverse/dae v0.2.0
-	github.com/daeuniverse/outbound v0.0.0-20250501130119-88bbdbc0a58d
+	github.com/daeuniverse/outbound v0.0.0-20250531131212-a58b4c6b39b2
 	github.com/glebarez/sqlite v1.8.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/graph-gophers/graphql-go v1.5.1-0.20230228210639-f05ace9f4a41
