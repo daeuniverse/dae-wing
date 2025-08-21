@@ -120,6 +120,9 @@ type Mutation {
 	# updateSubscription is to re-fetch subscription and resolve subscription into nodes. Old nodes that independently belong to any groups will not be removed.
 	updateSubscription(id: ID!): Subscription! @hasRole(role: ADMIN)
 
+	# updateSubscriptionLink is to update the subscription link without re-fetching nodes.
+	updateSubscriptionLink(id: ID!, link: String!): Subscription! @hasRole(role: ADMIN)
+
 	# createGroup is to create a group.
 	createGroup(name: String!, policy: Policy!, policyParams: [PolicyParam!]): Group! @hasRole(role: ADMIN)
 
