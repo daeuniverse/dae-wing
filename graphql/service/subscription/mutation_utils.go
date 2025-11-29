@@ -208,7 +208,7 @@ func AddUpdateScheduler(ctc context.Context, id uint) {
 
 func RemoveUpdateScheduler(id uint) {
 	if schedulerCache[id] != nil {
-		logrus.Info("Subscription " + string(id) + " update task disabled")
+		logrus.Info(fmt.Sprintf("Subscription %d update task disabled", id))
 		schedulerCache[id].Stop()
 		delete(schedulerCache, id)
 	}
