@@ -192,11 +192,15 @@ func AddUpdateScheduler(ctc context.Context, id uint) {
 	if sub.CronEnable && schedulerCache[sub.ID] == nil {
 		s := gocron.NewScheduler(time.Local)
 		logrus.Info("Subscription " + *sub.Tag + " update task enabled, with exp " + sub.CronExp)
-		s.Cron(sub.CronExp).Do(func() {
+		job, err := s.Cron(sub.CronExp).Do(func() {
 			if _, err := UpdateById(ctc, sub.ID); err != nil {
 				logrus.Error(err)
 			}
 		})
+		if err != nil {
+			logrus.Errorf("Failed to schedule subscription %d update: invalid cron expression '%s': %v", sub.ID, sub.CronExp, err)
+			return
+		}
 		s.StartAsync()
 		schedulerCache[sub.ID] = s
 	}
