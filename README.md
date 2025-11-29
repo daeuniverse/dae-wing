@@ -1,64 +1,75 @@
 # dae-wing
 
-<p align="left">
-    <img src="https://custom-icon-badges.herokuapp.com/github/license/daeuniverse/dae-wing?logo=law&color=orange" alt="License"/>
-    <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fdaeuniverse%2Fdae-wing&count_bg=%234E3DC8&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false" />
-    <img src="https://custom-icon-badges.herokuapp.com/github/issues-pr-closed/daeuniverse/dae-wing?color=purple&logo=git-pull-request&logoColor=white"/>
-    <img src="https://custom-icon-badges.herokuapp.com/github/last-commit/daeuniverse/dae-wing?logo=history&logoColor=white" alt="lastcommit"/>
-</p>
+**A lightweight GraphQL API wrapper for [dae](https://github.com/daeuniverse/dae)** — the high-performance eBPF-based proxy solution.
 
-## Prerequisites
+[![License](https://img.shields.io/github/license/daeuniverse/dae-wing?style=flat-square&color=blue)](LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/daeuniverse/dae-wing?style=flat-square)](go.mod)
+[![Release](https://img.shields.io/github/v/release/daeuniverse/dae-wing?style=flat-square)](https://github.com/daeuniverse/dae-wing/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/daeuniverse/dae-wing?style=flat-square)](https://github.com/daeuniverse/dae-wing/stargazers)
 
-[Git](https://git-scm.com), [Docker](https://www.docker.com), [Golang](https://go.dev), [GNU GCC](https://gcc.gnu.org)
+---
 
-## Fetch the source code
+## ✨ Features
 
-> Clone the repository with git submodules (dae-core) using git
+- 🚀 **GraphQL API** — Modern, type-safe API for managing dae
+- 🔄 **Hot Reload** — Switch configs without restarting
+- 📦 **Subscription Management** — Import and manage proxy subscriptions
+- 🐳 **Docker Ready** — Easy deployment with Docker/Docker Compose
+- 🔌 **Extensible** — Perfect backend for building custom dashboards
 
-```shell
+## 📋 Prerequisites
+
+| Dependency                       | Version | Required |
+| -------------------------------- | ------- | -------- |
+| [Go](https://go.dev)             | >= 1.22 | ✅       |
+| [Clang](https://clang.llvm.org)  | >= 15   | ✅       |
+| [LLVM](https://llvm.org)         | >= 15   | ✅       |
+| [Git](https://git-scm.com)       | Latest  | ✅       |
+| [Docker](https://www.docker.com) | Latest  | Optional |
+
+## 🚀 Quick Start
+
+### Clone the Repository
+
+```bash
 git clone https://github.com/daeuniverse/dae-wing
 cd dae-wing
-
-# Initialize git submodules
 git submodule update --init --recursive
 ```
 
-## Run Locally
+### Run Locally
 
-To run the api only:
+**API Only Mode** (for development):
 
 ```bash
 make deps
 go run . run -c ./ --api-only
-# go build -o dae-wing && ./dae-wing run -c ./ --api-only
 ```
 
-To run with dae:
+**Full Mode** (with dae proxy):
 
 ```bash
 make deps
 go run -exec sudo . run
-# go build -o dae-wing && sudo ./dae-wing run -c ./ --api-only
 ```
 
-## Run with Docker
+### Run with Docker
 
-> This feature is implemented for container orchestration with the dashboards that call this API, which also facilitates testing and development.
-
-Prebuilt image is available at `ghcr.io`. To pull this prebuilt image, you can replace image name into `ghcr.io/daeuniverse/dae-wing`.
-
-To build container from source:
+Pull the prebuilt image:
 
 ```bash
-# use docker compose
-sudo docker compose up -d
+docker pull ghcr.io/daeuniverse/dae-wing
+```
 
-# Or you can build then run with CLI
-# build image
-sudo docker build -t dae-wing .
+Or build from source:
 
-# run container
-sudo docker run -d \
+```bash
+# Using Docker Compose (recommended)
+docker compose up -d
+
+# Or using Docker CLI
+docker build -t dae-wing .
+docker run -d \
     --privileged \
     --network=host \
     --pid=host \
@@ -69,55 +80,77 @@ sudo docker run -d \
     dae-wing
 ```
 
-## API
+## 📖 API Documentation
 
-API is powered by [GraphQL](https://graphql.org/). UI developers can export schema and write queries and mutations easily.
+dae-wing uses [GraphQL](https://graphql.org/) for its API.
+
+### Export Schema
 
 ```bash
-git clone https://github.com/daeuniverse/dae-wing
 go build -o dae-wing
 ./dae-wing export schema > schema.graphql
 ```
 
-[graphql-playground](https://github.com/graphql/graphql-playground) is recommended for developers. It integrates docs and debug environment for API. Choose `URL ENDPOINT` and fill in `http://localhost:2023/graphql` to continue.
+### GraphQL Playground
 
-### Config generator
+Use [GraphQL Playground](https://github.com/graphql/graphql-playground) for interactive API exploration:
 
-Alternatively, you can use [raw format inputs](https://github.com/daeuniverse/dae/blob/main/example.dae), use [dae-outline2config](https://github.com/daeuniverse/dae-outline2config) to generate config related raw format.
+1. Open GraphQL Playground
+2. Set endpoint to `http://localhost:2023/graphql`
+3. Explore the schema and test queries
 
-To generate outline:
+### Export Config Outline
 
 ```bash
-git clone https://github.com/daeuniverse/dae-wing
-go build -o dae-wing .
 ./dae-wing export outline > outline.json
 ```
 
-## Structure
+> 💡 **Tip:** Use [dae-outline2config](https://github.com/daeuniverse/dae-outline2config) to convert outlines to dae config format.
+
+## 🏗️ Architecture
 
 ### Config
 
-Config defined in dae-wing includes `global`, `dns` and `routing` sections in [dae](https://github.com/daeuniverse/dae).
+Configs include `global`, `dns`, and `routing` sections from [dae](https://github.com/daeuniverse/dae).
 
-Users can switch between multiple configs. Nodes, subscriptions and groups are selectively shared by all configs.
-
-**Run**
-
-Selected config is the running config or config to run. If dae is not running, you can select a config and invoke run. If dae is already running with a config, selecting a new config will cause automatic switching and reloading, and removing the running config will cause to stop running.
+- **Multiple Configs** — Switch between different configurations
+- **Shared Resources** — Nodes, subscriptions, and groups are shared across configs
+- **Hot Reload** — Selecting a new config automatically reloads dae
 
 ### Subscription
 
-Subscription consists of its link and the collection of nodes resolved by the link.
+A subscription contains:
+
+- Source link (URL)
+- Collection of resolved nodes
 
 ### Node
 
-A generalized node refer to a proxy profile, which can be imported by link. A node can be in a subscription or not. It depends on how it is imported. Nodes in the same collection must have unique links, which means nodes will be deduplicated by dae-wing before being added to a collection.
+Nodes represent proxy profiles imported via links. They can exist:
+
+- Independently (manually added)
+- Within subscriptions (auto-imported)
+
+> ⚠️ Nodes are deduplicated by link within the same collection.
 
 ### Group
 
-A group has the following features:
+Groups serve as routing outbounds with:
 
-- A group is as an outbound of routing.
-- A group consists of subscriptions, nodes and a node selection policy for every new connection.
+- A collection of subscriptions and nodes
+- Node selection policy for connections
+- Preserved nodes during subscription updates
 
-If a node in a subscription also belongs to a group, it will be preserved when the subscription is updated.
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the [AGPL-3.0 License](LICENSE).
+
+---
+
+<p align="center">
+  Made with ❤️ by the <a href="https://github.com/daeuniverse">dae universe</a> team
+</p>
