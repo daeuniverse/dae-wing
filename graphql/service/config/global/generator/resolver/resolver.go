@@ -71,7 +71,7 @@ func (b *builder) Build() (string, error) {
 				logrus.WithFields(logrus.Fields{
 					"name": structField.Name,
 					"type": structField.Type.String(),
-				}).Warnln("dangerous converting: may exceeds graphQL int32 range")
+				}).Debugln("converting to graphQL int32: may exceed range for large values")
 			}
 
 			b.WriteFunc(structField.Name, name, "int32", true)
