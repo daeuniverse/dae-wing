@@ -321,7 +321,10 @@ func UpdateLink(ctx context.Context, _id graphql.ID, link string) (r *Resolver, 
 	}
 	
 	// Update the link
-	if err = tx.Model(&m).Update("link", link).Error; err != nil {
+	if err = tx.Model(&m).Updates(map[string]interface{}{
+		"link": link,
+		"updated_at": time.Now(),
+	}).Error; err != nil {
 		return nil, err
 	}
 	
