@@ -193,7 +193,7 @@ func AddUpdateScheduler(ctc context.Context, id uint) {
 		s := gocron.NewScheduler(time.Local)
 		logrus.Info("Subscription " + *sub.Tag + " update task enabled, with exp " + sub.CronExp)
 		job, err := s.Cron(sub.CronExp).Do(func() {
-			if _, err := UpdateById(ctc, sub.ID); err != nil {
+			if _, err := UpdateById(context.Background(), sub.ID); err != nil {
 				logrus.Error(err)
 			}
 		})
