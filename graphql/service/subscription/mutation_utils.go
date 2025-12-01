@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/daeuniverse/dae-wing/common"
@@ -19,6 +20,7 @@ import (
 	"github.com/daeuniverse/dae-wing/graphql/internal"
 	"github.com/daeuniverse/dae-wing/graphql/service/node"
 	"github.com/daeuniverse/dae/common/subscription"
+	"github.com/go-co-op/gocron"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -168,11 +170,95 @@ func AutoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 	return nil
 }
 
+var (
+	schedulerCache = make(map[uint]*gocron.Scheduler)
+	schedulerMu    sync.RWMutex
+)
+
+func UpdateAll(ctx context.Context) {
+
+	var subs []db.Subscription
+	if err := db.DB(ctx).Find(&subs).Error; err != nil {
+		logrus.Error(err)
+		return
+	}
+	for _, sub := range subs {
+		AddUpdateScheduler(ctx, sub.ID)
+	}
+}
+
+func AddUpdateScheduler(ctx context.Context, id uint) {
+	var sub db.Subscription
+	if err := db.DB(ctx).Where("id = ?", id).First(&sub).Error; err != nil {
+		logrus.Error(err)
+		return
+	}
+	if !sub.CronEnable {
+		return
+	}
+
+	// Check if scheduler already exists (read lock)
+	schedulerMu.RLock()
+	exists := schedulerCache[sub.ID] != nil
+	schedulerMu.RUnlock()
+
+	if exists {
+		return
+	}
+
+	// Create new scheduler (write lock)
+	schedulerMu.Lock()
+	defer schedulerMu.Unlock()
+
+	// Double-check after acquiring write lock
+	if schedulerCache[sub.ID] != nil {
+		return
+	}
+
+	s := gocron.NewScheduler(time.Local)
+	tag := "unnamed"
+	if sub.Tag != nil {
+		tag = *sub.Tag
+	}
+	logrus.Info("Subscription " + tag + " update task enabled, with exp " + sub.CronExp)
+	_, err := s.Cron(sub.CronExp).Do(func() {
+		if _, err := UpdateById(context.Background(), sub.ID); err != nil {
+			logrus.Error(err)
+		}
+	})
+	if err != nil {
+		logrus.Errorf("Failed to schedule subscription %d update: invalid cron expression '%s': %v", sub.ID, sub.CronExp, err)
+		return
+	}
+	s.StartAsync()
+	schedulerCache[sub.ID] = s
+}
+
+func RemoveUpdateScheduler(id uint) {
+	schedulerMu.Lock()
+	defer schedulerMu.Unlock()
+
+	if schedulerCache[id] != nil {
+		logrus.Info(fmt.Sprintf("Subscription %d update task disabled", id))
+		schedulerCache[id].Stop()
+		delete(schedulerCache, id)
+	}
+}
+
 func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	subId, err := common.DecodeCursor(_id)
 	if err != nil {
 		return nil, err
 	}
+	var m *db.Subscription
+	m, err = UpdateById(ctx, subId)
+	if err != nil {
+		return nil, err
+	}
+	return &Resolver{Subscription: m}, nil
+}
+
+func UpdateById(ctx context.Context, subId uint) (sub *db.Subscription, err error) {
 	// Fetch node links.
 	var m db.Subscription
 	if err = db.DB(ctx).Where(&db.Subscription{ID: subId}).First(&m).Error; err != nil {
@@ -234,7 +320,7 @@ func Update(ctx context.Context, _id graphql.ID) (r *Resolver, err error) {
 	if err = AutoUpdateVersionByIds(tx, []uint{subId}); err != nil {
 		return nil, err
 	}
-	return &Resolver{Subscription: &m}, nil
+	return &m, nil
 }
 
 func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
@@ -280,6 +366,10 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 		return 0, q.Error
 	}
 
+	for _, id := range ids {
+		RemoveUpdateScheduler(id)
+	}
+
 	return int32(q.RowsAffected), nil
 }
 
@@ -305,7 +395,7 @@ func UpdateLink(ctx context.Context, _id graphql.ID, link string) (r *Resolver, 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
@@ -314,24 +404,26 @@ func UpdateLink(ctx context.Context, _id graphql.ID, link string) (r *Resolver, 
 			tx.Rollback()
 		}
 	}()
-	
+
 	var m db.Subscription
 	if err = tx.Where(&db.Subscription{ID: id}).First(&m).Error; err != nil {
 		return nil, err
 	}
-	
+
 	// Update the link
-	if err = tx.Model(&m).Updates(map[string]interface{}{
-		"link": link,
-		"updated_at": time.Now(),
-	}).Error; err != nil {
+	if err = tx.Model(&m).
+		Clauses(clause.Returning{}).
+		Updates(map[string]interface{}{
+			"link":       link,
+			"updated_at": time.Now(),
+		}).Error; err != nil {
 		return nil, err
 	}
-	
+
 	// Update modified if subscription is referenced by running config.
 	if err = AutoUpdateVersionByIds(tx, []uint{id}); err != nil {
 		return nil, err
 	}
-	
+
 	return &Resolver{Subscription: &m}, nil
 }

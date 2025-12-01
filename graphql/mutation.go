@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/daeuniverse/dae-wing/db"
@@ -397,6 +398,9 @@ func (r *MutationResolver) ImportSubscription(args *struct {
 		return nil, err
 	}
 	tx.Commit()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	subscription.UpdateAll(ctx)
 	return result, nil
 }
 
