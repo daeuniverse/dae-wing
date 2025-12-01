@@ -395,7 +395,7 @@ func UpdateLink(ctx context.Context, _id graphql.ID, link string) (r *Resolver, 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
@@ -404,24 +404,26 @@ func UpdateLink(ctx context.Context, _id graphql.ID, link string) (r *Resolver, 
 			tx.Rollback()
 		}
 	}()
-	
+
 	var m db.Subscription
 	if err = tx.Where(&db.Subscription{ID: id}).First(&m).Error; err != nil {
 		return nil, err
 	}
-	
+
 	// Update the link
-	if err = tx.Model(&m).Updates(map[string]interface{}{
-		"link": link,
-		"updated_at": time.Now(),
-	}).Error; err != nil {
+	if err = tx.Model(&m).
+		Clauses(clause.Returning{}).
+		Updates(map[string]interface{}{
+			"link":       link,
+			"updated_at": time.Now(),
+		}).Error; err != nil {
 		return nil, err
 	}
-	
+
 	// Update modified if subscription is referenced by running config.
 	if err = AutoUpdateVersionByIds(tx, []uint{id}); err != nil {
 		return nil, err
 	}
-	
+
 	return &Resolver{Subscription: &m}, nil
 }
