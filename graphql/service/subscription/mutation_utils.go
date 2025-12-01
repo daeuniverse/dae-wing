@@ -183,9 +183,9 @@ func UpdateAll(ctx context.Context) {
 	}
 }
 
-func AddUpdateScheduler(ctc context.Context, id uint) {
+func AddUpdateScheduler(ctx context.Context, id uint) {
 	var sub db.Subscription
-	if err := db.DB(ctc).Where("id = ?", id).First(&sub).Error; err != nil {
+	if err := db.DB(ctx).Where("id = ?", id).First(&sub).Error; err != nil {
 		logrus.Error(err)
 		return
 	}
