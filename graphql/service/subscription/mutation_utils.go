@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/daeuniverse/dae-wing/common"
@@ -169,7 +170,10 @@ func AutoUpdateVersionByIds(d *gorm.DB, ids []uint) (err error) {
 	return nil
 }
 
-var schedulerCache = make(map[uint]*gocron.Scheduler)
+var (
+	schedulerCache = make(map[uint]*gocron.Scheduler)
+	schedulerMu    sync.RWMutex
+)
 
 func UpdateAll(ctx context.Context) {
 
@@ -189,28 +193,51 @@ func AddUpdateScheduler(ctx context.Context, id uint) {
 		logrus.Error(err)
 		return
 	}
-	if sub.CronEnable && schedulerCache[sub.ID] == nil {
-		s := gocron.NewScheduler(time.Local)
-		tag := "unnamed"
-		if sub.Tag != nil {
-			tag = *sub.Tag
-		}
-		logrus.Info("Subscription " + tag + " update task enabled, with exp " + sub.CronExp)
-		job, err := s.Cron(sub.CronExp).Do(func() {
-			if _, err := UpdateById(context.Background(), sub.ID); err != nil {
-				logrus.Error(err)
-			}
-		})
-		if err != nil {
-			logrus.Errorf("Failed to schedule subscription %d update: invalid cron expression '%s': %v", sub.ID, sub.CronExp, err)
-			return
-		}
-		s.StartAsync()
-		schedulerCache[sub.ID] = s
+	if !sub.CronEnable {
+		return
 	}
+
+	// Check if scheduler already exists (read lock)
+	schedulerMu.RLock()
+	exists := schedulerCache[sub.ID] != nil
+	schedulerMu.RUnlock()
+
+	if exists {
+		return
+	}
+
+	// Create new scheduler (write lock)
+	schedulerMu.Lock()
+	defer schedulerMu.Unlock()
+
+	// Double-check after acquiring write lock
+	if schedulerCache[sub.ID] != nil {
+		return
+	}
+
+	s := gocron.NewScheduler(time.Local)
+	tag := "unnamed"
+	if sub.Tag != nil {
+		tag = *sub.Tag
+	}
+	logrus.Info("Subscription " + tag + " update task enabled, with exp " + sub.CronExp)
+	_, err := s.Cron(sub.CronExp).Do(func() {
+		if _, err := UpdateById(context.Background(), sub.ID); err != nil {
+			logrus.Error(err)
+		}
+	})
+	if err != nil {
+		logrus.Errorf("Failed to schedule subscription %d update: invalid cron expression '%s': %v", sub.ID, sub.CronExp, err)
+		return
+	}
+	s.StartAsync()
+	schedulerCache[sub.ID] = s
 }
 
 func RemoveUpdateScheduler(id uint) {
+	schedulerMu.Lock()
+	defer schedulerMu.Unlock()
+
 	if schedulerCache[id] != nil {
 		logrus.Info(fmt.Sprintf("Subscription %d update task disabled", id))
 		schedulerCache[id].Stop()
