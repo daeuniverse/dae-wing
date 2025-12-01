@@ -29,7 +29,7 @@ type Query {
 	numberUsers: Int!
 	# jsonStorage get given paths from user related json storage. Empty paths is to get all. Refer to https://github.com/tidwall/gjson
 	jsonStorage(paths: [String!]): [String!]! @hasRole(role: ADMIN)
-    user(): User! @hasRole(role: ADMIN)
+    user: User! @hasRole(role: ADMIN)
 	configFlatDesc: [ConfigFlatDesc!]! @hasRole(role: ADMIN)
 	configs(id: ID, selected: Boolean): [Config!]! @hasRole(role: ADMIN)
 	dnss(id: ID, selected: Boolean): [Dns!]! @hasRole(role: ADMIN)
@@ -40,7 +40,7 @@ type Query {
 	groups(id: ID): [Group!]! @hasRole(role: ADMIN)
 	group(name: String!): Group! @hasRole(role: ADMIN)
 	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection! @hasRole(role: ADMIN)
-	general(): General! @hasRole(role: ADMIN)
+	general: General! @hasRole(role: ADMIN)
 }
 type Mutation {
 	# createUser creates a user if there is no user.
@@ -120,6 +120,9 @@ type Mutation {
 	# updateSubscription is to re-fetch subscription and resolve subscription into nodes. Old nodes that independently belong to any groups will not be removed.
 	updateSubscription(id: ID!): Subscription! @hasRole(role: ADMIN)
 
+	# updateSubscriptionLink is to update the subscription link without re-fetching nodes.
+	updateSubscriptionLink(id: ID!, link: String!): Subscription! @hasRole(role: ADMIN)
+
 	# createGroup is to create a group.
 	createGroup(name: String!, policy: Policy!, policyParams: [PolicyParam!]): Group! @hasRole(role: ADMIN)
 
@@ -145,7 +148,7 @@ type Mutation {
 	removeGroup(id: ID!): Int! @hasRole(role: ADMIN)
 }
 enum Role {
-	admin
+	ADMIN
 }
 input ImportArgument {
 	link: String!
