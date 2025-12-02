@@ -123,6 +123,9 @@ type Mutation {
 	# updateSubscriptionLink is to update the subscription link without re-fetching nodes.
 	updateSubscriptionLink(id: ID!, link: String!): Subscription! @hasRole(role: ADMIN)
 
+	# updateSubscriptionCron is to update the subscription cron settings.
+	updateSubscriptionCron(id: ID!, cronExp: String!, cronEnable: Boolean!): Subscription! @hasRole(role: ADMIN)
+
 	# createGroup is to create a group.
 	createGroup(name: String!, policy: Policy!, policyParams: [PolicyParam!]): Group! @hasRole(role: ADMIN)
 

@@ -427,3 +427,52 @@ func UpdateLink(ctx context.Context, _id graphql.ID, link string) (r *Resolver, 
 
 	return &Resolver{Subscription: &m}, nil
 }
+
+func UpdateCron(ctx context.Context, _id graphql.ID, cronExp string, cronEnable bool) (r *Resolver, err error) {
+	id, err := common.DecodeCursor(_id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate cron expression if enabling
+	if cronEnable && cronExp != "" {
+		s := gocron.NewScheduler(time.Local)
+		_, err := s.Cron(cronExp).Do(func() {})
+		if err != nil {
+			return nil, fmt.Errorf("invalid cron expression '%s': %w", cronExp, err)
+		}
+		s.Stop()
+	}
+
+	tx := db.BeginTx(ctx)
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
+
+	var m db.Subscription
+	if err = tx.Where(&db.Subscription{ID: id}).First(&m).Error; err != nil {
+		return nil, err
+	}
+
+	// Update cron settings
+	if err = tx.Model(&m).
+		Clauses(clause.Returning{}).
+		Updates(map[string]interface{}{
+			"cron_exp":    cronExp,
+			"cron_enable": cronEnable,
+		}).Error; err != nil {
+		return nil, err
+	}
+
+	// Update scheduler
+	RemoveUpdateScheduler(id)
+	if cronEnable {
+		AddUpdateScheduler(ctx, id)
+	}
+
+	return &Resolver{Subscription: &m}, nil
+}

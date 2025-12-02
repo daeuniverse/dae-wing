@@ -417,6 +417,14 @@ func (r *MutationResolver) UpdateSubscriptionLink(args *struct {
 	return subscription.UpdateLink(context.TODO(), args.ID, args.Link)
 }
 
+func (r *MutationResolver) UpdateSubscriptionCron(args *struct {
+	ID         graphql.ID
+	CronExp    string
+	CronEnable bool
+}) (*subscription.Resolver, error) {
+	return subscription.UpdateCron(context.TODO(), args.ID, args.CronExp, args.CronEnable)
+}
+
 func (r *MutationResolver) RemoveSubscriptions(args *struct {
 	IDs []graphql.ID
 }) (int32, error) {
