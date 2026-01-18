@@ -445,30 +445,31 @@ func UpdateCron(ctx context.Context, _id graphql.ID, cronExp string, cronEnable 
 	}
 
 	tx := db.BeginTx(ctx)
-	defer func() {
-		if err == nil {
-			tx.Commit()
-		} else {
-			tx.Rollback()
-		}
-	}()
 
 	var m db.Subscription
-	if err = tx.Where(&db.Subscription{ID: id}).First(&m).Error; err != nil {
+	if err := tx.Where(&db.Subscription{ID: id}).First(&m).Error; err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
 	// Update cron settings
-	if err = tx.Model(&m).
+	if err := tx.Model(&m).
 		Clauses(clause.Returning{}).
 		Updates(map[string]interface{}{
 			"cron_exp":    cronExp,
 			"cron_enable": cronEnable,
 		}).Error; err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
-	// Update scheduler
+	// Commit transaction first, then update scheduler
+	// so that AddUpdateScheduler reads the new values from database
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	// Update scheduler after transaction is committed
 	RemoveUpdateScheduler(id)
 	if cronEnable {
 		AddUpdateScheduler(ctx, id)
