@@ -10,6 +10,7 @@ func Schema() (string, error) {
 type General {
   dae: Dae!
   interfaces(up:Boolean): [Interface!]!
+  runtimeOverview(windowSec:Int!, maxPoints:Int!): RuntimeOverview!
   schema: String!
 }
 type Dae {
@@ -32,6 +33,21 @@ type DefaultRoute {
   ipVersion: String!
   gateway: String
   source: String
+}
+type RuntimeOverview {
+  updatedAt: Time!
+  uploadRate: Float!
+  downloadRate: Float!
+  uploadTotal: String!
+  downloadTotal: String!
+  activeConnections: Int!
+  udpSessions: Int!
+  samples: [RuntimeTrafficSample!]!
+}
+type RuntimeTrafficSample {
+  timestamp: Time!
+  uploadRate: Float!
+  downloadRate: Float!
 }
 `, nil
 }
