@@ -147,6 +147,13 @@ func (r *queryResolver) General() (*general.Resolver, error) {
 		GraphqlSchema: schema,
 	}, nil
 }
+
+func (r *queryResolver) NodeLatencies(ctx context.Context, args *struct {
+	IDs *[]graphql.ID
+}) ([]*node.LatencyResolver, error) {
+	return node.QueryLatencies(ctx, args.IDs)
+}
+
 func (r *queryResolver) Configs(args *struct {
 	ID       *graphql.ID
 	Selected *bool

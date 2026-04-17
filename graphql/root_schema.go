@@ -40,6 +40,7 @@ type Query {
 	groups(id: ID): [Group!]! @hasRole(role: ADMIN)
 	group(name: String!): Group! @hasRole(role: ADMIN)
 	nodes(id: ID, subscriptionId: ID, first: Int, after: ID): NodesConnection! @hasRole(role: ADMIN)
+	nodeLatencies(ids: [ID!]): [NodeLatency!]! @hasRole(role: ADMIN)
 	general: General! @hasRole(role: ADMIN)
 }
 type Mutation {

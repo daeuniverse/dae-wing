@@ -32,6 +32,12 @@ func TestLatencies(ctx context.Context, ids *[]graphql.ID) ([]*LatencyResolver, 
 		return nil, err
 	}
 
+	results := testLatencyResultsForNodes(option, nodes)
+	storeLatencyResults(results)
+	return results, nil
+}
+
+func testLatencyResultsForNodes(option *dialer.GlobalOption, nodes []db.Node) []*LatencyResolver {
 	results := make([]*LatencyResolver, len(nodes))
 	sem := make(chan struct{}, latencyProbeConcurrency)
 	var wg sync.WaitGroup
@@ -50,7 +56,7 @@ func TestLatencies(ctx context.Context, ids *[]graphql.ID) ([]*LatencyResolver, 
 	}
 
 	wg.Wait()
-	return results, nil
+	return results
 }
 
 func latencyProbeOption(ctx context.Context) (*dialer.GlobalOption, error) {
