@@ -374,6 +374,12 @@ func (r *MutationResolver) UpdateNode(args *struct {
 	return result, nil
 }
 
+func (r *MutationResolver) TestNodeLatencies(args *struct {
+	IDs *[]graphql.ID
+}) ([]*node.LatencyResolver, error) {
+	return node.TestLatencies(context.TODO(), args.IDs)
+}
+
 func (r *MutationResolver) RemoveNodes(args *struct {
 	IDs []graphql.ID
 }) (int32, error) {

@@ -102,6 +102,9 @@ type Mutation {
 	# updateNode is to update a node with no subscription ID.
 	updateNode(id: ID!, newLink: String!): Node! @hasRole(role: ADMIN)
 
+	# testNodeLatencies is to trigger latency probes for all or selected nodes.
+	testNodeLatencies(ids: [ID!]): [NodeLatency!]! @hasRole(role: ADMIN)
+
 	# removeNodes is to remove nodes that have no subscription ID.
 	removeNodes(ids: [ID!]!): Int! @hasRole(role: ADMIN)
 

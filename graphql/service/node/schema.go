@@ -21,5 +21,12 @@ type NodesConnection {
 	edges: [Node!]!
 	pageInfo: PageInfo! 
 }
+type NodeLatency {
+	id: ID!
+	latencyMs: Int
+	alive: Boolean!
+	testedAt: Time!
+	message: String
+}
 `, nil
 }
