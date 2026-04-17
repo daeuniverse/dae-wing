@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -128,6 +129,26 @@ type node struct {
 	dbNode     *db.Node
 	groups     []*db.Group
 	uniqueName string
+}
+
+func matchedNodesForGroupSubscription(binding *db.GroupSubscription) ([]db.Node, error) {
+	nodes := binding.Subscription.Node
+	if binding.NameFilterRegex == nil || *binding.NameFilterRegex == "" {
+		return nodes, nil
+	}
+
+	re, err := regexp.Compile(*binding.NameFilterRegex)
+	if err != nil {
+		return nil, err
+	}
+
+	var matched []db.Node
+	for _, n := range nodes {
+		if re.MatchString(n.Name) {
+			matched = append(matched, n)
+		}
+	}
+	return matched, nil
 }
 
 func deduplicateNodes(nodes []*node) []*node {
@@ -304,8 +325,9 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	q = d.Model(&db.Group{}).
 		Where("name in ?", outbounds).
 		Preload("PolicyParams").
-		Preload("Subscription").
-		Preload("Subscription.Node").
+		Preload("SubscriptionBindings").
+		Preload("SubscriptionBindings.Subscription").
+		Preload("SubscriptionBindings.Subscription.Node").
 		Find(&groups)
 	if q.Error != nil {
 		return 0, q.Error
@@ -336,8 +358,16 @@ func Run(d *gorm.DB, noLoad bool) (n int32, err error) {
 	// Find nodes in groups.
 	var nodes []*node
 	for i := range groups {
-		for _, gsub := range groups[i].Subscription {
-			for _, n := range gsub.Node {
+		for _, binding := range groups[i].SubscriptionBindings {
+			matchedNodes, err := matchedNodesForGroupSubscription(&binding)
+			if err != nil {
+				subscriptionName := binding.Subscription.Link
+				if binding.Subscription.Tag != nil && *binding.Subscription.Tag != "" {
+					subscriptionName = *binding.Subscription.Tag
+				}
+				return 0, fmt.Errorf("group '%v' has invalid subscription regex for '%v': %w", groups[i].Name, subscriptionName, err)
+			}
+			for _, n := range matchedNodes {
 				n := n
 				nodes = append(nodes, &node{
 					dbNode: &n,

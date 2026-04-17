@@ -7,11 +7,18 @@ package group
 
 func Schema() (string, error) {
 	return `
+type GroupSubscription {
+	subscription: Subscription!
+	nameFilterRegex: String
+	matchedNodes: [Node!]!
+	matchedCount: Int!
+}
+
 type Group {
 	id: ID!
 	name: String!
 	nodes: [Node!]!
-	subscriptions: [Subscription!]!
+	subscriptions: [GroupSubscription!]!
 	policy: Policy!
 	policyParams: [Param!]!
 }

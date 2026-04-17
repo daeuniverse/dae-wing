@@ -7,6 +7,9 @@ package group
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+	"strings"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae/pkg/config_parser"
@@ -40,6 +43,23 @@ func Create(ctx context.Context, name string, policy string, policyParams []conf
 func autoUpdateVersionById(d *gorm.DB, id uint) (err error) {
 	return d.Model(db.Group{ID: id}).
 		Update("version", gorm.Expr("version + 1")).Error
+}
+
+func normalizeNameFilterRegex(nameFilterRegex *string) (*string, error) {
+	if nameFilterRegex == nil {
+		return nil, nil
+	}
+
+	trimmed := strings.TrimSpace(*nameFilterRegex)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	if _, err := regexp.Compile(trimmed); err != nil {
+		return nil, fmt.Errorf("invalid name filter regex: %w", err)
+	}
+
+	return &trimmed, nil
 }
 
 func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err error) {
@@ -99,7 +119,7 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	if err = tx.Model(&db.Group{ID: id}).Association("Node").Clear(); err != nil {
 		return 0, err
 	}
-	if err = tx.Model(&db.Group{ID: id}).Association("Subscription").Clear(); err != nil {
+	if err = tx.Where("group_id = ?", id).Delete(&db.GroupSubscription{}).Error; err != nil {
 		return 0, err
 	}
 	if err = tx.Where("group_id = ?", id).Delete(&db.GroupPolicyParam{}).Error; err != nil {
@@ -111,7 +131,7 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	return int32(q.RowsAffected), nil
 }
 
-func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []graphql.ID) (int32, error) {
+func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []graphql.ID, nameFilterRegex *string) (int32, error) {
 	id, err := common.DecodeCursor(_id)
 	if err != nil {
 		return 0, err
@@ -120,9 +140,17 @@ func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 	if err != nil {
 		return 0, err
 	}
-	var subs []db.Subscription
-	for _, id := range subscriptionIds {
-		subs = append(subs, db.Subscription{ID: id})
+	normalizedRegex, err := normalizeNameFilterRegex(nameFilterRegex)
+	if err != nil {
+		return 0, err
+	}
+	var bindings []db.GroupSubscription
+	for _, subscriptionId := range subscriptionIds {
+		bindings = append(bindings, db.GroupSubscription{
+			GroupID:         id,
+			SubscriptionID:  subscriptionId,
+			NameFilterRegex: normalizedRegex,
+		})
 	}
 	tx := db.BeginTx(ctx)
 	defer func() {
@@ -132,10 +160,15 @@ func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 			tx.Rollback()
 		}
 	}()
-	if err = tx.Model(&db.Group{ID: id}).
-		Association("Subscription").
-		Append(subs); err != nil {
-		return 0, err
+	if len(bindings) > 0 {
+		if err = tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "group_id"}, {Name: "subscription_id"}},
+			DoUpdates: clause.Assignments(map[string]interface{}{
+				"name_filter_regex": normalizedRegex,
+			}),
+		}).Create(&bindings).Error; err != nil {
+			return 0, err
+		}
 	}
 
 	if err = autoUpdateVersionById(tx, id); err != nil {
@@ -153,10 +186,6 @@ func DelSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 	if err != nil {
 		return 0, err
 	}
-	var subs []db.Subscription
-	for _, id := range subscriptionIds {
-		subs = append(subs, db.Subscription{ID: id})
-	}
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
@@ -165,9 +194,8 @@ func DelSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 			tx.Rollback()
 		}
 	}()
-	if err = tx.Model(&db.Group{ID: id}).
-		Association("Subscription").
-		Delete(subs); err != nil {
+	if err = tx.Where("group_id = ? AND subscription_id in ?", id, subscriptionIds).
+		Delete(&db.GroupSubscription{}).Error; err != nil {
 		return 0, err
 	}
 

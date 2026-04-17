@@ -132,8 +132,8 @@ type Mutation {
 	# groupSetPolicy is to set the group a new policy.
 	groupSetPolicy(id: ID!, policy: Policy!, policyParams: [PolicyParam!]): Int! @hasRole(role: ADMIN)
 
-	# groupAddSubscriptions is to add subscriptions to the group.
-	groupAddSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int! @hasRole(role: ADMIN)
+	# groupAddSubscriptions is to add subscriptions to the group, optionally with a shared name filter regex.
+	groupAddSubscriptions(id: ID!, subscriptionIDs: [ID!]!, nameFilterRegex: String): Int! @hasRole(role: ADMIN)
 
 	# groupDelSubscriptions is to remove subscriptions from the group.
 	groupDelSubscriptions(id: ID!, subscriptionIDs: [ID!]!): Int! @hasRole(role: ADMIN)

@@ -14,11 +14,24 @@ type Group struct {
 	Name         string `gorm:"not null;unique;index"`
 	Policy       string `gorm:"not null"`
 	PolicyParams []GroupPolicyParam
-	Node         []Node         `gorm:"many2many:group_nodes;"`
-	Subscription []Subscription `gorm:"many2many:group_subscriptions;"`
+	Node         []Node              `gorm:"many2many:group_nodes;"`
+	SubscriptionBindings []GroupSubscription `gorm:"foreignKey:GroupID"`
 
 	Version  uint `gorm:"not null;default:0"`
 	SystemID *uint
+}
+
+type GroupSubscription struct {
+	GroupID         uint   `gorm:"primaryKey;autoIncrement:false"`
+	SubscriptionID  uint   `gorm:"primaryKey;autoIncrement:false"`
+	NameFilterRegex *string
+
+	Group        Group
+	Subscription Subscription
+}
+
+func (GroupSubscription) TableName() string {
+	return "group_subscriptions"
 }
 
 type GroupPolicyParam struct {

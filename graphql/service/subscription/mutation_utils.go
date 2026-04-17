@@ -359,6 +359,10 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 		Delete(&db.Node{}).Error; err != nil {
 		return 0, err
 	}
+	if err = tx.Where("subscription_id in ?", ids).
+		Delete(&db.GroupSubscription{}).Error; err != nil {
+		return 0, err
+	}
 	q := tx.Where("id in ?", ids).
 		Select(clause.Associations).
 		Delete(&db.Subscription{})
