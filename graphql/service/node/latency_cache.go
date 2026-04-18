@@ -103,9 +103,9 @@ func loadRuntimeLatencyResults(ctx context.Context) (map[uint]*LatencyResolver, 
 		return nil, err
 	}
 
-	nodeByLink := make(map[string]db.Node, len(nodes))
+	nodesByLink := make(map[string][]db.Node, len(nodes))
 	for _, node := range nodes {
-		nodeByLink[node.Link] = node
+		nodesByLink[node.Link] = append(nodesByLink[node.Link], node)
 	}
 
 	results := make(map[uint]*LatencyResolver)
@@ -114,21 +114,22 @@ func loadRuntimeLatencyResults(ctx context.Context) (map[uint]*LatencyResolver, 
 			continue
 		}
 
-		node, ok := nodeByLink[snapshot.Link]
+		matchedNodes, ok := nodesByLink[snapshot.Link]
 		if !ok {
 			continue
 		}
 
-		results[node.ID] = cloneLatencyResolver(&LatencyResolver{
-			NodeID:     node.ID,
-			LatencyMsV: snapshot.LatencyMs,
-			AliveVal:   snapshot.Alive,
-			TestedAtV:  snapshot.CheckedAt,
-			MessageV:   stringPtr(snapshot.Message),
-		})
+		for _, node := range matchedNodes {
+			results[node.ID] = cloneLatencyResolver(&LatencyResolver{
+				NodeID:     node.ID,
+				LatencyMsV: snapshot.LatencyMs,
+				AliveVal:   snapshot.Alive,
+				TestedAtV:  snapshot.CheckedAt,
+				MessageV:   stringPtr(snapshot.Message),
+			})
+		}
 	}
 
-	storeLatencyResults(mapsValues(results))
 	return results, nil
 }
 
@@ -206,7 +207,9 @@ func stringPtr(value string) *string {
 }
 
 func QueryLatencies(ctx context.Context, ids *[]graphql.ID) ([]*LatencyResolver, error) {
-	_ = refreshLatencyCacheIfNeeded(ctx)
+	if err := refreshLatencyCacheIfNeeded(ctx); err != nil {
+		return nil, err
+	}
 
 	nodes, err := latencyProbeNodes(ctx, ids)
 	if err != nil {
@@ -219,7 +222,9 @@ func QueryLatencies(ctx context.Context, ids *[]graphql.ID) ([]*LatencyResolver,
 		return nil, err
 	}
 	for id, resolver := range runtimeResults {
-		merged[id] = resolver
+		if _, ok := merged[id]; !ok {
+			merged[id] = resolver
+		}
 	}
 
 	results := make([]*LatencyResolver, 0, len(nodes))
