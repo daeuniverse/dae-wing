@@ -59,6 +59,15 @@ func ControlPlane() (*control.ControlPlane, error) {
 	return c, nil
 }
 
+// generation is one control plane with its listener. retired is set before
+// the plane is torn down so a Serve error from a plane that is being replaced
+// is not mistaken for the active datapath dying.
+type generation struct {
+	c        *control.ControlPlane
+	listener *control.Listener
+	retired  atomic.Bool
+}
+
 func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string, disableTimestamp bool, dry bool) (err error) {
 	defer close(GracefullyExit)
 	// Not really run dae.
@@ -76,21 +85,16 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 		return nil
 	}
 
-	// New c.
-	c, err := newControlPlane(log, nil, conf, externGeoDataDirs)
+	gen, err := startGeneration(log, nil, nil, conf, externGeoDataDirs)
 	if err != nil {
+		shutdownProcess(log, nil)
 		return err
 	}
-	listener, err := serve(log, c, conf.Global.TproxyPort)
-	if err != nil {
-		c.Close()
-		return err
-	}
-	active.Store(c)
+	active.Store(gen.c)
 	log.Infoln("Ready")
 
-	// A nil message is the exit request: cmd sends it on shutdown and serve
-	// sends it when the datapath dies underneath us.
+	// A nil message is the exit request: cmd sends it on shutdown and the
+	// serve monitor sends it when the active datapath dies underneath us.
 loop:
 	for newReloadMsg := range ChReloadConfigs {
 		if newReloadMsg == nil {
@@ -111,44 +115,32 @@ loop:
 		// that borrows the previous generation's hook set; re-attaching the
 		// shared programs from a second generation fails with EEXIST on TCX.
 		// dae-wing does not carry that state machine, so a reload is a cold
-		// restart of the control plane: the datapath is detached while the
-		// new generation loads (about a second), and pinned maps keep the
-		// connection state across the gap exactly as a dae process restart
-		// does.
+		// restart of the control plane: the old generation is aborted and
+		// closed, the new one is built and served. Established flows through
+		// the old generation are dropped and the datapath is detached while
+		// the new one loads (about a second). Only the DNS cache and dialer
+		// health are carried over.
 		var dnsCache map[string]*control.DnsCache
 		if conf.Dns.IpVersionPrefer == newConf.Dns.IpVersionPrefer {
 			// Only keep dns cache when ip version preference not change.
-			dnsCache = c.CloneDnsCache()
+			dnsCache = gen.c.CloneDnsCache()
 		}
 		log.Warnln("[Reload] Stop old control plane")
 		active.Store(nil)
-		stopControlPlane(log, c, listener)
-		listener = nil
+		stopGeneration(log, gen)
 
 		log.Warnln("[Reload] Load new control plane")
 		var errReload error
-		newC, err := newControlPlane(log, dnsCache, newConf, externGeoDataDirs)
-		if err == nil {
-			// Health snapshots survive Close; carrying them over keeps the
-			// groups routable instead of falling back until the first check.
-			newC.InheritDialerHealthFrom(c)
-			listener, err = serve(log, newC, newConf.Global.TproxyPort)
-			if err != nil {
-				stopControlPlane(log, newC, nil)
-			}
-		}
+		newGen, err := startGeneration(log, gen.c, dnsCache, newConf, externGeoDataDirs)
 		if err != nil {
 			errReload = err
 			log.WithFields(logrus.Fields{
 				"err": err,
 			}).Errorln("[Reload] Failed to reload; try to roll back configuration")
 			// Load last config back.
-			newC, err = newControlPlane(log, dnsCache, conf, externGeoDataDirs)
-			if err == nil {
-				newC.InheritDialerHealthFrom(c)
-				listener, err = serve(log, newC, conf.Global.TproxyPort)
-			}
+			newGen, err = startGeneration(log, gen.c, dnsCache, conf, externGeoDataDirs)
 			if err != nil {
+				shutdownProcess(log, nil)
 				log.WithFields(logrus.Fields{
 					"err": err,
 				}).Fatalln("[Reload] Failed to roll back configuration")
@@ -156,54 +148,60 @@ loop:
 			newConf = conf
 			log.Errorln("[Reload] Last reload failed; rolled back configuration")
 		}
-		c = newC
+		gen = newGen
 		conf = newConf
-		active.Store(c)
+		active.Store(gen.c)
 		log.Warnln("[Reload] Finished")
 		newReloadMsg.Callback <- errReload
 	}
 
 	active.Store(nil)
-	if listener != nil {
-		if e := listener.Close(); e != nil {
-			log.Warnf("close listener: %v", e)
-		}
-	}
-	if e := c.DetachBpfHooks(); e != nil {
-		log.Warnf("detach BPF hooks: %v", e)
-	}
-	if e := control.GetDaeNetns().Close(); e != nil {
-		log.Warnf("close dae netns: %v", e)
-	}
-	if e := c.AbortConnections(); e != nil {
-		log.Warnf("abort connections: %v", e)
-	}
-	closeErr := c.Close()
-	control.ResetGlobalUdpState()
-	if closeErr != nil {
-		return fmt.Errorf("close control plane: %w", closeErr)
-	}
-	return nil
+	return shutdownProcess(log, gen)
 }
 
-// serve listens in the dae netns and serves c in the background. It returns
-// once c reports ready, or with the listen/serve error. A generation that
-// dies after it was ready asks the run loop to exit; one that never became
-// ready is the caller's error to handle, so a failed reload candidate does
-// not take the process down with it.
-func serve(log *logrus.Logger, c *control.ControlPlane, port uint16) (listener *control.Listener, err error) {
+// startGeneration builds a control plane for conf, inherits dialer health
+// from previous when given, and serves it. On failure nothing of the new
+// generation is left behind.
+func startGeneration(log *logrus.Logger, previous *control.ControlPlane, dnsCache map[string]*control.DnsCache, conf *daeConfig.Config, externGeoDataDirs []string) (*generation, error) {
+	c, err := newControlPlane(log, dnsCache, conf, externGeoDataDirs)
+	if err != nil {
+		return nil, err
+	}
+	gen := &generation{c: c}
+	if previous != nil {
+		// Health snapshots survive Close; carrying them over keeps the
+		// groups routable instead of falling back until the first check.
+		c.InheritDialerHealthFrom(previous)
+	}
+	if gen.listener, err = serve(log, gen, conf.Global.TproxyPort); err != nil {
+		stopGeneration(log, gen)
+		return nil, err
+	}
+	return gen, nil
+}
+
+// serve listens in the dae netns and serves the generation in the background.
+// It returns once the plane reports ready, or with the listen/serve error. A
+// generation that dies after it was ready asks the run loop to exit unless
+// it has been retired; one that never became ready is the caller's error to
+// handle, so a failed reload candidate does not take the process down.
+func serve(log *logrus.Logger, gen *generation, port uint16) (listener *control.Listener, err error) {
 	err = control.GetDaeNetns().With(func() error {
 		var listenErr error
-		listener, listenErr = c.Listen(port)
+		listener, listenErr = gen.c.Listen(port)
 		return listenErr
 	})
 	if err != nil {
+		// The netns wrapper can fail after Listen succeeded.
+		if listener != nil {
+			_ = listener.Close()
+		}
 		return nil, fmt.Errorf("listen in dae netns: %w", err)
 	}
 	readyChan := make(chan bool, 1)
 	served := make(chan error, 1)
 	go func() {
-		served <- c.Serve(readyChan, listener)
+		served <- gen.c.Serve(readyChan, listener)
 	}()
 	if ready := <-readyChan; !ready {
 		err = <-served
@@ -214,7 +212,7 @@ func serve(log *logrus.Logger, c *control.ControlPlane, port uint16) (listener *
 		return nil, fmt.Errorf("serve: %w", err)
 	}
 	go func() {
-		if err := <-served; err != nil && active.Load() == c {
+		if err := <-served; err != nil && !gen.retired.Load() {
 			log.Errorln("Serve:", err)
 			// The datapath died underneath us; ask the run loop to exit.
 			ChReloadConfigs <- nil
@@ -223,21 +221,60 @@ func serve(log *logrus.Logger, c *control.ControlPlane, port uint16) (listener *
 	return listener, nil
 }
 
-// stopControlPlane retires one generation in the order dae's own shutdown
-// uses: stop accepting, detach the datapath, then release the control plane.
-// The dae netns is process-wide and is left in place for the next generation.
-func stopControlPlane(log *logrus.Logger, c *control.ControlPlane, listener *control.Listener) {
-	if listener != nil {
-		if e := listener.Close(); e != nil {
+// stopGeneration retires one generation in the order dae's own shutdown
+// uses: stop accepting, detach the datapath, abort its flows, release the
+// plane. The dae netns is process-wide and is left in place for the next
+// generation.
+func stopGeneration(log *logrus.Logger, gen *generation) {
+	gen.retired.Store(true)
+	if gen.listener != nil {
+		if e := gen.listener.Close(); e != nil {
 			log.Warnf("close listener: %v", e)
 		}
+		gen.listener = nil
 	}
-	if e := c.DetachBpfHooks(); e != nil {
+	if e := gen.c.DetachBpfHooks(); e != nil {
 		log.Warnf("detach BPF hooks: %v", e)
 	}
-	if e := c.Close(); e != nil {
+	// Close alone leaves generation-owned UDP endpoints and their receive
+	// goroutines alive; they cannot outlive the datapath they belong to.
+	if e := gen.c.AbortConnections(); e != nil {
+		log.Warnf("abort connections: %v", e)
+	}
+	if e := gen.c.Close(); e != nil {
 		log.Warnf("close control plane: %v", e)
 	}
+}
+
+// shutdownProcess releases the process-wide state after the last generation
+// (nil when none is serving) and returns the plane's close error.
+func shutdownProcess(log *logrus.Logger, gen *generation) error {
+	var closeErr error
+	if gen != nil {
+		gen.retired.Store(true)
+		if gen.listener != nil {
+			if e := gen.listener.Close(); e != nil {
+				log.Warnf("close listener: %v", e)
+			}
+		}
+		if e := gen.c.DetachBpfHooks(); e != nil {
+			log.Warnf("detach BPF hooks: %v", e)
+		}
+	}
+	if e := control.GetDaeNetns().Close(); e != nil {
+		log.Warnf("close dae netns: %v", e)
+	}
+	if gen != nil {
+		if e := gen.c.AbortConnections(); e != nil {
+			log.Warnf("abort connections: %v", e)
+		}
+		closeErr = gen.c.Close()
+	}
+	control.ResetGlobalUdpState()
+	if closeErr != nil {
+		return fmt.Errorf("close control plane: %w", closeErr)
+	}
+	return nil
 }
 
 func newControlPlane(log *logrus.Logger, dnsCache map[string]*control.DnsCache, conf *daeConfig.Config, externGeoDataDirs []string) (c *control.ControlPlane, err error) {
