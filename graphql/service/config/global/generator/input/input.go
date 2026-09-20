@@ -7,6 +7,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/daeuniverse/dae-wing/common"
 	"os"
 	"reflect"
 	"strings"
@@ -74,6 +75,9 @@ func (b *builder) Build() (string, error) {
 		name, ok := structField.Tag.Lookup("mapstructure")
 		if !ok {
 			return "", fmt.Errorf("field %v has no required mapstructure", structField.Name)
+		}
+		if common.IsReservedConfigField(name) {
+			continue
 		}
 		switch field := field.Interface().(type) {
 		case uint, uint8, uint16, uint32, uint64,
