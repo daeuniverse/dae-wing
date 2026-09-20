@@ -8,8 +8,6 @@ package dae
 import (
 	"errors"
 	"time"
-
-	"github.com/daeuniverse/dae/control"
 )
 
 type RuntimeTrafficSample struct {
@@ -30,17 +28,13 @@ type RuntimeOverview struct {
 }
 
 func GetRuntimeOverview(windowSec int, maxPoints int) (*RuntimeOverview, error) {
-	activeTCPConnections := 0
+	// A nil control plane snapshots the process-wide history with zero
+	// connection counts, so the overview keeps working before the first run.
 	ctl, err := ControlPlane()
-	if err != nil {
-		if !errors.Is(err, ErrControlPlaneNotInit) {
-			return nil, err
-		}
-	} else {
-		activeTCPConnections = ctl.ActiveTCPConnections()
+	if err != nil && !errors.Is(err, ErrControlPlaneNotInit) {
+		return nil, err
 	}
-
-	snapshot := control.SnapshotRuntimeStats(activeTCPConnections, control.DefaultUdpEndpointPool.Count(), windowSec, maxPoints)
+	snapshot := ctl.SnapshotRuntimeStats(windowSec, maxPoints)
 
 	samples := make([]RuntimeTrafficSample, 0, len(snapshot.Samples))
 	for _, sample := range snapshot.Samples {

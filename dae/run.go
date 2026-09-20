@@ -6,11 +6,13 @@
 package dae
 
 import (
+	"context"
 	"fmt"
 	"net/netip"
 	"runtime"
 	"sync"
 
+	daeCommon "github.com/daeuniverse/dae/common"
 	"github.com/daeuniverse/dae/common/netutils"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/control"
@@ -70,141 +72,155 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 	}
 
 	// New c.
-	c, err = newControlPlane(log, nil, nil, conf, externGeoDataDirs)
+	c, err = newControlPlane(log, nil, conf, externGeoDataDirs)
 	if err != nil {
 		return err
 	}
+	listener, err := serve(log, c, conf.Global.TproxyPort)
+	if err != nil {
+		c.Close()
+		return err
+	}
+	log.Infoln("Ready")
 
-	// Serve tproxy TCP/UDP server util signals.
-	var listener *control.Listener
-	go func() {
-		readyChan := make(chan bool, 1)
-		go func() {
-			<-readyChan
-			log.Infoln("Ready")
-		}()
-		control.GetDaeNetns().With(func() error {
-			if listener, err = c.ListenAndServe(readyChan, conf.Global.TproxyPort); err != nil {
-				log.Errorln("ListenAndServe:", err)
-			}
-			return err
-		})
-		// Exit
-		ChReloadConfigs <- nil
-	}()
-	reloading := false
-	/* dae-wing start */
-	var errReload error
-	var chCallback chan<- error
-	/* dae-wing end */
+	// A nil message is the exit request: cmd sends it on shutdown and serve
+	// sends it when the datapath dies underneath us.
 loop:
 	for newReloadMsg := range ChReloadConfigs {
-		switch newReloadMsg {
-		case nil:
-			/* dae-wing start */
-			// We will receive nil after control plane being Closed.
-			// We'll judge if we are in a reloading.
-			/* dae-wing end */
+		if newReloadMsg == nil {
+			break loop
+		}
+		log.Warnln("[Reload] Received reload signal; prepare to reload")
+		newConf := newReloadMsg.Config
 
-			if reloading {
-				if listener == nil {
-					// Failed to listen. Exit.
-					break loop
-				}
-				// Serve.
-				reloading = false
-				log.Warnln("[Reload] Serve")
-				readyChan := make(chan bool, 1)
-				go func() {
-					if err := c.Serve(readyChan, listener); err != nil {
-						log.Errorln("ListenAndServe:", err)
-					}
-					// Exit
-					ChReloadConfigs <- nil
-				}()
-				<-readyChan
-				log.Warnln("[Reload] Finished")
-				/* dae-wing start */
-				chCallback <- errReload
-				/* dae-wing end */
-			} else {
-				// Listening error.
-				break loop
-			}
-		default:
-			// Reload signal.
-			log.Warnln("[Reload] Received reload signal; prepare to reload")
+		// New logger.
+		oldLogOutput := log.Out
+		log = logrus.New()
+		logger.SetLogger(log, newConf.Global.LogLevel, disableTimestamp, nil)
+		logger.SetLogger(logrus.StandardLogger(), newConf.Global.LogLevel, disableTimestamp, nil)
+		log.SetOutput(oldLogOutput) // FIXME: THIS IS A HACK.
+		logrus.SetOutput(oldLogOutput)
 
-			/* dae-wing start */
-			newConf := newReloadMsg.Config
-			/* dae-wing end */
-			// New logger.
-			oldLogOutput := log.Out
-			log = logrus.New()
-			logger.SetLogger(log, newConf.Global.LogLevel, disableTimestamp, nil)
-			logger.SetLogger(logrus.StandardLogger(), newConf.Global.LogLevel, disableTimestamp, nil)
-			log.SetOutput(oldLogOutput) // FIXME: THIS IS A HACK.
-			logrus.SetOutput(oldLogOutput)
+		// dae >= 2.1.1 replaces TC programs in place through a staged handoff
+		// that borrows the previous generation's hook set; re-attaching the
+		// shared programs from a second generation fails with EEXIST on TCX.
+		// dae-wing does not carry that state machine, so a reload is a cold
+		// restart of the control plane: the datapath is detached while the
+		// new generation loads (about a second), and pinned maps keep the
+		// connection state across the gap exactly as a dae process restart
+		// does.
+		var dnsCache map[string]*control.DnsCache
+		if conf.Dns.IpVersionPrefer == newConf.Dns.IpVersionPrefer {
+			// Only keep dns cache when ip version preference not change.
+			dnsCache = c.CloneDnsCache()
+		}
+		log.Warnln("[Reload] Stop old control plane")
+		stopControlPlane(log, c, listener)
+		listener = nil
 
-			// New control plane.
-			obj := c.EjectBpf()
-			var dnsCache map[string]*control.DnsCache
-			if conf.Dns.IpVersionPrefer == newConf.Dns.IpVersionPrefer {
-				// Only keep dns cache when ip version preference not change.
-				dnsCache = c.CloneDnsCache()
-			}
-			log.Warnln("[Reload] Load new control plane")
-			newC, err := newControlPlane(log, obj, dnsCache, newConf, externGeoDataDirs)
+		log.Warnln("[Reload] Load new control plane")
+		var errReload error
+		newC, err := newControlPlane(log, dnsCache, newConf, externGeoDataDirs)
+		if err == nil {
+			// Health snapshots survive Close; carrying them over keeps the
+			// groups routable instead of falling back until the first check.
+			newC.InheritDialerHealthFrom(c)
+			listener, err = serve(log, newC, newConf.Global.TproxyPort)
 			if err != nil {
-				/* dae-wing start */
-				errReload = err
-				/* dae-wing end */
-
+				stopControlPlane(log, newC, nil)
+			}
+		}
+		if err != nil {
+			errReload = err
+			log.WithFields(logrus.Fields{
+				"err": err,
+			}).Errorln("[Reload] Failed to reload; try to roll back configuration")
+			// Load last config back.
+			newC, err = newControlPlane(log, dnsCache, conf, externGeoDataDirs)
+			if err == nil {
+				newC.InheritDialerHealthFrom(c)
+				listener, err = serve(log, newC, conf.Global.TproxyPort)
+			}
+			if err != nil {
 				log.WithFields(logrus.Fields{
 					"err": err,
-				}).Errorln("[Reload] Failed to reload; try to roll back configuration")
-				// Load last config back.
-				newC, err = newControlPlane(log, obj, dnsCache, conf, externGeoDataDirs)
-				if err != nil {
-					obj.Close()
-					c.Close()
-					log.WithFields(logrus.Fields{
-						"err": err,
-					}).Fatalln("[Reload] Failed to roll back configuration")
-				}
-				newConf = conf
-				log.Errorln("[Reload] Last reload failed; rolled back configuration")
-			} else {
-				log.Warnln("[Reload] Stopped old control plane")
-
-				/* dae-wing start */
-				errReload = nil
-				/* dae-wing end */
+				}).Fatalln("[Reload] Failed to roll back configuration")
 			}
+			newConf = conf
+			log.Errorln("[Reload] Last reload failed; rolled back configuration")
+		}
+		c = newC
+		conf = newConf
+		log.Warnln("[Reload] Finished")
+		newReloadMsg.Callback <- errReload
+	}
 
-			// Inject bpf objects into the new control plane life-cycle.
-			newC.InjectBpf(obj)
-
-			// Prepare new context.
-			oldC := c
-			c = newC
-			conf = newConf
-			reloading = true
-			/* dae-wing start */
-			chCallback = newReloadMsg.Callback
-			/* dae-wing end */
-
-			// Ready to close.
-			oldC.Close()
+	if listener != nil {
+		if e := listener.Close(); e != nil {
+			log.Warnf("close listener: %v", e)
 		}
 	}
-	if e := c.Close(); e != nil {
-		return fmt.Errorf("close control plane: %w", e)
+	if e := c.DetachBpfHooks(); e != nil {
+		log.Warnf("detach BPF hooks: %v", e)
+	}
+	if e := control.GetDaeNetns().Close(); e != nil {
+		log.Warnf("close dae netns: %v", e)
+	}
+	if e := c.AbortConnections(); e != nil {
+		log.Warnf("abort connections: %v", e)
+	}
+	closeErr := c.Close()
+	control.ResetGlobalUdpState()
+	if closeErr != nil {
+		return fmt.Errorf("close control plane: %w", closeErr)
 	}
 	return nil
 }
 
-func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*control.DnsCache, conf *daeConfig.Config, externGeoDataDirs []string) (c *control.ControlPlane, err error) {
+// serve listens in the dae netns and serves c in the background. It returns
+// once c reports ready, or with the listen/serve error.
+func serve(log *logrus.Logger, c *control.ControlPlane, port uint16) (listener *control.Listener, err error) {
+	err = control.GetDaeNetns().With(func() error {
+		var listenErr error
+		listener, listenErr = c.Listen(port)
+		return listenErr
+	})
+	if err != nil {
+		return nil, fmt.Errorf("listen in dae netns: %w", err)
+	}
+	readyChan := make(chan bool, 1)
+	go func() {
+		if err := c.Serve(readyChan, listener); err != nil {
+			log.Errorln("Serve:", err)
+			// The datapath died underneath us; ask the run loop to exit.
+			ChReloadConfigs <- nil
+		}
+	}()
+	if ready := <-readyChan; !ready {
+		_ = listener.Close()
+		return nil, fmt.Errorf("control plane did not become ready")
+	}
+	return listener, nil
+}
+
+// stopControlPlane retires one generation in the order dae's own shutdown
+// uses: stop accepting, detach the datapath, then release the control plane.
+// The dae netns is process-wide and is left in place for the next generation.
+func stopControlPlane(log *logrus.Logger, c *control.ControlPlane, listener *control.Listener) {
+	if listener != nil {
+		if e := listener.Close(); e != nil {
+			log.Warnf("close listener: %v", e)
+		}
+	}
+	if e := c.DetachBpfHooks(); e != nil {
+		log.Warnf("detach BPF hooks: %v", e)
+	}
+	if e := c.Close(); e != nil {
+		log.Warnf("close control plane: %v", e)
+	}
+}
+
+func newControlPlane(log *logrus.Logger, dnsCache map[string]*control.DnsCache, conf *daeConfig.Config, externGeoDataDirs []string) (c *control.ControlPlane, err error) {
 
 	// Print configuration.
 	if log.IsLevelEnabled(logrus.DebugLevel) {
@@ -215,14 +231,28 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*c
 	// Deep copy to prevent modification.
 	conf = deepcopy.Copy(conf).(*daeConfig.Config)
 
-	// Init Direct Dialers.
-	direct.InitDirectDialers(conf.Global.FallbackResolver)
-	netutils.FallbackDns = netip.MustParseAddrPort(conf.Global.FallbackResolver)
+	// Mirror dae cmd: resolve the socket mark before the control plane sees the
+	// config so dae's own egress is never captured by its own datapath.
+	if conf.Global.SoMarkFromDae == 0 {
+		var autoSelected bool
+		conf.Global.SoMarkFromDae, autoSelected = daeCommon.ResolveSoMarkFromDae(conf.Global.SoMarkFromDae, conf.Global.SoMarkFromDaeSet)
+		if autoSelected {
+			log.Warnf("so_mark_from_dae is unset; using internal socket mark %#x to prevent dae UDP self-capture", conf.Global.SoMarkFromDae)
+		}
+	}
+
+	// Purge classic TC filters left by an older process. Our own previous
+	// generation is already detached by the time a reload gets here.
+	control.PurgeStaleTCFilters(log)
+
+	// Generation-scoped direct dialers and system resolver.
+	directDialers := direct.NewDirectDialers(conf.Global.FallbackResolver)
+	systemDNSResolver := netutils.NewSystemDNSResolver(netip.MustParseAddrPort(conf.Global.FallbackResolver))
 
 	if !conf.Global.DisableWaitingNetwork && len(conf.Global.WanInterface) > 0 {
 		// Wait for network for WAN ready.
 		onceWaitingNetwork.Do(func() {
-			WaitForNetwork(log)
+			WaitForNetwork(log, directDialers.Symmetric)
 		})
 	}
 
@@ -242,9 +272,11 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*c
 	}
 
 	// New dae control plane.
-	c, err = control.NewControlPlane(
+	// Every generation loads its own BPF objects; pinned maps are reused.
+	c, err = control.NewControlPlaneWithContextOptions(
+		context.Background(),
 		log,
-		bpf,
+		nil,
 		dnsCache,
 		subscriptionToNodeList,
 		conf.Group,
@@ -252,6 +284,11 @@ func newControlPlane(log *logrus.Logger, bpf interface{}, dnsCache map[string]*c
 		&conf.Global,
 		&conf.Dns,
 		externGeoDataDirs,
+		control.ControlPlaneBuildOptions{
+			DirectDialer:         directDialers.Symmetric,
+			FullconeDirectDialer: directDialers.Fullcone,
+			SystemDNSResolver:    systemDNSResolver,
+		},
 	)
 	if err != nil {
 		return nil, err
