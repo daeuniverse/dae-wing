@@ -11,6 +11,7 @@ import (
 	"net/netip"
 	"runtime"
 	"sync"
+	"sync/atomic"
 
 	daeCommon "github.com/daeuniverse/dae/common"
 	"github.com/daeuniverse/dae/common/netutils"
@@ -33,7 +34,10 @@ type ReloadMessage struct {
 var ChReloadConfigs = make(chan *ReloadMessage)
 var GracefullyExit = make(chan struct{})
 var EmptyConfig *daeConfig.Config
-var c *control.ControlPlane
+
+// active is the generation currently serving traffic. It is nil before the
+// first generation is ready and while a reload has retired the old one.
+var active atomic.Pointer[control.ControlPlane]
 var onceWaitingNetwork sync.Once
 
 func init() {
@@ -48,6 +52,7 @@ func init() {
 }
 
 func ControlPlane() (*control.ControlPlane, error) {
+	c := active.Load()
 	if c == nil {
 		return nil, ErrControlPlaneNotInit
 	}
@@ -72,7 +77,7 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 	}
 
 	// New c.
-	c, err = newControlPlane(log, nil, conf, externGeoDataDirs)
+	c, err := newControlPlane(log, nil, conf, externGeoDataDirs)
 	if err != nil {
 		return err
 	}
@@ -81,6 +86,7 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 		c.Close()
 		return err
 	}
+	active.Store(c)
 	log.Infoln("Ready")
 
 	// A nil message is the exit request: cmd sends it on shutdown and serve
@@ -115,6 +121,7 @@ loop:
 			dnsCache = c.CloneDnsCache()
 		}
 		log.Warnln("[Reload] Stop old control plane")
+		active.Store(nil)
 		stopControlPlane(log, c, listener)
 		listener = nil
 
@@ -151,10 +158,12 @@ loop:
 		}
 		c = newC
 		conf = newConf
+		active.Store(c)
 		log.Warnln("[Reload] Finished")
 		newReloadMsg.Callback <- errReload
 	}
 
+	active.Store(nil)
 	if listener != nil {
 		if e := listener.Close(); e != nil {
 			log.Warnf("close listener: %v", e)
@@ -178,7 +187,10 @@ loop:
 }
 
 // serve listens in the dae netns and serves c in the background. It returns
-// once c reports ready, or with the listen/serve error.
+// once c reports ready, or with the listen/serve error. A generation that
+// dies after it was ready asks the run loop to exit; one that never became
+// ready is the caller's error to handle, so a failed reload candidate does
+// not take the process down with it.
 func serve(log *logrus.Logger, c *control.ControlPlane, port uint16) (listener *control.Listener, err error) {
 	err = control.GetDaeNetns().With(func() error {
 		var listenErr error
@@ -189,17 +201,25 @@ func serve(log *logrus.Logger, c *control.ControlPlane, port uint16) (listener *
 		return nil, fmt.Errorf("listen in dae netns: %w", err)
 	}
 	readyChan := make(chan bool, 1)
+	served := make(chan error, 1)
 	go func() {
-		if err := c.Serve(readyChan, listener); err != nil {
+		served <- c.Serve(readyChan, listener)
+	}()
+	if ready := <-readyChan; !ready {
+		err = <-served
+		_ = listener.Close()
+		if err == nil {
+			err = fmt.Errorf("control plane did not become ready")
+		}
+		return nil, fmt.Errorf("serve: %w", err)
+	}
+	go func() {
+		if err := <-served; err != nil && active.Load() == c {
 			log.Errorln("Serve:", err)
 			// The datapath died underneath us; ask the run loop to exit.
 			ChReloadConfigs <- nil
 		}
 	}()
-	if ready := <-readyChan; !ready {
-		_ = listener.Close()
-		return nil, fmt.Errorf("control plane did not become ready")
-	}
 	return listener, nil
 }
 
