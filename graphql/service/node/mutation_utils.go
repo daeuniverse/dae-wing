@@ -35,9 +35,13 @@ func importNode(d *gorm.DB, subscriptionId *uint, arg *internal.ImportArgument) 
 		return nil, err
 	}
 	var count int64
-	if err = d.Model(&db.Node{}).
-		Where("link = ?", arg.Link).
-		Where("subscription_id = ?", subscriptionId).Count(&count).Error; err != nil {
+	q := d.Model(&db.Node{}).Where("link = ?", arg.Link)
+	if subscriptionId == nil {
+		q = q.Where("subscription_id IS NULL")
+	} else {
+		q = q.Where("subscription_id = ?", subscriptionId)
+	}
+	if err = q.Count(&count).Error; err != nil {
 		return nil, err
 	}
 	if count > 0 {
@@ -85,12 +89,15 @@ func Update(d *gorm.DB, _id graphql.ID, link string) (r *Resolver, err error) {
 	if err != nil {
 		return nil, err
 	}
-	q := d.Model(&db.Node{ID: id}).Updates(newModel)
+	q := d.Model(&db.Node{ID: id}).Where("subscription_id IS NULL").Updates(newModel)
 	if err = q.Error; err != nil {
 		return nil, err
 	}
 	if q.RowsAffected == 0 {
-		return nil, fmt.Errorf("no such node")
+		return nil, fmt.Errorf("standalone node %s not found", _id)
+	}
+	if err = d.First(newModel, id).Error; err != nil {
+		return nil, fmt.Errorf("reload node %s: %w", _id, err)
 	}
 	return &Resolver{
 		Node: newModel,
@@ -127,11 +134,24 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
 	}()
+	var nodes []db.Node
+	if err = tx.Where("id IN ? AND subscription_id IS NULL", ids).Find(&nodes).Error; err != nil {
+		return 0, fmt.Errorf("find standalone nodes: %w", err)
+	}
+	found := make(map[uint]bool, len(nodes))
+	for _, n := range nodes {
+		found[n.ID] = true
+	}
+	for i, id := range ids {
+		if !found[id] {
+			return 0, fmt.Errorf("standalone node %s not found", _ids[i])
+		}
+	}
 
 	// Update modified if any nodes are referenced by running config.
 	if err = AutoUpdateVersionByIds(tx, ids); err != nil {
@@ -139,7 +159,7 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 	}
 
 	// Remove.
-	q := tx.Where("id in ?", ids).
+	q := tx.Where("id IN ? AND subscription_id IS NULL", ids).
 		Select(clause.Associations).
 		Delete(&db.Node{})
 	if q.Error != nil {
