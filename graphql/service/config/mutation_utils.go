@@ -54,7 +54,7 @@ func Create(ctx context.Context, name string, glob *global.Input) (*Resolver, er
 	}, nil
 }
 
-func Update(ctx context.Context, _id graphql.ID, inputGlobal global.Input) (*Resolver, error) {
+func Update(ctx context.Context, _id graphql.ID, inputGlobal global.Input) (r *Resolver, err error) {
 	id, err := common.DecodeCursor(_id)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func Update(ctx context.Context, _id graphql.ID, inputGlobal global.Input) (*Res
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -110,7 +110,7 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -222,7 +222,7 @@ func Select(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}

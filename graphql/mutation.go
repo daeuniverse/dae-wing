@@ -41,7 +41,7 @@ func (r *MutationResolver) CreateUser(args *struct {
 	tx := db.BeginTx(context.TODO())
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -189,7 +189,7 @@ func UpdatePassword(ctx context.Context, args *struct {
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -262,7 +262,9 @@ func (r *MutationResolver) Run(args *struct {
 		tx.Rollback()
 		return 0, err
 	}
-	tx.Commit()
+	if err = tx.Commit().Error; err != nil {
+		return 0, fmt.Errorf("commit run: %w", err)
+	}
 	return ret, nil
 }
 
@@ -356,7 +358,9 @@ func (r *MutationResolver) ImportNodes(args *struct {
 		tx.Rollback()
 		return nil, err
 	}
-	tx.Commit()
+	if err = tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("commit node import: %w", err)
+	}
 	return result, nil
 }
 
@@ -370,7 +374,9 @@ func (r *MutationResolver) UpdateNode(args *struct {
 		tx.Rollback()
 		return nil, err
 	}
-	tx.Commit()
+	if err = tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("commit node update: %w", err)
+	}
 	return result, nil
 }
 
@@ -403,7 +409,9 @@ func (r *MutationResolver) ImportSubscription(args *struct {
 		tx.Rollback()
 		return nil, err
 	}
-	tx.Commit()
+	if err = tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("commit subscription import: %w", err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	subscription.UpdateAll(ctx)
