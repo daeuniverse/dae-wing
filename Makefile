@@ -6,8 +6,6 @@ SHELL := /bin/bash
 OUTPUT ?= ./dae-wing
 APPNAME ?= dae-wing
 DESCRIPTION ?= $(APPNAME) is a integration solution of dae, API and UI.
-VERSION ?= 0.0.0.unknown
-GO_LDFLAGS := '-s -w -X github.com/daeuniverse/dae-wing/db.AppVersion=$(VERSION) -X github.com/daeuniverse/dae-wing/db.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/db.AppDescription=$(DESCRIPTION)" $(GO_LDFLAGS)'
 
 include functions.mk
 
@@ -15,11 +13,13 @@ include functions.mk
 date=$(shell git log -1 --format="%cd" --date=short | sed s/-//g)
 count=$(shell git rev-list --count HEAD)
 commit=$(shell git rev-parse --short HEAD)
-ifeq ($(wildcard .git/.),)
-	VERSION ?= unstable-0.nogit
-else
+ifeq ($(shell git rev-parse --is-inside-work-tree 2>/dev/null),true)
 	VERSION ?= unstable-$(date).r$(count).$(commit)
+else
+	VERSION ?= unstable-0.nogit
 endif
+
+GO_LDFLAGS := '-s -w -X github.com/daeuniverse/dae-wing/db.AppVersion=$(VERSION) -X github.com/daeuniverse/dae-wing/db.AppName=$(APPNAME) -X "github.com/daeuniverse/dae-wing/db.AppDescription=$(DESCRIPTION)" $(GO_LDFLAGS)'
 
 BUILD_ARGS := -trimpath -ldflags=$(GO_LDFLAGS) $(BUILD_ARGS)
 
