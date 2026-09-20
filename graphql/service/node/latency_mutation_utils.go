@@ -7,6 +7,7 @@ package node
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/netip"
 	"sync"
@@ -76,13 +77,13 @@ func latencyProbeOption(ctx context.Context) (*dialer.GlobalOption, error) {
 
 	log := logrus.New()
 	log.SetOutput(io.Discard)
+	fallbackResolver, err := netip.ParseAddrPort(parsedConfig.Global.FallbackResolver)
+	if err != nil {
+		return nil, fmt.Errorf("fallback_resolver %q: %w", parsedConfig.Global.FallbackResolver, err)
+	}
 	option := dialer.NewGlobalOption(&parsedConfig.Global, log)
 	directDialers := direct.NewDirectDialers(parsedConfig.Global.FallbackResolver)
-	option.SetRuntimeDependencies(
-		directDialers.Symmetric,
-		directDialers.Fullcone,
-		netutils.NewSystemDNSResolver(netip.MustParseAddrPort(parsedConfig.Global.FallbackResolver)),
-	)
+	option.SetRuntimeDependencies(directDialers.Symmetric, directDialers.Fullcone, netutils.NewSystemDNSResolver(fallbackResolver))
 	return option, nil
 }
 

@@ -22,6 +22,7 @@ import (
 	"github.com/daeuniverse/outbound/protocol/direct"
 	"github.com/mohae/deepcopy"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 var ErrControlPlaneNotInit = fmt.Errorf("control plane doesn't init yet")
@@ -29,6 +30,10 @@ var ErrControlPlaneNotInit = fmt.Errorf("control plane doesn't init yet")
 type ReloadMessage struct {
 	Config   *daeConfig.Config
 	Callback chan<- error
+	// failed is set by the serve monitor when a generation's datapath died.
+	// The run loop acts on it only while that generation is still the active
+	// one; a report from a generation that has since been replaced is stale.
+	failed *generation
 }
 
 var ChReloadConfigs = make(chan *ReloadMessage)
@@ -99,6 +104,14 @@ loop:
 	for newReloadMsg := range ChReloadConfigs {
 		if newReloadMsg == nil {
 			break loop
+		}
+		if newReloadMsg.failed != nil {
+			if newReloadMsg.failed == gen {
+				log.Errorln("Serve exited with an error; shutting down")
+				break loop
+			}
+			log.Warnln("[Reload] Ignoring serve failure of a replaced generation")
+			continue
 		}
 		log.Warnln("[Reload] Received reload signal; prepare to reload")
 		newConf := newReloadMsg.Config
@@ -214,8 +227,9 @@ func serve(log *logrus.Logger, gen *generation, port uint16) (listener *control.
 	go func() {
 		if err := <-served; err != nil && !gen.retired.Load() {
 			log.Errorln("Serve:", err)
-			// The datapath died underneath us; ask the run loop to exit.
-			ChReloadConfigs <- nil
+			// Report with the generation's identity: by the time the run loop
+			// receives this it may already have replaced the generation.
+			ChReloadConfigs <- &ReloadMessage{failed: gen}
 		}
 	}()
 	return listener, nil
@@ -243,6 +257,19 @@ func stopGeneration(log *logrus.Logger, gen *generation) {
 	}
 	if e := gen.c.Close(); e != nil {
 		log.Warnf("close control plane: %v", e)
+	}
+}
+
+// configureTransparentHugePages applies disable_thp to the process, as dae's
+// cmd does before every control plane build; prctl(PR_SET_THP_DISABLE) is
+// per-mm and idempotent, so a rollback simply applies the old value again.
+func configureTransparentHugePages(log *logrus.Logger, disable bool) {
+	value := uintptr(0)
+	if disable {
+		value = 1
+	}
+	if err := unix.Prctl(unix.PR_SET_THP_DISABLE, value, 0, 0, 0); err != nil {
+		log.WithError(err).Warnf("Failed to configure transparent huge pages (disable=%v)", disable)
 	}
 }
 
@@ -302,9 +329,15 @@ func newControlPlane(log *logrus.Logger, dnsCache map[string]*control.DnsCache, 
 	// generation is already detached by the time a reload gets here.
 	control.PurgeStaleTCFilters(log)
 
-	// Generation-scoped direct dialers and system resolver.
+	// Generation-scoped direct dialers and system resolver. The config was
+	// parsed, not validated: a bad fallback_resolver is an error, not a panic.
+	fallbackResolver, err := netip.ParseAddrPort(conf.Global.FallbackResolver)
+	if err != nil {
+		return nil, fmt.Errorf("fallback_resolver %q: %w", conf.Global.FallbackResolver, err)
+	}
+	configureTransparentHugePages(log, conf.Global.DisableTHP)
 	directDialers := direct.NewDirectDialers(conf.Global.FallbackResolver)
-	systemDNSResolver := netutils.NewSystemDNSResolver(netip.MustParseAddrPort(conf.Global.FallbackResolver))
+	systemDNSResolver := netutils.NewSystemDNSResolver(fallbackResolver)
 
 	if !conf.Global.DisableWaitingNetwork && len(conf.Global.WanInterface) > 0 {
 		// Wait for network for WAN ready.
