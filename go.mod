@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/daeuniverse/dae v0.2.0
-	github.com/daeuniverse/outbound v0.0.0-sticky-ip.0.20260401154811-cc1a217490f9
+	github.com/daeuniverse/outbound v0.0.0-sticky-ip.0.20260911162531-896954f65c52
 	github.com/glebarez/sqlite v1.8.0
 	github.com/go-co-op/gocron v1.37.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
@@ -12,7 +12,6 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
-	github.com/mzz2017/softwind v0.0.0-20230803152605-5f1f6bc06934
 	github.com/rs/cors v1.9.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
@@ -22,7 +21,7 @@ require (
 	github.com/vearutop/statigz v1.3.0
 	github.com/vishvananda/netlink v1.3.1
 	golang.org/x/crypto v0.48.0
-	golang.org/x/sys v0.41.0
+	golang.org/x/sys v0.43.0
 	golang.org/x/tools v0.42.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/sqlite v1.5.2
@@ -38,13 +37,11 @@ require (
 	github.com/awnumar/fastrand v0.0.0-20210315215012-30ee0990fa2d // indirect
 	github.com/awnumar/memcall v0.5.0 // indirect
 	github.com/awnumar/memguard v0.23.0 // indirect
-	github.com/bits-and-blooms/bitset v1.24.4 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.7.1 // indirect
 	github.com/bodgit/plumbing v1.3.0 // indirect
 	github.com/bodgit/sevenzip v1.6.1 // indirect
 	github.com/bodgit/windows v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cilium/ebpf v0.20.0 // indirect
+	github.com/cilium/ebpf v0.22.0 // indirect
 	github.com/daeuniverse/dae-config-dist/go/dae_config v0.0.0-20230604120805-1c27619b592d // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-idea v0.0.0-20170306091226-d2fb45a411fb // indirect
@@ -85,12 +82,12 @@ require (
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/okzk/sdnotify v0.0.0-20240725214427-1c1fdd37c5ac // indirect
-	github.com/olicesx/quic-go v0.0.0-20260226044315-bb65418d151a // indirect
+	github.com/olicesx/qpack v0.6.1-0.20260910092525-3d8903e3255f // indirect
+	github.com/olicesx/quic-go v0.0.0-20260910141758-62d80bbebb5b // indirect
 	github.com/onsi/ginkgo/v2 v2.28.1 // indirect
 	github.com/panjf2000/ants/v2 v2.11.5 // indirect
 	github.com/pierrec/lz4/v4 v4.1.25 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
@@ -120,7 +117,7 @@ require (
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260217215200-42d3e9bedb6d // indirect
@@ -135,6 +132,6 @@ require (
 
 replace github.com/daeuniverse/dae => ./dae-core
 
-replace github.com/daeuniverse/outbound => github.com/olicesx/outbound v0.0.0-sticky-ip.0.20260421051008-8de5a31bdbe1
+replace github.com/daeuniverse/outbound => github.com/olicesx/outbound v0.0.0-sticky-ip.0.20260918090140-cc86ced2e683
 
 // replace github.com/daeuniverse/dae => ../dae

@@ -6,6 +6,7 @@
 package dae
 
 import (
+	"github.com/daeuniverse/dae-wing/common"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"reflect"
 )
@@ -39,6 +40,9 @@ func (e *flatDescExporter) exportStruct(namePrefix string, mappingPrefix string,
 	for i := 0; i < t.NumField(); i++ {
 		section := t.Field(i)
 		mapping := section.Tag.Get("mapstructure")
+		if common.IsReservedConfigField(mapping) {
+			continue
+		}
 		// Parse desc.
 		var desc string
 		if descSource != nil {

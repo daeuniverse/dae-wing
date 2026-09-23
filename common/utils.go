@@ -94,3 +94,10 @@ func GetIfAddrs() (globalIfAddrs []string, err error) {
 	}
 	return daeCommon.Deduplicate(globalIfAddrs), nil
 }
+
+// IsReservedConfigField reports whether a dae config field exists only for the
+// parser's own bookkeeping. dae's marshaller drops such fields, so exposing
+// them through the API would accept values that never reach the config.
+func IsReservedConfigField(mapstructureKey string) bool {
+	return mapstructureKey == "so_mark_from_dae_set"
+}

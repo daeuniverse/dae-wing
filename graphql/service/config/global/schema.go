@@ -7,6 +7,7 @@ package global
 
 import (
 	"fmt"
+	"github.com/daeuniverse/dae-wing/common"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/sirupsen/logrus"
 	"github.com/stoewer/go-strcase"
@@ -38,6 +39,9 @@ func (b *builder) Build() (string, error) {
 		name, ok := structField.Tag.Lookup("mapstructure")
 		if !ok {
 			return "", fmt.Errorf("field %v has no required mapstructure", structField.Name)
+		}
+		if common.IsReservedConfigField(name) {
+			continue
 		}
 		// To lower camel case.
 		name = strcase.LowerCamelCase(name)

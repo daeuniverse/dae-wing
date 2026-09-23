@@ -18,8 +18,7 @@ import (
 	daeCommon "github.com/daeuniverse/dae/common"
 	daeConfig "github.com/daeuniverse/dae/config"
 	"github.com/daeuniverse/dae/pkg/config_parser"
-	"github.com/mzz2017/softwind/netproxy"
-	"github.com/mzz2017/softwind/protocol/direct"
+	"github.com/daeuniverse/outbound/netproxy"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,8 +32,9 @@ var (
 )
 
 func NecessaryOutbounds(routing *daeConfig.Routing) (outbounds []string) {
-	f := daeConfig.FunctionOrStringToFunction(routing.Fallback)
-	outbounds = append(outbounds, f.Name)
+	if f, err := daeConfig.ParseFunctionOrString(routing.Fallback); err == nil {
+		outbounds = append(outbounds, f.Name)
+	}
 	for _, r := range routing.Rules {
 		outbound := r.Outbound.Name
 		if outbound != "must_rules" {
@@ -94,13 +94,12 @@ func preprocessWanInterfaceAuto(params *daeConfig.Config) error {
 	return nil
 }
 
-func WaitForNetwork(log *logrus.Logger) {
+func WaitForNetwork(log *logrus.Logger, directDialer netproxy.Dialer) {
 	epo := 5 * time.Second
 	client := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, network, addr string) (c net.Conn, err error) {
-				cd := netproxy.ContextDialer{Dialer: direct.SymmetricDirect}
-				conn, err := cd.DialContext(ctx, "tcp", addr)
+				conn, err := directDialer.DialContext(ctx, "tcp", addr)
 				if err != nil {
 					return nil, err
 				}

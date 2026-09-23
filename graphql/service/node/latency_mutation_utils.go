@@ -7,14 +7,18 @@ package node
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"net/netip"
 	"sync"
 	"time"
 
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
+	"github.com/daeuniverse/dae/common/netutils"
 	dialer "github.com/daeuniverse/dae/component/outbound/dialer"
+	"github.com/daeuniverse/outbound/protocol/direct"
 	"github.com/graph-gophers/graphql-go"
 	"github.com/sirupsen/logrus"
 )
@@ -73,7 +77,14 @@ func latencyProbeOption(ctx context.Context) (*dialer.GlobalOption, error) {
 
 	log := logrus.New()
 	log.SetOutput(io.Discard)
-	return dialer.NewGlobalOption(&parsedConfig.Global, log), nil
+	fallbackResolver, err := netip.ParseAddrPort(parsedConfig.Global.FallbackResolver)
+	if err != nil {
+		return nil, fmt.Errorf("fallback_resolver %q: %w", parsedConfig.Global.FallbackResolver, err)
+	}
+	option := dialer.NewGlobalOption(&parsedConfig.Global, log)
+	directDialers := direct.NewDirectDialers(parsedConfig.Global.FallbackResolver)
+	option.SetRuntimeDependencies(directDialers.Symmetric, directDialers.Fullcone, netutils.NewSystemDNSResolver(fallbackResolver))
+	return option, nil
 }
 
 func latencyProbeNodes(ctx context.Context, ids *[]graphql.ID) ([]db.Node, error) {
@@ -100,7 +111,7 @@ func testSingleNodeLatency(option *dialer.GlobalOption, node *db.Node) *LatencyR
 		TestedAtV: time.Now(),
 	}
 
-	d, err := dialer.NewFromLink(option, dialer.InstanceOption{DisableCheck: false}, node.Link, "")
+	d, err := dialer.NewFromLinkContext(context.Background(), option, dialer.InstanceOption{DisableCheck: true}, node.Link, "")
 	if err != nil {
 		msg := err.Error()
 		resolver.MessageV = &msg
@@ -108,12 +119,7 @@ func testSingleNodeLatency(option *dialer.GlobalOption, node *db.Node) *LatencyR
 	}
 	defer d.Close()
 
-	result, err := d.ProbeLatency()
-	if err != nil {
-		msg := err.Error()
-		resolver.MessageV = &msg
-		return resolver
-	}
+	result := probeLatency(context.Background(), d)
 
 	resolver.AliveVal = result.Alive
 	resolver.TestedAtV = result.CheckedAt

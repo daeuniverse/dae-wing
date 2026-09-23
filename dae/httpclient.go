@@ -11,7 +11,7 @@ import (
 
 	"github.com/daeuniverse/dae/common/consts"
 	"github.com/daeuniverse/dae/control"
-	"github.com/mzz2017/softwind/netproxy"
+	"github.com/daeuniverse/outbound/netproxy"
 )
 
 var HttpTransport = &http.Transport{
