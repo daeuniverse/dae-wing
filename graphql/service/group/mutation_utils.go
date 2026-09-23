@@ -8,14 +8,14 @@ package group
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
 	"github.com/daeuniverse/dae-wing/common"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/daeuniverse/dae/pkg/config_parser"
 	"github.com/graph-gophers/graphql-go"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"regexp"
+	"strings"
 )
 
 func Create(ctx context.Context, name string, policy string, policyParams []config_parser.Param) (r *Resolver, err error) {
@@ -73,7 +73,7 @@ func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err erro
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -84,7 +84,7 @@ func Rename(ctx context.Context, _id graphql.ID, name string) (n int32, err erro
 	}
 	q := tx.Model(&g).Update("name", name)
 	if q.Error != nil {
-		return 0, err
+		return 0, q.Error
 	}
 	// Set modified = true if the group is changed and referenced by selected config.
 	if q.Statement.Changed() {
@@ -104,7 +104,7 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -131,7 +131,7 @@ func Remove(ctx context.Context, _id graphql.ID) (n int32, err error) {
 	return int32(q.RowsAffected), nil
 }
 
-func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []graphql.ID, nameFilterRegex *string) (int32, error) {
+func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []graphql.ID, nameFilterRegex *string) (n int32, err error) {
 	id, err := common.DecodeCursor(_id)
 	if err != nil {
 		return 0, err
@@ -155,7 +155,7 @@ func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -177,7 +177,7 @@ func AddSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 	return int32(len(subscriptionIds)), nil
 }
 
-func DelSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []graphql.ID) (int32, error) {
+func DelSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []graphql.ID) (n int32, err error) {
 	id, err := common.DecodeCursor(_id)
 	if err != nil {
 		return 0, err
@@ -189,7 +189,7 @@ func DelSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -205,7 +205,7 @@ func DelSubscriptions(ctx context.Context, _id graphql.ID, _subscriptionIds []gr
 	return int32(len(subscriptionIds)), nil
 }
 
-func AddNodes(ctx context.Context, _id graphql.ID, _nodeIds []graphql.ID) (int32, error) {
+func AddNodes(ctx context.Context, _id graphql.ID, _nodeIds []graphql.ID) (n int32, err error) {
 	id, err := common.DecodeCursor(_id)
 	if err != nil {
 		return 0, err
@@ -221,7 +221,7 @@ func AddNodes(ctx context.Context, _id graphql.ID, _nodeIds []graphql.ID) (int32
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -238,7 +238,7 @@ func AddNodes(ctx context.Context, _id graphql.ID, _nodeIds []graphql.ID) (int32
 	return int32(len(_nodeIds)), nil
 }
 
-func DelNodes(ctx context.Context, _id graphql.ID, _nodeIds []graphql.ID) (int32, error) {
+func DelNodes(ctx context.Context, _id graphql.ID, _nodeIds []graphql.ID) (n int32, err error) {
 	id, err := common.DecodeCursor(_id)
 	if err != nil {
 		return 0, err
@@ -254,7 +254,7 @@ func DelNodes(ctx context.Context, _id graphql.ID, _nodeIds []graphql.ID) (int32
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -279,7 +279,7 @@ func SetPolicy(ctx context.Context, _id graphql.ID, policy string, policyParams 
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}

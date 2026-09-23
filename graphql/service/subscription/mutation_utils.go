@@ -72,13 +72,17 @@ func _fetchLinks(subscriptionLink string, transport http.RoundTripper, timeout t
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("failed to fetch link: %v", resp.Status)
 	}
-	defer resp.Body.Close()
-	b, err = io.ReadAll(resp.Body)
+	const maxBodySize = 16 << 20
+	b, err = io.ReadAll(io.LimitReader(resp.Body, maxBodySize+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(b) > maxBodySize {
+		return nil, fmt.Errorf("subscription response exceeds 16 MiB")
 	}
 
 	// Resolve node links.
@@ -272,7 +276,7 @@ func UpdateById(ctx context.Context, subId uint) (sub *db.Subscription, err erro
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -300,7 +304,7 @@ func UpdateById(ctx context.Context, subId uint) (sub *db.Subscription, err erro
 	}
 	hasAnyCandidate := false
 	for _, r := range result {
-		if r.Error == nil {
+		if r.Error == nil || *r.Error == node.DuplicatedError.Error() {
 			hasAnyCandidate = true
 			break
 		}
@@ -331,7 +335,7 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -355,6 +359,9 @@ func Remove(ctx context.Context, _ids []graphql.ID) (n int32, err error) {
 	}
 
 	// Remove.
+	if err = tx.Exec("DELETE FROM group_nodes WHERE node_id IN ?", nodeIds).Error; err != nil {
+		return 0, fmt.Errorf("remove subscription node bindings: %w", err)
+	}
 	if err = tx.Where("subscription_id in ?", ids).
 		Delete(&db.Node{}).Error; err != nil {
 		return 0, err
@@ -403,7 +410,7 @@ func UpdateLink(ctx context.Context, _id graphql.ID, link string) (r *Resolver, 
 	tx := db.BeginTx(ctx)
 	defer func() {
 		if err == nil {
-			tx.Commit()
+			err = tx.Commit().Error
 		} else {
 			tx.Rollback()
 		}
@@ -439,7 +446,10 @@ func UpdateCron(ctx context.Context, _id graphql.ID, cronExp string, cronEnable 
 	}
 
 	// Validate cron expression if enabling
-	if cronEnable && cronExp != "" {
+	if cronEnable {
+		if cronExp == "" {
+			return nil, fmt.Errorf("cron expression is required when enabling updates")
+		}
 		s := gocron.NewScheduler(time.Local)
 		_, err := s.Cron(cronExp).Do(func() {})
 		if err != nil {
@@ -449,13 +459,7 @@ func UpdateCron(ctx context.Context, _id graphql.ID, cronExp string, cronEnable 
 	}
 
 	tx := db.BeginTx(ctx)
-	defer func() {
-		if err == nil {
-			tx.Commit()
-		} else {
-			tx.Rollback()
-		}
-	}()
+	defer tx.Rollback()
 
 	var m db.Subscription
 	if err = tx.Where(&db.Subscription{ID: id}).First(&m).Error; err != nil {
@@ -470,6 +474,9 @@ func UpdateCron(ctx context.Context, _id graphql.ID, cronExp string, cronEnable 
 			"cron_enable": cronEnable,
 		}).Error; err != nil {
 		return nil, err
+	}
+	if err = tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("commit subscription cron settings: %w", err)
 	}
 
 	// Update scheduler

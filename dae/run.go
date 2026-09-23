@@ -63,7 +63,11 @@ func Run(log *logrus.Logger, conf *daeConfig.Config, externGeoDataDirs []string,
 			case nil:
 				break dryLoop
 			default:
-				newConf.Callback <- nil
+				if newConf.Config != EmptyConfig {
+					newConf.Callback <- fmt.Errorf("dae-wing is running with --api-only")
+				} else {
+					newConf.Callback <- nil
+				}
 			}
 		}
 		return nil

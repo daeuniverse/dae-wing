@@ -56,7 +56,8 @@ func (r *DaeResolver) Modified() (bool, error) {
 		return true, q.Error
 	}
 
-	if selectedConfig.ID != *m.RunningConfigID || selectedConfig.Version != m.RunningConfigVersion ||
+	if m.RunningConfigID == nil || m.RunningDnsID == nil || m.RunningRoutingID == nil ||
+		selectedConfig.ID != *m.RunningConfigID || selectedConfig.Version != m.RunningConfigVersion ||
 		selectedDns.ID != *m.RunningDnsID || selectedDns.Version != m.RunningDnsVersion ||
 		selectedRouting.ID != *m.RunningRoutingID || selectedRouting.Version != m.RunningRoutingVersion ||
 		len(m.RunningGroups) == 0 {

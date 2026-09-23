@@ -14,15 +14,20 @@ import (
 	"github.com/daeuniverse/dae-wing/dae"
 	"github.com/daeuniverse/dae-wing/db"
 	"github.com/graph-gophers/graphql-go"
+	"gorm.io/gorm"
 )
 
+type latencyCacheEntry struct {
+	result    *LatencyResolver
+	updatedAt time.Time
+}
+
 var nodeLatencyCache = struct {
-	mu          sync.RWMutex
-	refreshMu   sync.Mutex
-	updatedAt   time.Time
-	items       map[uint]*LatencyResolver
+	mu        sync.RWMutex
+	refreshMu sync.Mutex
+	items     map[uint]latencyCacheEntry
 }{
-	items: map[uint]*LatencyResolver{},
+	items: map[uint]latencyCacheEntry{},
 }
 
 func cloneLatencyResolver(resolver *LatencyResolver) *LatencyResolver {
@@ -46,12 +51,14 @@ func storeLatencyResults(results []*LatencyResolver) {
 	nodeLatencyCache.mu.Lock()
 	defer nodeLatencyCache.mu.Unlock()
 
-	nodeLatencyCache.updatedAt = time.Now()
+	now := time.Now()
 	for _, result := range results {
 		if result == nil {
 			continue
 		}
-		nodeLatencyCache.items[result.NodeID] = cloneLatencyResolver(result)
+		nodeLatencyCache.items[result.NodeID] = latencyCacheEntry{
+			result: cloneLatencyResolver(result), updatedAt: now,
+		}
 	}
 }
 
@@ -61,15 +68,22 @@ func snapshotCachedLatencyResults() map[uint]*LatencyResolver {
 
 	results := make(map[uint]*LatencyResolver, len(nodeLatencyCache.items))
 	for id, resolver := range nodeLatencyCache.items {
-		results[id] = cloneLatencyResolver(resolver)
+		results[id] = cloneLatencyResolver(resolver.result)
 	}
 	return results
 }
 
-func lastLatencyCacheUpdatedAt() time.Time {
+func staleLatencyNodes(nodes []db.Node, interval time.Duration, now time.Time) []db.Node {
 	nodeLatencyCache.mu.RLock()
 	defer nodeLatencyCache.mu.RUnlock()
-	return nodeLatencyCache.updatedAt
+	var stale []db.Node
+	for _, node := range nodes {
+		entry, ok := nodeLatencyCache.items[node.ID]
+		if !ok || now.Sub(entry.updatedAt) >= interval {
+			stale = append(stale, node)
+		}
+	}
+	return stale
 }
 
 func loadRuntimeLatencyResults(ctx context.Context) (map[uint]*LatencyResolver, error) {
@@ -151,13 +165,8 @@ func selectedCheckInterval(ctx context.Context) (time.Duration, error) {
 	return parsedConfig.Global.CheckInterval, nil
 }
 
-func refreshLatencyCache(ctx context.Context) error {
+func refreshLatencyCache(ctx context.Context, nodes []db.Node, all bool) error {
 	option, err := latencyProbeOption(ctx)
-	if err != nil {
-		return err
-	}
-
-	nodes, err := latencyProbeNodes(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -165,33 +174,34 @@ func refreshLatencyCache(ctx context.Context) error {
 	results := testLatencyResultsForNodes(option, nodes)
 	storeLatencyResults(results)
 
-	if ctl, err := dae.ControlPlane(); err == nil {
-		ctl.TriggerLatencyChecks()
+	if all {
+		if ctl, err := dae.ControlPlane(); err == nil {
+			ctl.TriggerLatencyChecks()
+		}
 	}
 
 	return nil
 }
 
-func refreshLatencyCacheIfNeeded(ctx context.Context) error {
+func refreshLatencyCacheIfNeeded(ctx context.Context, nodes []db.Node, all bool) error {
 	interval, err := selectedCheckInterval(ctx)
 	if err != nil {
 		return err
 	}
 
-	lastUpdated := lastLatencyCacheUpdatedAt()
-	if !lastUpdated.IsZero() && time.Since(lastUpdated) < interval {
+	if len(staleLatencyNodes(nodes, interval, time.Now())) == 0 {
 		return nil
 	}
 
 	nodeLatencyCache.refreshMu.Lock()
 	defer nodeLatencyCache.refreshMu.Unlock()
 
-	lastUpdated = lastLatencyCacheUpdatedAt()
-	if !lastUpdated.IsZero() && time.Since(lastUpdated) < interval {
+	stale := staleLatencyNodes(nodes, interval, time.Now())
+	if len(stale) == 0 {
 		return nil
 	}
 
-	return refreshLatencyCache(ctx)
+	return refreshLatencyCache(ctx, stale, all)
 }
 
 func mapsValues(items map[uint]*LatencyResolver) []*LatencyResolver {
@@ -207,12 +217,11 @@ func stringPtr(value string) *string {
 }
 
 func QueryLatencies(ctx context.Context, ids *[]graphql.ID) ([]*LatencyResolver, error) {
-	if err := refreshLatencyCacheIfNeeded(ctx); err != nil {
-		return nil, err
-	}
-
 	nodes, err := latencyProbeNodes(ctx, ids)
 	if err != nil {
+		return nil, err
+	}
+	if err := refreshLatencyCacheIfNeeded(ctx, nodes, ids == nil); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
