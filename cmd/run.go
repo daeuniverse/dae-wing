@@ -147,6 +147,15 @@ var (
 			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGILL)
 			for sig := range sigs {
 				_errorExit(errors.New(sig.String()))
+				// Best-effort: checkpoint the SQLite WAL and close
+				// the pool after dae has finished graceful
+				// shutdown. Failure here is non-fatal because
+				// wing.db will be re-opened on the next start.
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				if err := db.Shutdown(shutdownCtx); err != nil {
+					logrus.Warnf("db.Shutdown: %v", err)
+				}
+				cancel()
 				return
 			}
 		},
